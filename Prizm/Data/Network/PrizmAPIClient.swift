@@ -28,7 +28,7 @@ protocol PrizmAPIClientProtocol: Actor {
     ///   be read from a heap dump after the session ends (Constitution §III).
     func clearAccessToken()
 
-    /// POST `/accounts/prelogin` — returns KDF parameters for the given email.
+    /// POST `/identity/accounts/prelogin` — returns KDF parameters for the given email.
     /// Used to derive the master key before posting credentials to `/connect/token`.
     ///
     /// No authentication required; sends only the email address.
@@ -208,7 +208,7 @@ protocol PrizmAPIClientProtocol: Actor {
 
 // MARK: - Wire Models
 
-/// Response from POST `/accounts/prelogin`.
+/// Response from POST `/identity/accounts/prelogin`.
 ///
 /// Contains the KDF parameters needed to derive the master key locally.
 /// `kdfMemory` and `kdfParallelism` are only present when `kdf == 1` (Argon2id).
@@ -310,11 +310,13 @@ extension APIError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .httpError(let statusCode, let body):
-            return body.isEmpty ? "Server error \(statusCode)." : "Server error \(statusCode): \(body)"
+            return body.isEmpty
+                ? L("Server error %lld.", statusCode)
+                : L("Server error %lld: %@", statusCode, body)
         case .decodingFailed:
-            return "The server response could not be read. Please try again."
+            return L("The server response could not be read. Please try again.")
         case .baseURLNotSet:
-            return "No server URL is configured."
+            return L("No server URL is configured.")
         }
     }
 }
@@ -417,7 +419,10 @@ actor PrizmAPIClientImpl: PrizmAPIClientProtocol {
 
     func preLogin(email: String) async throws -> PreLoginResponse {
         guard let base = baseURL else { throw APIError.baseURLNotSet }
-        let url = base.appendingPathComponent("api/accounts/prelogin")
+        // `/accounts/prelogin` is served by the **identity** service, not the API service.
+        // Bitwarden and Vaultwarden both return 404 for `/api/accounts/prelogin`; the
+        // legacy path was retired when prelogin moved behind the identity endpoint.
+        let url = base.appendingPathComponent("identity/accounts/prelogin")
 
         if DebugConfig.isEnabled {
             logger.debug("[debug] preLogin → POST \(url.absoluteString, privacy: .public)")
@@ -774,7 +779,7 @@ actor PrizmAPIClientImpl: PrizmAPIClientProtocol {
         let (_, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
             let code = (response as? HTTPURLResponse)?.statusCode ?? 0
-            throw APIError.httpError(statusCode: code, body: "Azure upload failed")
+            throw APIError.httpError(statusCode: code, body: L("Azure upload failed"))
         }
     }
 
@@ -806,7 +811,7 @@ actor PrizmAPIClientImpl: PrizmAPIClientProtocol {
     func downloadBlob(from url: URL) async throws -> Data {
         let (data, response) = try await session.data(from: url)
         guard let http = response as? HTTPURLResponse else {
-            throw APIError.httpError(statusCode: 0, body: "Invalid response")
+            throw APIError.httpError(statusCode: 0, body: L("Invalid response"))
         }
         guard (200..<300).contains(http.statusCode) else {
             throw APIError.httpError(statusCode: http.statusCode, body: "")
