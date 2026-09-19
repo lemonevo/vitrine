@@ -15,6 +15,9 @@ DerivedData/
 *.dSYM.zip
 *.dSYM
 
+# Locally assembled .app bundle (build-app.sh) and its generated entitlements
+dist/
+
 # Swift Package Manager
 .build/
 .swiftpm/
