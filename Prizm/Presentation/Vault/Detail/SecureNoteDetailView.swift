@@ -16,13 +16,13 @@ struct SecureNoteDetailView: View {
         VStack(alignment: .leading, spacing: 0) {
 
                 if let notes = secureNote.notes, !notes.isEmpty {
-                    DetailSectionCard("Note") {
+                    DetailSectionCard(L("Note")) {
                         FieldRowView(label: "", value: notes, itemId: item.id, isMultiLine: true, onCopy: onCopy)
                     }
                 }
 
                 if !secureNote.customFields.isEmpty {
-                    DetailSectionCard("Custom Fields") {
+                    DetailSectionCard(L("Custom Fields")) {
                         CustomFieldsSection(
                             fields: secureNote.customFields,
                             itemId: item.id,

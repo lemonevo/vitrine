@@ -247,7 +247,7 @@ final class UnlockViewModel: ObservableObject {
     }
 
     private func performSync() async {
-        flowState = .syncing(message: "Preparing…")
+        flowState = .syncing(message: L("Preparing…"))
         do {
             _ = try await sync.execute(progress: { [weak self] message in
                 Task { @MainActor [weak self] in self?.flowState = .syncing(message: message) }

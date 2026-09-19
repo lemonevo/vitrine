@@ -61,7 +61,7 @@ actor SyncRepositoryImpl: SyncRepository {
         defer { isSyncing = false }
 
         // Phase 1: Fetch encrypted vault from server.
-        progress("Syncing vault…")
+        progress(L("Syncing vault…"))
         logger.info("Starting vault sync")
 
         let syncResponse: SyncResponse
@@ -98,7 +98,7 @@ actor SyncRepositoryImpl: SyncRepository {
         }
 
         // Phase 2: Decrypt personal ciphers via the crypto service.
-        progress("Decrypting \(totalCiphers) item(s)…")
+        progress(L("Decrypting %lld item(s)…", totalCiphers))
 
         var (items, failedCount, cipherKeyMap) = try await crypto.decryptList(ciphers: syncResponse.ciphers)
         logger.info("Decrypted \(items.count) cipher(s); \(failedCount) failure(s)")

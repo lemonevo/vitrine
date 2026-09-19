@@ -135,17 +135,18 @@ struct UnlockView: View {
     /// Subtitle varies by whether biometric unlock is available.
     private var subtitleText: String {
         if viewModel.biometricUnlockAvailable {
-            return "\(biometricMethodName) or enter the password for \(viewModel.email) to unlock."
+            return L("%@ or enter the password for %@ to unlock.", biometricMethodName, viewModel.email)
         } else {
-            return "Enter the password for \(viewModel.email) to unlock."
+            return L("Enter the password for %@ to unlock.", viewModel.email)
         }
     }
 
+    // Sensor names are Apple product names and stay untranslated.
     private var biometricMethodName: String {
         switch LAContext().biometryType {
         case .touchID: return "Touch ID"
         case .faceID:  return "Face ID"
-        default:       return "Biometrics"
+        default:       return L("Biometrics")
         }
     }
 

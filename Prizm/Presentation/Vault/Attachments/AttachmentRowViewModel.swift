@@ -101,7 +101,7 @@ final class AttachmentRowViewModel {
 
                 self.logger.info("open: opened \(self.attachment.id, privacy: .public)")
             } catch {
-                self.actionError = "Could not open file: \(error.localizedDescription)"
+                self.actionError = L("Could not open file: %@", error.localizedDescription)
                 self.logger.error("open failed: \(error.localizedDescription, privacy: .public)")
             }
             self.isLoading = false
@@ -130,7 +130,7 @@ final class AttachmentRowViewModel {
                 data.resetBytes(in: 0..<data.count)
                 self.logger.info("saveToDisk: saved \(self.attachment.id, privacy: .public)")
             } catch {
-                self.actionError = "Could not save file: \(error.localizedDescription)"
+                self.actionError = L("Could not save file: %@", error.localizedDescription)
                 self.logger.error("saveToDisk failed: \(error.localizedDescription, privacy: .public)")
             }
             self.isLoading = false
@@ -154,7 +154,7 @@ final class AttachmentRowViewModel {
                 self.logger.info("delete: removed \(self.attachment.id, privacy: .public)")
                 self.onAttachmentChanged?()
             } catch {
-                self.actionError = "Could not delete attachment: \(error.localizedDescription)"
+                self.actionError = L("Could not delete attachment: %@", error.localizedDescription)
                 self.logger.error("delete failed: \(error.localizedDescription, privacy: .public)")
             }
             self.isLoading = false
@@ -179,7 +179,7 @@ final class AttachmentRowViewModel {
             do {
                 fileData = try Data(contentsOf: fileURL)
             } catch {
-                self.retryError = "Could not read file: \(error.localizedDescription)"
+                self.retryError = L("Could not read file: %@", error.localizedDescription)
                 self.isRetrying = false
                 return
             }
@@ -199,7 +199,7 @@ final class AttachmentRowViewModel {
                 self.logger.info("retryUpload: succeeded for \(self.attachment.id, privacy: .public)")
             } catch {
                 fileData.resetBytes(in: 0..<fileData.count)
-                self.retryError = "Retry failed: \(error.localizedDescription)"
+                self.retryError = L("Retry failed: %@", error.localizedDescription)
                 self.logger.error("retryUpload failed: \(error.localizedDescription, privacy: .public)")
             }
 

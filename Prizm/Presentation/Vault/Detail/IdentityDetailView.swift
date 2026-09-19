@@ -38,7 +38,7 @@ struct IdentityDetailView: View {
         VStack(alignment: .leading, spacing: 0) {
 
                 if hasPersonalInfo {
-                    DetailSectionCard("Personal Info") {
+                    DetailSectionCard(L("Personal Info")) {
                         fieldRows([
                             ("Title",       identity.title),
                             ("First Name",  identity.firstName),
@@ -50,7 +50,7 @@ struct IdentityDetailView: View {
                 }
 
                 if hasIDNumbers {
-                    DetailSectionCard("ID Numbers") {
+                    DetailSectionCard(L("ID Numbers")) {
                         fieldRows([
                             ("SSN",             identity.ssn),
                             ("Passport Number", identity.passportNumber),
@@ -60,7 +60,7 @@ struct IdentityDetailView: View {
                 }
 
                 if hasContact {
-                    DetailSectionCard("Contact") {
+                    DetailSectionCard(L("Contact")) {
                         fieldRows([
                             ("Email",    identity.email),
                             ("Phone",    identity.phone),
@@ -70,7 +70,7 @@ struct IdentityDetailView: View {
                 }
 
                 if hasAddress {
-                    DetailSectionCard("Address") {
+                    DetailSectionCard(L("Address")) {
                         fieldRows([
                             ("Address 1",    identity.address1),
                             ("Address 2",    identity.address2),
@@ -84,13 +84,13 @@ struct IdentityDetailView: View {
                 }
 
                 if let notes = identity.notes, !notes.isEmpty {
-                    DetailSectionCard("Notes") {
+                    DetailSectionCard(L("Notes")) {
                         FieldRowView(label: "", value: notes, itemId: item.id, isMultiLine: true, onCopy: onCopy)
                     }
                 }
 
                 if !identity.customFields.isEmpty {
-                    DetailSectionCard("Custom Fields") {
+                    DetailSectionCard(L("Custom Fields")) {
                         CustomFieldsSection(fields: identity.customFields, itemId: item.id, onCopy: onCopy)
                     }
                 }

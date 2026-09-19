@@ -13,8 +13,8 @@ struct SecureNoteEditForm: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
 
-                DetailSectionCard("Note") {
-                    OptionalEditFieldRow(label: "Note", value: $draft.notes)
+                DetailSectionCard(L("Note")) {
+                    OptionalEditFieldRow(label: L("Note"), value: $draft.notes)
                 }
 
                 CustomFieldsEditSection(fields: $draft.customFields)

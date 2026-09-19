@@ -7,8 +7,8 @@ import SwiftUI
 ///
 /// Usage:
 /// ```swift
-/// EditFieldRow(label: "Username", text: $draft.username)
-/// EditFieldRow(label: "Notes", text: $draft.notes, isMultiline: true)
+/// EditFieldRow(label: L("Username"), text: $draft.username)
+/// EditFieldRow(label: L("Notes"), text: $draft.notes, isMultiline: true)
 /// ```
 struct EditFieldRow: View {
 
@@ -148,8 +148,8 @@ struct MaskedEditFieldRow: View {
                     .imageScale(.small)
             }
             .buttonStyle(.plain)
-            .help(isRevealed ? "Hide" : "Reveal")
-            .accessibilityLabel(isRevealed ? "Hide \(label)" : "Reveal \(label)")
+            .help(isRevealed ? L("Hide") : L("Reveal"))
+            .accessibilityLabel(isRevealed ? L("Hide %@", label) : L("Reveal %@", label))
         }
         .padding(.vertical, Spacing.rowVertical)
         .padding(.horizontal, Spacing.rowHorizontal)

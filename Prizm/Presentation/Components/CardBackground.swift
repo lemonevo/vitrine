@@ -43,10 +43,10 @@ extension View {
 ///
 /// Usage:
 /// ```swift
-/// DetailSectionCard("Credentials") {
-///     FieldRowView(label: "Username", ...)
+/// DetailSectionCard(L("Credentials")) {
+///     FieldRowView(label: L("Username"), ...)
 ///     Divider()
-///     FieldRowView(label: "Password", ...)
+///     FieldRowView(label: L("Password"), ...)
 /// }
 /// ```
 struct DetailSectionCard<Content: View>: View {

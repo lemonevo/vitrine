@@ -42,15 +42,15 @@ nonisolated enum SyncError: Error, LocalizedError, Equatable {
     var errorDescription: String? {
         switch self {
         case .networkUnavailable:
-            return "No internet connection. Check your network connection."
+            return L("No internet connection. Check your network connection.")
         case .serverUnreachable(let url):
-            return "Cannot reach \(url.host ?? url.absoluteString). Verify the URL and check your connection."
+            return L("Cannot reach %@. Verify the URL and check your connection.", url.host ?? url.absoluteString)
         case .unauthorized:
-            return "Your session has expired. Try signing out and signing in again."
+            return L("Your session has expired. Try signing out and signing in again.")
         case .decryptionFailed:
-            return "Failed to decrypt your vault. Please sign in again."
+            return L("Failed to decrypt your vault. Please sign in again.")
         case .syncInProgress:
-            return "Sync is already in progress."
+            return L("Sync is already in progress.")
         }
     }
 }

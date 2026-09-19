@@ -75,7 +75,7 @@ struct ItemEditView: View {
                     // multiple collections, extra collection IDs (outside this org) are
                     // preserved on save; only the selected collection within this org changes.
                     let orgCollectionIds = Set(orgCollections.map(\.id))
-                    DetailSectionCard("Collection") {
+                    DetailSectionCard(L("Collection")) {
                         HStack {
                             Picker(selection: Binding(
                                 get: {
@@ -102,7 +102,7 @@ struct ItemEditView: View {
                     }
                 }
             } else if !viewModel.folders.isEmpty {
-                DetailSectionCard("Folder") {
+                DetailSectionCard(L("Folder")) {
                     HStack {
                         Picker(selection: $viewModel.draft.folderId) {
                             Text("None").tag(String?.none)
@@ -147,7 +147,7 @@ struct ItemEditView: View {
             }
 
             ToolbarItem(placement: .confirmationAction) {
-                Button(viewModel.isSaving ? "Saving…" : "Save") {
+                Button(viewModel.isSaving ? L("Saving…") : L("Save")) {
                     viewModel.save()
                 }
                 .disabled(!viewModel.canSave)

@@ -116,7 +116,7 @@ final class AttachmentAddViewModel: Identifiable {
 
         let maxBytes = 500 * 1024 * 1024
         if bytes > maxBytes {
-            sizeError = "File exceeds the 500 MB limit (\(ByteCountFormatter.string(fromByteCount: Int64(bytes), countStyle: .file)))."
+            sizeError = L("File exceeds the 500 MB limit (%@).", ByteCountFormatter.string(fromByteCount: Int64(bytes), countStyle: .file))
             return
         }
 
@@ -146,7 +146,7 @@ final class AttachmentAddViewModel: Identifiable {
             do {
                 fileData = try Data(contentsOf: url)
             } catch {
-                self.uploadError = "Could not read file: \(error.localizedDescription)"
+                self.uploadError = L("Could not read file: %@", error.localizedDescription)
                 self.isUploading = false
                 self.uploadTask  = nil
                 return
@@ -162,12 +162,12 @@ final class AttachmentAddViewModel: Identifiable {
                 self.isDismissed = true
             } catch AttachmentError.premiumRequired {
                 fileData.resetBytes(in: 0..<fileData.count)
-                self.uploadError = "Attachment storage requires a premium Bitwarden subscription."
+                self.uploadError = L("Attachment storage requires a premium Bitwarden subscription.")
             } catch is CancellationError {
                 fileData.resetBytes(in: 0..<fileData.count)
             } catch {
                 fileData.resetBytes(in: 0..<fileData.count)
-                self.uploadError = "Upload failed: \(error.localizedDescription)"
+                self.uploadError = L("Upload failed: %@", error.localizedDescription)
                 logger.error("upload failed: \(error.localizedDescription, privacy: .public)")
             }
 

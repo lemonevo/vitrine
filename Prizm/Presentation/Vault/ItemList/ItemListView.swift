@@ -57,7 +57,7 @@ struct ItemListView: View {
                                     .accessibilityIdentifier(AccessibilityID.ItemList.row(item.id))
                                     .contextMenu {
                                         if let onToggleFavorite {
-                                            Button(item.isFavorite ? "Unfavorite" : "Favorite") {
+                                            Button(item.isFavorite ? L("Unfavorite") : L("Favorite")) {
                                                 onToggleFavorite(item)
                                             }
                                         }

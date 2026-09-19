@@ -12,9 +12,9 @@ import SwiftUI
 ///
 /// Usage:
 /// ```swift
-/// FieldRowView(label: "Username", value: item.username, itemId: item.id)
-/// FieldRowView(label: "Password", value: item.password, itemId: item.id, isMasked: true)
-/// FieldRowView(label: "Website", value: uri.uri, itemId: item.id, url: URL(string: uri.uri))
+/// FieldRowView(label: L("Username"), value: item.username, itemId: item.id)
+/// FieldRowView(label: L("Password"), value: item.password, itemId: item.id, isMasked: true)
+/// FieldRowView(label: L("Website"), value: uri.uri, itemId: item.id, url: URL(string: uri.uri))
 /// ```
 struct FieldRowView: View {
 
@@ -71,7 +71,7 @@ struct FieldRowView: View {
                 isHovered = hovering
             }
         }
-        .accessibilityHint(value != nil && !(value?.isEmpty ?? true) ? "Copies \(label) to clipboard" : "")
+        .accessibilityHint(value != nil && !(value?.isEmpty ?? true) ? L("Copies %@ to clipboard", label) : "")
         .accessibilityIdentifier(AccessibilityID.Field.row(label))
     }
 
@@ -89,7 +89,7 @@ struct FieldRowView: View {
     private var hoverActions: some View {
         if isHovered || showCopied {
             if value != nil, !(value?.isEmpty ?? true) {
-                Text(showCopied ? "copied" : "copy")
+                Text(showCopied ? L("copied") : L("copy"))
                     .font(.headline)
                     .textCase(.uppercase)
                     .foregroundStyle(Color.accentColor)

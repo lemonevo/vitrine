@@ -128,8 +128,8 @@ struct SidebarView: View {
     private func renderRows(for section: SidebarSection) -> some View {
         switch section {
         case .menu:
-            SidebarRowView(title: "All Items", systemImage: "square.grid.2x2", selection: .allItems, count: itemCounts[.allItems] ?? 0)
-            SidebarRowView(title: "Favorites", systemImage: "star", selection: .favorites, count: itemCounts[.favorites] ?? 0)
+            SidebarRowView(title: SidebarSelection.allItems.displayName, systemImage: "square.grid.2x2", selection: .allItems, count: itemCounts[.allItems] ?? 0)
+            SidebarRowView(title: SidebarSelection.favorites.displayName, systemImage: "star", selection: .favorites, count: itemCounts[.favorites] ?? 0)
         case .folders:
             if isCreatingFolder {
                 TextField("Name or Parent/Name", text: $newFolderName, onCommit: {
@@ -193,7 +193,7 @@ struct SidebarView: View {
                 )
             }
         case .trash:
-            SidebarRowView(title: "Trash", systemImage: "trash", selection: .trash, count: itemCounts[.trash] ?? 0)
+            SidebarRowView(title: SidebarSelection.trash.displayName, systemImage: "trash", selection: .trash, count: itemCounts[.trash] ?? 0)
         }
     }
 
@@ -335,7 +335,21 @@ private struct FolderRowLabel: View {
 
 enum SidebarSection: String, CaseIterable {
     case menu, folders, types, organizations, trash
-    var title: String { self.rawValue.capitalized }
+
+    /// Localized section header.
+    ///
+    /// Deliberately a switch rather than `rawValue.capitalized`: `title` is a
+    /// `String`, so `Text(section.title)` uses the *verbatim* initializer and a
+    /// capitalized raw value would never be looked up in `Localizable.strings`.
+    var title: String {
+        switch self {
+        case .menu:          return L("Menu")
+        case .folders:       return L("Folders")
+        case .types:         return L("Types")
+        case .organizations: return L("Organizations")
+        case .trash:         return L("Trash")
+        }
+    }
 }
 
 // MARK: - OrgDisclosureRow

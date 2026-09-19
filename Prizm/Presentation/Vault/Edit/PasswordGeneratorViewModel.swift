@@ -75,7 +75,7 @@ final class PasswordGeneratorViewModel: ObservableObject {
             errorMessage = nil
             config.save(to: defaults)
         } catch {
-            errorMessage = "Generation failed: \(error.localizedDescription)"
+            errorMessage = L("Generation failed: %@", error.localizedDescription)
             generatedValue = ""
         }
     }

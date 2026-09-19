@@ -16,7 +16,7 @@ struct CustomFieldsEditSection: View {
 
     var body: some View {
         if !fields.isEmpty {
-            DetailSectionCard("Custom Fields") {
+            DetailSectionCard(L("Custom Fields")) {
                 ForEach(fields.indices, id: \.self) { index in
                     if index > 0 { Divider() }
                     CustomFieldEditRow(field: $fields[index])
@@ -89,8 +89,8 @@ private struct CustomFieldEditRow: View {
                         .imageScale(.small)
                 }
                 .buttonStyle(.plain)
-                .help(isRevealed ? "Hide" : "Reveal")
-                .accessibilityLabel(isRevealed ? "Hide \(field.name)" : "Reveal \(field.name)")
+                .help(isRevealed ? L("Hide") : L("Reveal"))
+                .accessibilityLabel(isRevealed ? L("Hide %@", field.name) : L("Reveal %@", field.name))
             }
         }
         .padding(.vertical, Spacing.rowVertical)

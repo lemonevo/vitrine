@@ -111,7 +111,7 @@ struct ItemRowView: View {
 
         case .sshKey(let k):
             if let fp = k.keyFingerprint, !fp.isEmpty { return fp }
-            return "[No fingerprint]"
+            return L("[No fingerprint]")
         }
     }
 

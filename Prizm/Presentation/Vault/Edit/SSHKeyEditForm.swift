@@ -15,18 +15,18 @@ struct SSHKeyEditForm: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
 
-                DetailSectionCard("SSH Key") {
+                DetailSectionCard(L("SSH Key")) {
                     // Private key is sensitive — masked by default with reveal toggle.
-                    MaskedEditFieldRow(label: "Private Key", value: $draft.privateKey)
+                    MaskedEditFieldRow(label: L("Private Key"), value: $draft.privateKey)
                     Divider()
-                    OptionalEditFieldRow(label: "Public Key", value: $draft.publicKey)
+                    OptionalEditFieldRow(label: L("Public Key"), value: $draft.publicKey)
                     Divider()
                     // Key fingerprint is server-derived; shown for reference only.
                     readOnlyFingerprintRow
                 }
 
-                DetailSectionCard("Notes") {
-                    OptionalEditFieldRow(label: "Notes", value: $draft.notes)
+                DetailSectionCard(L("Notes")) {
+                    OptionalEditFieldRow(label: L("Notes"), value: $draft.notes)
                 }
 
                 CustomFieldsEditSection(fields: $draft.customFields)

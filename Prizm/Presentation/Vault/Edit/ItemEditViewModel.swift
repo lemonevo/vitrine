@@ -43,7 +43,7 @@ final class ItemEditViewModel: ObservableObject {
 
     /// Non-nil when `draft.name` is blank, triggering inline validation.
     var nameValidationError: String? {
-        draft.name.trimmingCharacters(in: .whitespaces).isEmpty ? "Name is required" : nil
+        draft.name.trimmingCharacters(in: .whitespaces).isEmpty ? L("Name is required") : nil
     }
 
     /// `true` when any field differs from the original item captured at open time.

@@ -146,7 +146,7 @@ struct PasswordGeneratorView: View {
 
             Spacer()
 
-            Button(viewModel.mode == .password ? "Use Password" : "Use Passphrase") {
+            Button(viewModel.mode == .password ? L("Use Password") : L("Use Passphrase")) {
                 targetValue = viewModel.generatedValue
                 dismiss()
             }

@@ -164,9 +164,9 @@ struct VaultBrowserView: View {
                                     Image(systemName: item.isFavorite ? "star.fill" : "star")
                                         .foregroundStyle(item.isFavorite ? .yellow : .secondary)
                                 }
-                                .help(item.isFavorite ? "Unfavorite" : "Favorite")
-                                .accessibilityLabel(item.isFavorite ? "Unfavorite" : "Favorite")
-                                .accessibilityValue(item.isFavorite ? "Favorited" : "Not favorited")
+                                .help(item.isFavorite ? L("Unfavorite") : L("Favorite"))
+                                .accessibilityLabel(item.isFavorite ? L("Unfavorite") : L("Favorite"))
+                                .accessibilityValue(item.isFavorite ? L("Favorited") : L("Not favorited"))
                             }
                             ToolbarItem(placement: .primaryAction) {
                                 Button("Edit") {
@@ -204,7 +204,7 @@ struct VaultBrowserView: View {
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("\"\(viewModel.itemSelection?.name ?? "")\" will be permanently deleted and cannot be recovered.")
+            Text(L("\"%@\" will be permanently deleted and cannot be recovered.", viewModel.itemSelection?.name ?? ""))
         }
         .alert("Delete Folder?", isPresented: $showDeleteFolderAlert) {
             Button("Delete Folder", role: .destructive) {
@@ -214,7 +214,7 @@ struct VaultBrowserView: View {
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Items in \"\(folderToDelete?.name ?? "")\" will not be deleted. They will become unfoldered.")
+            Text(L("Items in \"%@\" will not be deleted. They will become unfoldered.", folderToDelete?.name ?? ""))
         }
         .accessibilityIdentifier(AccessibilityID.Vault.navigationSplit)
         .toolbarBackground(.hidden, for: .windowToolbar)

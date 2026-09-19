@@ -215,7 +215,7 @@ final class AttachmentBatchViewModel: Identifiable {
         do {
             fileData = try Data(contentsOf: item.fileURL)
         } catch {
-            items[index].state = .failed("Could not read file: \(error.localizedDescription)")
+            items[index].state = .failed(L("Could not read file: %@", error.localizedDescription))
             return
         }
 

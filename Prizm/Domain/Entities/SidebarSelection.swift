@@ -15,11 +15,11 @@ nonisolated enum ItemType: String, Equatable, Hashable, CaseIterable, Identifiab
 
     var displayName: String {
         switch self {
-        case .login:      return "Login"
-        case .card:       return "Card"
-        case .identity:   return "Identity"
-        case .secureNote: return "Secure Note"
-        case .sshKey:     return "SSH Key"
+        case .login:      return L("Login")
+        case .card:       return L("Card")
+        case .identity:   return L("Identity")
+        case .secureNote: return L("Secure Note")
+        case .sshKey:     return L("SSH Key")
         }
     }
 
@@ -63,15 +63,15 @@ nonisolated enum SidebarSelection {
 extension SidebarSelection {
     var displayName: String {
         switch self {
-        case .allItems:                      return "All Items"
-        case .favorites:                     return "Favorites"
+        case .allItems:                      return L("All Items")
+        case .favorites:                     return L("Favorites")
         case .type(let type):                return type.displayName
-        case .folder:                        return "Folder"
-        case .trash:                         return "Trash"
-        case .newFolder:                     return "New Folder"
-        case .organization:                  return "Organization"
-        case .collection:                    return "Collection"
-        case .newCollection:                 return "New Collection"
+        case .folder:                        return L("Folder")
+        case .trash:                         return L("Trash")
+        case .newFolder:                     return L("New Folder")
+        case .organization:                  return L("Organization")
+        case .collection:                    return L("Collection")
+        case .newCollection:                 return L("New Collection")
         }
     }
 }

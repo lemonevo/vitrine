@@ -115,7 +115,7 @@ struct ItemDetailView: View {
     private func organizationRow(for item: VaultItem) -> some View {
         if let orgId = item.organizationId,
            let org = organizations.first(where: { $0.id == orgId }) {
-            DetailSectionCard("Organization") {
+            DetailSectionCard(L("Organization")) {
                 FieldRowView(label: "", value: org.name, itemId: item.id)
             }
         }
@@ -125,7 +125,7 @@ struct ItemDetailView: View {
     private func folderRow(for item: VaultItem) -> some View {
         if let folderId = item.folderId,
            let folder = folders.first(where: { $0.id == folderId }) {
-            DetailSectionCard("Folder") {
+            DetailSectionCard(L("Folder")) {
                 FieldRowView(label: "", value: folder.name, itemId: item.id)
             }
         }

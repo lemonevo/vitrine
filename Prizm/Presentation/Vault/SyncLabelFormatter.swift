@@ -12,7 +12,7 @@ extension Optional where Wrapped == Date {
         calendar: Calendar = .current
     ) -> String {
         switch self {
-        case .none:       return "Never synced"
+        case .none:       return L("Never synced")
         case .some(let d): return d.syncStatusLabel(relativeTo: now, calendar: calendar)
         }
     }
@@ -41,7 +41,7 @@ extension Date {
         calendar: Calendar = .current
     ) -> String {
         // Tier 1: future timestamp — clamp to "just now" (clock skew guard)
-        guard self <= now else { return "Synced just now" }
+        guard self <= now else { return L("Synced just now") }
 
         // Compare start-of-day values so daysDiff counts calendar days (midnight-to-midnight),
         // not elapsed 24-hour periods. Without this, 23:58 yesterday → 14:00 today = 0 days,
@@ -54,36 +54,36 @@ extension Date {
 
         // Tier 2: previous calendar year
         if selfYear < nowYear {
-            return "Synced \(formatted(style: .dateTime.month(.abbreviated).day().year(), calendar: calendar))"
+            return L("Synced %@", formatted(style: .dateTime.month(.abbreviated).day().year(), calendar: calendar))
         }
 
         // Tier 3: 2+ calendar days ago, same year
         if daysDiff >= 2 {
-            return "Synced \(formatted(style: .dateTime.month(.abbreviated).day(), calendar: calendar))"
+            return L("Synced %@", formatted(style: .dateTime.month(.abbreviated).day(), calendar: calendar))
         }
 
         // Tier 4: previous calendar day ("yesterday")
         // Uses calendar day comparison rather than a fixed 24-hour window, so the boundary
         // always falls at midnight in the user's local timezone.
         if daysDiff == 1 {
-            return "Synced yesterday"
+            return L("Synced yesterday")
         }
 
         // Same calendar day — use elapsed seconds for tiers 5–7.
         let elapsed = Int(now.timeIntervalSince(self))
 
         // Tier 5: 0–59 seconds
-        if elapsed < 60 { return "Synced just now" }
+        if elapsed < 60 { return L("Synced just now") }
 
         // Tier 6: 60–3599 seconds (minutes)
         if elapsed < 3600 {
             let minutes = elapsed / 60
-            return minutes == 1 ? "Synced 1 minute ago" : "Synced \(minutes) minutes ago"
+            return minutes == 1 ? L("Synced 1 minute ago") : L("Synced %lld minutes ago", minutes)
         }
 
         // Tier 7: 3600+ seconds (hours)
         let hours = elapsed / 3600
-        return hours == 1 ? "Synced 1 hour ago" : "Synced \(hours) hours ago"
+        return hours == 1 ? L("Synced 1 hour ago") : L("Synced %lld hours ago", hours)
     }
 
     // MARK: - Private formatting helpers
@@ -95,7 +95,9 @@ extension Date {
         // so chaining `.calendar(x)` is parsed as calling the Calendar value as a function.
         var s = style
         s.calendar = calendar
-        s.locale   = calendar.locale ?? .current
+        // Follow the interface language, not the system locale: an English UI on a
+        // Chinese Mac should still read "Synced Mar 26".
+        s.locale   = ActiveLocalization.locale
         return self.formatted(s)
     }
 }

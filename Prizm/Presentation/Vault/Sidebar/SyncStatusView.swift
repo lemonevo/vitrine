@@ -32,6 +32,6 @@ struct SyncStatusView: View {
 }
 
 #Preview("Never synced") {
-    SyncStatusView(label: "Never synced")
+    SyncStatusView(label: L("Never synced"))
         .frame(width: 220)
 }

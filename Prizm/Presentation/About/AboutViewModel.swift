@@ -33,11 +33,11 @@ struct AboutViewModel {
         AboutViewModel(
             appName: Bundle.main.infoDictionary?["CFBundleName"] as? String ?? "Prizm",
             version: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "",
-            tagline: "Your secrets. Your server. Our user interface.",
+            tagline: L("Your secrets. Your server. Our user interface."),
             gitHubURL: URL(string: "https://github.com/b0x42/prizm")!,
             acknowledgements: [
-                "Vaultwarden & Bitwarden — server API and vault format",
-                "Argon2Swift — Argon2id key derivation (RFC 9106)",
+                L("Vaultwarden & Bitwarden — server API and vault format"),
+                L("Argon2Swift — Argon2id key derivation (RFC 9106)"),
             ]
         )
     }

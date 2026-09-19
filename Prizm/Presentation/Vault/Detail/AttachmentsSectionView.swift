@@ -36,7 +36,7 @@ struct AttachmentsSectionView: View {
     @State private var isDragTargeted = false
 
     var body: some View {
-        DetailSectionCard("Attachments") {
+        DetailSectionCard(L("Attachments")) {
             VStack(alignment: .leading, spacing: 0) {
                 if attachments.isEmpty {
                     emptyState
@@ -155,7 +155,7 @@ private struct AttachmentRowViewWithViewModel: View {
             Button("Delete", role: .destructive) { viewModel.delete() }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text(verbatim: "\u{201C}" + viewModel.attachment.fileName + "\u{201D} will be permanently deleted.")
+            Text(L("\u{201C}%@\u{201D} will be permanently deleted.", viewModel.attachment.fileName))
         }
         .overlay(alignment: .bottom) {
             if let error = viewModel.actionError ?? viewModel.retryError {

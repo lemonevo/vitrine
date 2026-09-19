@@ -13,22 +13,22 @@ struct CardEditForm: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
 
-                DetailSectionCard("Card Details") {
-                    OptionalEditFieldRow(label: "Cardholder Name", value: $draft.cardholderName)
+                DetailSectionCard(L("Card Details")) {
+                    OptionalEditFieldRow(label: L("Cardholder Name"), value: $draft.cardholderName)
                     Divider()
-                    OptionalEditFieldRow(label: "Brand", value: $draft.brand)
+                    OptionalEditFieldRow(label: L("Brand"), value: $draft.brand)
                     Divider()
-                    OptionalEditFieldRow(label: "Number", value: $draft.number)
+                    OptionalEditFieldRow(label: L("Number"), value: $draft.number)
                     Divider()
-                    OptionalEditFieldRow(label: "Expiry Month", value: $draft.expMonth)
+                    OptionalEditFieldRow(label: L("Expiry Month"), value: $draft.expMonth)
                     Divider()
-                    OptionalEditFieldRow(label: "Expiry Year", value: $draft.expYear)
+                    OptionalEditFieldRow(label: L("Expiry Year"), value: $draft.expYear)
                     Divider()
-                    OptionalEditFieldRow(label: "Security Code", value: $draft.code)
+                    OptionalEditFieldRow(label: L("Security Code"), value: $draft.code)
                 }
 
-                DetailSectionCard("Notes") {
-                    OptionalEditFieldRow(label: "Notes", value: $draft.notes)
+                DetailSectionCard(L("Notes")) {
+                    OptionalEditFieldRow(label: L("Notes"), value: $draft.notes)
                 }
 
                 CustomFieldsEditSection(fields: $draft.customFields)

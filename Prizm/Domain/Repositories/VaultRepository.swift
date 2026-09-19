@@ -97,11 +97,11 @@ nonisolated enum VaultError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .vaultLocked:
-            return "The vault is locked. Please unlock to continue."
+            return L("The vault is locked. Please unlock to continue.")
         case .decryptionFailed(let detail):
-            return "Decryption failed: \(detail)"
+            return L("Decryption failed: %@", detail)
         case .itemNotFound(let id):
-            return "Item not found: \(id)"
+            return L("Item not found: %@", id)
         }
     }
 }

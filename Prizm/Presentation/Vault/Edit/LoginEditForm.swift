@@ -15,13 +15,13 @@ struct LoginEditForm: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
 
-                DetailSectionCard("Credentials") {
-                    OptionalEditFieldRow(label: "Username", value: $draft.username)
+                DetailSectionCard(L("Credentials")) {
+                    OptionalEditFieldRow(label: L("Username"), value: $draft.username)
                     Divider()
-                    MaskedEditFieldRow(label: "Password", value: $draft.password, generatorBinding: $draft.password)
+                    MaskedEditFieldRow(label: L("Password"), value: $draft.password, generatorBinding: $draft.password)
                 }
 
-                DetailSectionCard("Websites") {
+                DetailSectionCard(L("Websites")) {
                     ForEach(draft.uris) { uri in
                         if let index = draft.uris.firstIndex(where: { $0.id == uri.id }) {
                             if index > 0 { Divider() }
@@ -58,8 +58,8 @@ struct LoginEditForm: View {
                     .padding(.horizontal, Spacing.rowHorizontal)
                 }
 
-                DetailSectionCard("Notes") {
-                    OptionalEditFieldRow(label: "Notes", value: $draft.notes)
+                DetailSectionCard(L("Notes")) {
+                    OptionalEditFieldRow(label: L("Notes"), value: $draft.notes)
                 }
 
                 CustomFieldsEditSection(fields: $draft.customFields)
@@ -107,7 +107,7 @@ private struct URIEditRow: View {
                     .padding(.leading, Spacing.rowHorizontal)
                 }
 
-                EditFieldRow(label: "Website", text: $uri.uri)
+                EditFieldRow(label: L("Website"), text: $uri.uri)
 
                 Button {
                     optionalAnimation(.easeInOut(duration: 0.2)) {
@@ -161,12 +161,12 @@ private extension URIMatchType {
 
     var displayName: String {
         switch self {
-        case .domain:            return "Domain"
-        case .host:              return "Host"
-        case .startsWith:        return "Starts With"
-        case .exact:             return "Exact"
-        case .regularExpression: return "Regular Expression"
-        case .never:             return "Never"
+        case .domain:            return L("Domain")
+        case .host:              return L("Host")
+        case .startsWith:        return L("Starts With")
+        case .exact:             return L("Exact")
+        case .regularExpression: return L("Regular Expression")
+        case .never:             return L("Never")
         }
     }
 }

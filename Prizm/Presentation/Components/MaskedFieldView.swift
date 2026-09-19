@@ -49,7 +49,7 @@ struct MaskedFieldState {
 ///
 /// Usage:
 /// ```swift
-/// MaskedFieldView(label: "Password", value: item.password, itemId: item.id)
+/// MaskedFieldView(label: L("Password"), value: item.password, itemId: item.id)
 /// ```
 struct MaskedFieldView: View {
 
@@ -87,8 +87,8 @@ struct MaskedFieldView: View {
                     .foregroundStyle(Color.accentColor)
             }
             .buttonStyle(.plain)
-            .help(state.isRevealed ? "Hide" : "Reveal")
-            .accessibilityLabel(state.isRevealed ? "Hide \(label)" : "Reveal \(label)")
+            .help(state.isRevealed ? L("Hide") : L("Reveal"))
+            .accessibilityLabel(state.isRevealed ? L("Hide %@", label) : L("Reveal %@", label))
             .accessibilityIdentifier(AccessibilityID.Masked.toggle(label))
         }
         // Reset to masked whenever the parent item changes (FR-027).

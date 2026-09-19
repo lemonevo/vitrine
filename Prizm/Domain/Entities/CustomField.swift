@@ -54,35 +54,38 @@ nonisolated enum LinkedFieldId: Int, Equatable, Hashable {
     case identityFullName = 418
 
     /// Human-readable label shown in the linked field row (e.g. "Username").
+    ///
+    /// Resolved through `L(…)` at call time rather than being a compile-time constant,
+    /// so the label follows the interface language when it changes.
     var displayName: String {
         switch self {
-        case .loginUsername:        return "Username"
-        case .loginPassword:        return "Password"
-        case .cardCardholderName:   return "Cardholder Name"
-        case .cardExpMonth:         return "Expiration Month"
-        case .cardExpYear:          return "Expiration Year"
-        case .cardCode:             return "Security Code"
-        case .cardBrand:            return "Brand"
-        case .cardNumber:           return "Number"
-        case .identityTitle:        return "Title"
-        case .identityMiddleName:   return "Middle Name"
-        case .identityAddress1:     return "Address 1"
-        case .identityAddress2:     return "Address 2"
-        case .identityAddress3:     return "Address 3"
-        case .identityCity:         return "City"
-        case .identityState:        return "State"
-        case .identityPostalCode:   return "Postal Code"
-        case .identityCountry:      return "Country"
-        case .identityCompany:      return "Company"
-        case .identityEmail:        return "Email"
-        case .identityPhone:        return "Phone"
-        case .identitySsn:          return "SSN"
-        case .identityUsername:     return "Username"
-        case .identityPassportNumber: return "Passport Number"
-        case .identityLicenseNumber:  return "License Number"
-        case .identityFirstName:    return "First Name"
-        case .identityLastName:     return "Last Name"
-        case .identityFullName:     return "Full Name"
+        case .loginUsername:        return L("Username")
+        case .loginPassword:        return L("Password")
+        case .cardCardholderName:   return L("Cardholder Name")
+        case .cardExpMonth:         return L("Expiration Month")
+        case .cardExpYear:          return L("Expiration Year")
+        case .cardCode:             return L("Security Code")
+        case .cardBrand:            return L("Brand")
+        case .cardNumber:           return L("Number")
+        case .identityTitle:        return L("Title")
+        case .identityMiddleName:   return L("Middle Name")
+        case .identityAddress1:     return L("Address 1")
+        case .identityAddress2:     return L("Address 2")
+        case .identityAddress3:     return L("Address 3")
+        case .identityCity:         return L("City")
+        case .identityState:        return L("State")
+        case .identityPostalCode:   return L("Postal Code")
+        case .identityCountry:      return L("Country")
+        case .identityCompany:      return L("Company")
+        case .identityEmail:        return L("Email")
+        case .identityPhone:        return L("Phone")
+        case .identitySsn:          return L("SSN")
+        case .identityUsername:     return L("Username")
+        case .identityPassportNumber: return L("Passport Number")
+        case .identityLicenseNumber:  return L("License Number")
+        case .identityFirstName:    return L("First Name")
+        case .identityLastName:     return L("Last Name")
+        case .identityFullName:     return L("Full Name")
         }
     }
 }
