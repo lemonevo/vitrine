@@ -45,6 +45,13 @@ nonisolated struct RawCipher: Codable {
     /// File attachments belonging to this cipher. Nil when the server returns no
     /// attachments or omits the field entirely; treated as `[]` by `CipherMapper`.
     let attachments:    [AttachmentDTO]?
+    /// Server-maintained list of previous passwords. Modelled only so it can be sent back
+    /// unchanged — see `PreservedCipherFields`. Vaultwarden clears the stored history when the
+    /// key is absent from a `PUT` body, so dropping it here deletes it.
+    let passwordHistory: [JSONValue]?
+    /// ISO-8601 timestamp set by the official clients' Archive feature.
+    /// Vaultwarden treats an absent value as "un-archive", so dropping it un-archives the item.
+    let archivedDate:    String?
 
     /// Custom decoder — all fields use standard decoding except `collectionIds`, which
     /// defaults to `[]` when the key is absent so that personal-item ciphers (which the
@@ -72,6 +79,8 @@ nonisolated struct RawCipher: Codable {
         // `collectionIds` is absent for personal items; default to [] rather than throwing.
         collectionIds  = (try? c.decode([String].self, forKey: .collectionIds)) ?? []
         attachments    = try c.decodeIfPresent([AttachmentDTO].self,  forKey: .attachments)
+        passwordHistory = try c.decodeIfPresent([JSONValue].self,     forKey: .passwordHistory)
+        archivedDate    = try c.decodeIfPresent(String.self,          forKey: .archivedDate)
     }
 
     /// Memberwise init with `collectionIds` defaulted to `[]` so existing call sites
@@ -81,7 +90,8 @@ nonisolated struct RawCipher: Codable {
          creationDate: String?, revisionDate: String?, login: RawLoginData?,
          card: RawCardData?, identity: RawIdentityData?, secureNote: RawSecureNoteData?,
          sshKey: RawSSHKeyData?, fields: [RawField]?, key: String?,
-         collectionIds: [String] = [], attachments: [AttachmentDTO]?) {
+         collectionIds: [String] = [], attachments: [AttachmentDTO]?,
+         passwordHistory: [JSONValue]? = nil, archivedDate: String? = nil) {
         self.id             = id
         self.organizationId = organizationId
         self.folderId       = folderId
@@ -102,16 +112,44 @@ nonisolated struct RawCipher: Codable {
         self.key            = key
         self.collectionIds  = collectionIds
         self.attachments    = attachments
+        self.passwordHistory = passwordHistory
+        self.archivedDate    = archivedDate
     }
 }
 
 // MARK: - Login
 
+/// Wire-format `login` object.
+///
+/// The three trailing fields are carried only so a save cannot delete them: Vaultwarden stores
+/// the whole `login` object verbatim (`cipher.data = type_data.to_string()`), so a field missing
+/// from the request body is gone. See `PreservedCipherFields`.
 nonisolated struct RawLoginData: Codable {
     let username: String?       // EncString
     let password: String?       // EncString
     let uris:     [RawURI]?
     let totp:     String?       // EncString
+    /// Passkeys stored by Bitwarden's browser extension or mobile app. Opaque to Prizm.
+    let fido2Credentials: [JSONValue]?
+    /// When the login's password was last changed (ISO-8601).
+    let passwordRevisionDate: String?
+    /// Per-item override of the global autofill-on-page-load setting.
+    let autofillOnPageLoad: Bool?
+
+    /// Memberwise init with the preserved fields defaulted, so call sites that predate them
+    /// (including tests) keep compiling.
+    init(username: String?, password: String?, uris: [RawURI]?, totp: String?,
+         fido2Credentials: [JSONValue]? = nil,
+         passwordRevisionDate: String? = nil,
+         autofillOnPageLoad: Bool? = nil) {
+        self.username             = username
+        self.password             = password
+        self.uris                 = uris
+        self.totp                 = totp
+        self.fido2Credentials     = fido2Credentials
+        self.passwordRevisionDate = passwordRevisionDate
+        self.autofillOnPageLoad   = autofillOnPageLoad
+    }
 }
 
 nonisolated struct RawURI: Codable {

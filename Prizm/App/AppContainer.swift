@@ -18,6 +18,10 @@ final class AppContainer: ObservableObject {
     let biometricKeychain: BiometricKeychainServiceImpl
     let vaultStore:    VaultRepositoryImpl
     let faviconLoader: FaviconLoader
+    /// Derives one-time codes for `Item ▸ Copy Code`. Stateless — no key material is retained.
+    /// Declared as the protocol type (not `TOTPGeneratorImpl`) so it satisfies
+    /// `RootViewModelDependencies` directly; Swift has no property covariance for witnesses.
+    let totpGenerator: any TOTPGenerator
     /// In-memory cache mapping cipher ID → 64-byte effective key.
     /// Populated at sync time by `SyncRepositoryImpl`; cleared on vault lock alongside
     /// `vaultStore` so key material does not outlive the vault session (Constitution §III).
@@ -70,7 +74,7 @@ final class AppContainer: ObservableObject {
         let api           = PrizmAPIClientImpl()
         let crypto        = PrizmCryptoServiceImpl()
         let keychain      = KeychainServiceImpl()
-        let biometricKeychain = BiometricKeychainServiceImpl()
+        let biometricKeychain = BiometricKeychainServiceImpl.preferred()
         let keyCache      = VaultKeyCache()
         let orgKeyCache   = OrgKeyCache()
         let vault         = VaultRepositoryImpl(apiClient: api, crypto: crypto, orgKeyCache: orgKeyCache)
@@ -108,6 +112,7 @@ final class AppContainer: ObservableObject {
         self.biometricKeychain = biometricKeychain
         self.vaultStore      = vault
         self.faviconLoader   = FaviconLoader()
+        self.totpGenerator   = TOTPGeneratorImpl()
         self.vaultKeyCache   = keyCache
         self.orgKeyCache     = orgKeyCache
         self.authRepository  = auth
@@ -139,6 +144,27 @@ final class AppContainer: ObservableObject {
     }
 
     // MARK: - Factories
+
+    /// Points the favicon loader at the signed-in account's icon service.
+    ///
+    /// Called once the account's server is known (at the vault transition). Before that the loader
+    /// has no base and fetches nothing, so an item's domain cannot leave the device before the
+    /// account that owns it is known.
+    ///
+    /// `ServerEnvironment.iconsURL` is `{base}/icons` — the endpoint both Bitwarden and Vaultwarden
+    /// serve at `/icons/{domain}/icon.png`. Using the account's own server instead of a hardcoded
+    /// third-party icon host is the whole point: a self-hosted user's item domains stay on their own
+    /// infrastructure (FEATURE-GAP-ANALYSIS.md §2.5).
+    ///
+    /// Turning website icons off in Settings needs no call here: `FaviconLoader` reads
+    /// `WebsiteIconsPreference` on every request.
+    func refreshWebsiteIcons() async {
+        guard WebsiteIconsPreference.isEnabled() else {
+            await faviconLoader.configure(iconsBase: nil)
+            return
+        }
+        await faviconLoader.configure(iconsBase: authRepository.serverEnvironment?.iconsURL)
+    }
 
     /// Returns a fresh `SyncTimestampRepository` and matching `GetLastSyncDateUseCase`
     /// scoped to the given account email.

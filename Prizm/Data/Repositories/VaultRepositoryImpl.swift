@@ -267,12 +267,9 @@ actor VaultRepositoryImpl: VaultRepository {
         }
 
         let orgKeysSnapshot = await orgKeyCache.snapshot()
-        let encryptionKeys: CryptoKeys
-        if let orgId = draft.organizationId, let orgKey = orgKeysSnapshot[orgId] {
-            encryptionKeys = orgKey
-        } else {
-            encryptionKeys = vaultKeys
-        }
+        let encryptionKeys = try resolveEncryptionKeys(for: draft,
+                                                       vaultKeys: vaultKeys,
+                                                       orgKeys: orgKeysSnapshot)
 
         let rawCipher = try mapper.toRawCipher(draft, encryptedWith: encryptionKeys)
 
@@ -286,15 +283,9 @@ actor VaultRepositoryImpl: VaultRepository {
         var (updatedItem, _) = try mapper.map(raw: updatedRaw, vaultKeys: vaultKeys, orgKeys: orgKeysSnapshot)
 
         // Patch collectionIds: PUT /api/ciphers/{id} returns pre-update collection state.
+        // `with` keeps every other field — including `preserved` — untouched.
         if draft.organizationId != nil {
-            updatedItem = VaultItem(
-                id: updatedItem.id, name: updatedItem.name,
-                isFavorite: updatedItem.isFavorite, isDeleted: updatedItem.isDeleted,
-                creationDate: updatedItem.creationDate, revisionDate: updatedItem.revisionDate,
-                content: updatedItem.content, reprompt: updatedItem.reprompt,
-                attachments: updatedItem.attachments, folderId: updatedItem.folderId,
-                organizationId: updatedItem.organizationId, collectionIds: draft.collectionIds
-            )
+            updatedItem = updatedItem.with(collectionIds: draft.collectionIds)
         }
 
         if let idx = items.firstIndex(where: { $0.id == updatedItem.id }) {
@@ -318,12 +309,9 @@ actor VaultRepositoryImpl: VaultRepository {
         }
 
         let orgKeysSnapshot = await orgKeyCache.snapshot()
-        let encryptionKeys: CryptoKeys
-        if let orgId = draft.organizationId, let orgKey = orgKeysSnapshot[orgId] {
-            encryptionKeys = orgKey
-        } else {
-            encryptionKeys = vaultKeys
-        }
+        let encryptionKeys = try resolveEncryptionKeys(for: draft,
+                                                       vaultKeys: vaultKeys,
+                                                       orgKeys: orgKeysSnapshot)
 
         let rawCipher = try mapper.toRawCipher(draft, encryptedWith: encryptionKeys)
 
@@ -352,13 +340,7 @@ actor VaultRepositoryImpl: VaultRepository {
     func deleteItem(id: String) async throws {
         guard let idx = items.firstIndex(where: { $0.id == id }) else { return }
         try await apiClient.softDeleteCipher(id: id)
-        let old = items[idx]
-        items[idx] = VaultItem(
-            id: old.id, name: old.name, isFavorite: old.isFavorite, isDeleted: true,
-            creationDate: old.creationDate, revisionDate: old.revisionDate,
-            content: old.content, reprompt: old.reprompt, attachments: old.attachments,
-            folderId: old.folderId, organizationId: old.organizationId, collectionIds: old.collectionIds
-        )
+        items[idx] = items[idx].with(isDeleted: true)
         buildIndexes()
         logger.info("Vault item soft-deleted: \(id, privacy: .public)")
     }
@@ -381,13 +363,9 @@ actor VaultRepositoryImpl: VaultRepository {
     func restoreItem(id: String) async throws {
         guard let idx = items.firstIndex(where: { $0.id == id }) else { return }
         try await apiClient.restoreCipher(id: id)
-        let old = items[idx]
-        items[idx] = VaultItem(
-            id: old.id, name: old.name, isFavorite: old.isFavorite, isDeleted: false,
-            creationDate: old.creationDate, revisionDate: old.revisionDate,
-            content: old.content, reprompt: old.reprompt, attachments: old.attachments,
-            folderId: old.folderId, organizationId: old.organizationId, collectionIds: old.collectionIds
-        )
+        // `with` keeps every other field — including `preserved` and the org membership.
+        // A hand-written memberwise rebuild here would drop them (see openspec/specs/cipher-wire-integrity).
+        items[idx] = items[idx].with(isDeleted: false)
         buildIndexes()
         logger.info("Vault item restored: \(id, privacy: .public)")
     }
@@ -401,13 +379,9 @@ actor VaultRepositoryImpl: VaultRepository {
             logger.error("updateAttachments: cipher not found in cache — id=\(cipherId, privacy: .public)")
             return
         }
-        let old = items[idx]
-        items[idx] = VaultItem(
-            id: old.id, name: old.name, isFavorite: old.isFavorite, isDeleted: old.isDeleted,
-            creationDate: old.creationDate, revisionDate: old.revisionDate,
-            content: old.content, reprompt: old.reprompt, attachments: attachments,
-            folderId: old.folderId, organizationId: old.organizationId, collectionIds: old.collectionIds
-        )
+        // `with` keeps every other field — including `preserved` and the org membership.
+        // Attachments are fetched through their own endpoint, so nothing else is refreshed here.
+        items[idx] = items[idx].with(attachments: attachments)
         buildIndexes()
         logger.info("Vault item attachments updated: cipher=\(cipherId, privacy: .public) count=\(attachments.count, privacy: .public)")
     }
@@ -444,13 +418,11 @@ actor VaultRepositoryImpl: VaultRepository {
         try await apiClient.deleteFolder(id: id)
         folderStore.removeAll { $0.id == id }
         // Unfolder items that were in this folder (server does this too).
+        // `with(folderId: .some(nil))` changes only the folder: `organizationId` and
+        // `collectionIds` must survive, or a later save would convert an org item into a
+        // personal one (see openspec/specs/org-vault-items).
         for i in items.indices where items[i].folderId == id {
-            let old = items[i]
-            items[i] = VaultItem(
-                id: old.id, name: old.name, isFavorite: old.isFavorite, isDeleted: old.isDeleted,
-                creationDate: old.creationDate, revisionDate: old.revisionDate,
-                content: old.content, reprompt: old.reprompt, attachments: old.attachments, folderId: nil
-            )
+            items[i] = items[i].with(folderId: .some(nil))
         }
         buildIndexes()
         logger.info("Folder deleted: \(id, privacy: .public)")
@@ -509,11 +481,7 @@ actor VaultRepositoryImpl: VaultRepository {
         guard let idx = items.firstIndex(where: { $0.id == itemId }) else { return }
         let old = items[idx]
         try await apiClient.updateCipherPartial(id: itemId, folderId: folderId, favorite: old.isFavorite)
-        items[idx] = VaultItem(
-            id: old.id, name: old.name, isFavorite: old.isFavorite, isDeleted: old.isDeleted,
-            creationDate: old.creationDate, revisionDate: old.revisionDate,
-            content: old.content, reprompt: old.reprompt, attachments: old.attachments, folderId: folderId
-        )
+        items[idx] = old.with(folderId: .some(folderId))
         buildIndexes()
         logger.info("Item moved to folder: \(itemId, privacy: .public)")
     }
@@ -521,18 +489,33 @@ actor VaultRepositoryImpl: VaultRepository {
     func moveItemsToFolder(itemIds: [String], folderId: String?) async throws {
         try await apiClient.moveCiphersToFolder(ids: itemIds, folderId: folderId)
         for i in items.indices where itemIds.contains(items[i].id) {
-            let old = items[i]
-            items[i] = VaultItem(
-                id: old.id, name: old.name, isFavorite: old.isFavorite, isDeleted: old.isDeleted,
-                creationDate: old.creationDate, revisionDate: old.revisionDate,
-                content: old.content, reprompt: old.reprompt, attachments: old.attachments, folderId: folderId
-            )
+            items[i] = items[i].with(folderId: .some(folderId))
         }
         buildIndexes()
         logger.info("Bulk move to folder: \(itemIds.count, privacy: .public) item(s)")
     }
 
     // MARK: - Private helpers
+
+    /// Selects the key that wraps a draft's encrypted fields.
+    ///
+    /// - Security goal: an organisation cipher must be encrypted with the organisation's key.
+    ///   Falling back to the personal vault key would write a cipher no other org member can
+    ///   read — and that this client could not read either after the next sync, because the read
+    ///   path refuses to map an org cipher whose org key is missing. A silent fallback here turns
+    ///   a recoverable "org key not loaded" state into permanent corruption.
+    /// - Throws: `VaultError.decryptionFailed` when the draft is org-scoped and the org key has
+    ///   not been unwrapped. No network request is made in that case.
+    private func resolveEncryptionKeys(for draft: DraftVaultItem,
+                                       vaultKeys: CryptoKeys,
+                                       orgKeys: [String: CryptoKeys]) throws -> CryptoKeys {
+        guard let orgId = draft.organizationId else { return vaultKeys }
+        guard let orgKey = orgKeys[orgId] else {
+            logger.error("Refusing to write org cipher \(draft.id, privacy: .public): org key not unwrapped")
+            throw VaultError.decryptionFailed("org key not found for org: \(orgId)")
+        }
+        return orgKey
+    }
 
     private func sorted(_ input: [VaultItem]) -> [VaultItem] {
         input.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }

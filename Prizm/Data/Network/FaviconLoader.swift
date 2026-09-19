@@ -3,24 +3,41 @@ import os.log
 
 // MARK: - FaviconLoader
 
-/// Loads favicon images from the Bitwarden icon service.
+/// Loads favicon images from an icon service.
 ///
-/// URL format: `{ICONS_BASE}/{domain}/icon.png`
-/// Default icons base: `https://icons.bitwarden.net`
-/// Override via `ServerEnvironment.overrides.icons`.
+/// URL format: `{iconsBase}/{domain}/icon.png`
 ///
-/// Caching: `URLCache` provides HTTP-level caching (`returnCacheDataElseLoad`).
-/// In-memory `NSCache<NSString, NSImage>` provides session-level deduplication.
-/// Failures are silent — callers fall back to the appropriate SF Symbol (FR-009).
+/// **Where `iconsBase` comes from.** The account's own server: `ServerEnvironment.iconsURL`, which
+/// is `{base}/icons` unless the account overrides it. Both Bitwarden and Vaultwarden serve
+/// `/icons/{domain}/icon.png`, so a self-hosted user's item domains never leave their own
+/// infrastructure. There is deliberately **no default**: the loader starts with no base and fetches
+/// nothing until `configure(iconsBase:)` is called with the signed-in account's value, so a domain
+/// can never be requested before the account's server is known.
 ///
-/// Thread safety: `actor` isolation guarantees the in-memory cache is mutation-safe.
+/// Earlier versions defaulted to `https://icons.bitwarden.net`, which leaked every login item's
+/// domain to a third party — see `FEATURE-GAP-ANALYSIS.md` §2.5.
+///
+/// **Caching.** `URLCache` provides HTTP-level caching (`returnCacheDataElseLoad`); an in-memory
+/// `NSCache<NSString, NSImage>` provides session-level deduplication. The cache is dropped when the
+/// icon base changes so images from a previous server are not shown for the next one.
+///
+/// **Failures are silent** — callers fall back to the appropriate SF Symbol (FR-009). A password
+/// manager must not surface an alert because an icon host is unreachable.
+///
+/// **Thread safety.** `actor` isolation makes the in-memory cache mutation-safe.
 actor FaviconLoader {
 
     // MARK: - Dependencies
 
-    private let session:  URLSession
-    private let iconsBase: URL
+    private let session: URLSession
+    /// `UserDefaults` is documented by Apple as thread-safe; `nonisolated(unsafe)` matches the
+    /// treatment in `SyncTimestampRepositoryImpl`.
+    nonisolated(unsafe) private let defaults: UserDefaults
     private let logger = Logger(subsystem: "com.prizm", category: "FaviconLoader")
+
+    /// Base URL of the icon service. `nil` means "do not fetch" — either no account has signed in
+    /// yet, or the user turned website icons off.
+    private var iconsBase: URL?
 
     // MARK: - In-memory cache
 
@@ -29,15 +46,31 @@ actor FaviconLoader {
     // MARK: - Init
 
     /// - Parameters:
-    ///   - iconsBase: Override for the icons service base URL.
-    ///                Defaults to `https://icons.bitwarden.net`.
-    ///   - session:   `URLSession` to use; defaults to a shared cache-enabled session.
+    ///   - iconsBase: Icon service base URL. Defaults to `nil` — nothing is fetched until
+    ///                `configure(iconsBase:)` supplies the signed-in account's value.
+    ///   - session:   `URLSession` to use; defaults to the shared cache-enabled session.
+    ///   - defaults:  Preference store for `WebsiteIconsPreference`. Injectable for tests.
     init(
-        iconsBase: URL = URL(string: "https://icons.bitwarden.net")!,
-        session: URLSession = .shared
+        iconsBase: URL? = nil,
+        session: URLSession = .shared,
+        defaults: UserDefaults = .standard
     ) {
         self.iconsBase = iconsBase
         self.session   = session
+        self.defaults  = defaults
+    }
+
+    // MARK: - Configuration
+
+    /// Points the loader at an icon service, or disables fetching entirely with `nil`.
+    ///
+    /// The in-memory cache is cleared on every change: after switching servers (or switching icons
+    /// off and back on) a stale image from the previous configuration must not be served.
+    func configure(iconsBase: URL?) {
+        guard iconsBase != self.iconsBase else { return }
+        self.iconsBase = iconsBase
+        cache.removeAllObjects()
+        logger.info("Favicon source updated — fetching \(iconsBase == nil ? "disabled" : "enabled", privacy: .public)")
     }
 
     // MARK: - Public API
@@ -46,6 +79,15 @@ actor FaviconLoader {
     ///
     /// - Parameter domain: Bare domain (e.g. `"github.com"`), no scheme or path.
     func favicon(for domain: String) async -> NSImage? {
+        // Checked before the cache, not after: turning website icons off must stop images being
+        // shown immediately, not only once the cache happens to expire.
+        guard WebsiteIconsPreference.isEnabled(in: defaults) else {
+            return nil
+        }
+        guard let iconsBase else {
+            return nil
+        }
+
         let key = domain as NSString
         if let cached = cache.object(forKey: key) {
             return cached

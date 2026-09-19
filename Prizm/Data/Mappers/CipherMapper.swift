@@ -85,27 +85,16 @@ nonisolated final class CipherMapper: Sendable {
             activeKeys = vaultKeys
         }
 
-        let name   = try decryptRequired(raw.name, field: "name", keys: activeKeys)
-        let notes  = try raw.notes.map { try decryptRequired($0, field: "notes", keys: activeKeys) }
-        let fields = try mapFields(raw.fields ?? [], keys: activeKeys)
-
-        let content: ItemContent = try mapContent(
-            type:   raw.type,
-            raw:    raw,
-            notes:  notes,
-            fields: fields,
-            keys:   activeKeys
-        )
-
-        let fallbackDate = Date(timeIntervalSince1970: 0)
-        let creationDate  = raw.creationDate.flatMap  { Self.iso8601.date(from: $0) } ?? fallbackDate
-        let revisionDate  = raw.revisionDate.flatMap  { Self.iso8601.date(from: $0) } ?? fallbackDate
-
         // Effective cipher key: per-item key if present, otherwise the active (vault or org) key.
         // Reference: Bitwarden Security Whitepaper §4 — "Cipher Key Wrapping".
-        // Must be resolved BEFORE attachment mapping so that attachment filenames are
-        // decrypted with the correct key — ciphers that have a per-item key use it for
-        // their attachments too (active key would cause MAC verification failures).
+        // Must be resolved FIRST, before anything is decrypted: a cipher carrying a per-item key
+        // encrypts *all* of its data with that key — name, notes, custom fields, the type-specific
+        // payload, password history and attachments alike. The vault/org key is then used only to
+        // unwrap it. Verified against the official client, `Cipher.decrypt` in
+        // libs/common/src/vault/models/domain/cipher.ts: `userKeyOrOrgKey` is passed solely to
+        // `encryptService.unwrapSymmetricKey(this.key, userKeyOrOrgKey)`, and the unwrapped key is
+        // what decrypts every field. Decrypting with `activeKeys` instead made items that have a
+        // per-item key unreadable — the fields were encrypted with a key this client never tried.
         let cipherKey: Data
         if let encItemKey = raw.key {
             // Per-item key: decrypt the EncString-wrapped key using the active key (vault OR org).
@@ -127,6 +116,22 @@ nonisolated final class CipherMapper: Sendable {
             macKey:        cipherKey.suffix(32)
         )
 
+        let name   = try decryptRequired(raw.name, field: "name", keys: effectiveKeys)
+        let notes  = try raw.notes.map { try decryptRequired($0, field: "notes", keys: effectiveKeys) }
+        let fields = try mapFields(raw.fields ?? [], keys: effectiveKeys)
+
+        let content: ItemContent = try mapContent(
+            type:   raw.type,
+            raw:    raw,
+            notes:  notes,
+            fields: fields,
+            keys:   effectiveKeys
+        )
+
+        let fallbackDate = Date(timeIntervalSince1970: 0)
+        let creationDate  = raw.creationDate.flatMap  { Self.iso8601.date(from: $0) } ?? fallbackDate
+        let revisionDate  = raw.revisionDate.flatMap  { Self.iso8601.date(from: $0) } ?? fallbackDate
+
         // Map attachments using the cipher's effective key, not the raw vault key.
         // Attachment filenames are encrypted under the same key as the cipher's fields.
         let attachments: [Attachment] = (raw.attachments ?? []).compactMap { dto in
@@ -137,6 +142,20 @@ nonisolated final class CipherMapper: Sendable {
                 return nil
             }
         }
+
+        // Fields Prizm has no UI for, carried verbatim so a later save cannot delete them.
+        // `PUT /api/ciphers/{id}` replaces the whole cipher: Vaultwarden assigns `key`,
+        // `password_history` and `archived_date` unconditionally and stores the `login` object
+        // verbatim, so anything missing from the request body is erased server-side.
+        // See `PreservedCipherFields` and openspec/changes/critical-integrity-fixes.
+        let preserved = PreservedCipherFields(
+            passwordHistory:      raw.passwordHistory ?? [],
+            archivedDate:         raw.archivedDate,
+            cipherKey:            raw.key,
+            fido2Credentials:     raw.login?.fido2Credentials ?? [],
+            passwordRevisionDate: raw.login?.passwordRevisionDate,
+            autofillOnPageLoad:   raw.login?.autofillOnPageLoad
+        )
 
         let item = VaultItem(
             id:             raw.id,
@@ -150,7 +169,8 @@ nonisolated final class CipherMapper: Sendable {
             attachments:    attachments,
             folderId:       raw.folderId,
             organizationId: raw.organizationId,
-            collectionIds:  raw.collectionIds
+            collectionIds:  raw.collectionIds,
+            preserved:      preserved
         )
         return (item: item, cipherKey: cipherKey)
     }
@@ -331,32 +351,49 @@ nonisolated final class CipherMapper: Sendable {
     ///
     /// - What is NOT done:
     ///   • `id`, `type`, `favorite` are plain JSON values (not EncStrings) — sent as-is.
-    ///   • `organizationId` is sent as `nil` — this mapper only handles personal vault items;
-    ///     editing org ciphers is out of scope for v1 and requires org key unwrapping.
     ///   • `deletedDate`, `creationDate`, `revisionDate` are sent as `nil` — the server is
     ///     authoritative for these timestamps and ignores client-provided values on PUT.
+    ///   • `attachments` is sent as `nil` — verified safe against Vaultwarden
+    ///     (`if let Some(attachments) = data.attachments2` guards the only attachment write, so
+    ///     an absent key leaves stored attachments untouched).
     ///   • Biometric re-authentication before re-encryption is not performed here; it is
     ///     the caller's responsibility (see `VaultRepositoryImpl.update` TODO).
     ///
+    /// - What IS done to avoid destroying data: every wire field Prizm does not interpret
+    ///   (`passwordHistory`, `archivedDate`, `key`, `login.fido2Credentials`,
+    ///   `login.passwordRevisionDate`, `login.autofillOnPageLoad`) is copied out of
+    ///   `draft.preserved` unchanged. `PUT` replaces the whole cipher, so omitting one of them
+    ///   deletes it server-side.
+    ///
     /// - Parameter draft: The edited item to re-encrypt.
-    /// - Parameter keys:  The symmetric key pair (AES-256 enc key + HMAC-SHA256 MAC key).
+    /// - Parameter keys:  The wrapping key pair (vault key for personal items, org key for org
+    ///   items). When the draft carries a per-item key, that key is unwrapped from this one and
+    ///   used for the actual field encryption — see `resolveFieldKeys`.
     /// - Returns: A `RawCipher` with all sensitive string fields encrypted as EncStrings.
     /// - Throws: `EncStringError` if IV generation or AES/HMAC computation fails.
+    /// - Throws: `CipherMapperError.fieldDecryptionFailed("key")` if a per-item key is present
+    ///   but cannot be unwrapped with `keys`.
     func toRawCipher(_ draft: DraftVaultItem, encryptedWith keys: CryptoKeys) throws -> RawCipher {
-        let encName  = try encryptString(draft.name, keys: keys)
+        // Resolve the key that actually protects this cipher's fields *before* encrypting
+        // anything. A cipher carrying a per-item key encrypts its fields — and its attachments —
+        // with that key; re-encrypting with the wrapping key would change the cipher's key
+        // structure and orphan every attachment whose key was wrapped with the old one.
+        let fieldKeys = try resolveFieldKeys(preserved: draft.preserved, wrapping: keys)
+
+        let encName  = try encryptString(draft.name, keys: fieldKeys)
         let encNotes: String? = try {
             switch draft.content {
-            case .login(let c):      return try c.notes.map { try encryptString($0, keys: keys) }
-            case .secureNote(let c): return try c.notes.map { try encryptString($0, keys: keys) }
-            case .card(let c):       return try c.notes.map { try encryptString($0, keys: keys) }
-            case .identity(let c):   return try c.notes.map { try encryptString($0, keys: keys) }
-            case .sshKey(let c):     return try c.notes.map { try encryptString($0, keys: keys) }
+            case .login(let c):      return try c.notes.map { try encryptString($0, keys: fieldKeys) }
+            case .secureNote(let c): return try c.notes.map { try encryptString($0, keys: fieldKeys) }
+            case .card(let c):       return try c.notes.map { try encryptString($0, keys: fieldKeys) }
+            case .identity(let c):   return try c.notes.map { try encryptString($0, keys: fieldKeys) }
+            case .sshKey(let c):     return try c.notes.map { try encryptString($0, keys: fieldKeys) }
             }
         }()
-        let encFields = try toRawFields(customFieldsOf(draft.content), keys: keys)
+        let encFields = try toRawFields(customFieldsOf(draft.content), keys: fieldKeys)
 
         let (type, loginData, cardData, identityData, secureNoteData, sshKeyData) =
-            try encryptContent(draft.content, keys: keys)
+            try encryptContent(draft.content, preserved: draft.preserved, keys: fieldKeys)
 
         return RawCipher(
             id:             draft.id,
@@ -376,16 +413,52 @@ nonisolated final class CipherMapper: Sendable {
             secureNote:     secureNoteData,
             sshKey:         sshKeyData,
             fields:         encFields.isEmpty ? nil : encFields,
-            key:            nil,
+            key:            draft.preserved.cipherKey,
             collectionIds:  draft.collectionIds,
-            attachments:    nil
+            attachments:    nil,
+            passwordHistory: draft.preserved.passwordHistory,
+            archivedDate:    draft.preserved.archivedDate
         )
+    }
+
+    // MARK: - Private: per-item key resolution
+
+    /// Returns the key that encrypts this cipher's fields.
+    ///
+    /// A cipher may carry a per-item key (`raw.key`) which is itself wrapped with the vault key
+    /// (personal ciphers) or the organisation key (org ciphers). When present, that key — not the
+    /// wrapping key — protects the cipher's fields and attachments.
+    ///
+    /// Reference: Bitwarden Security Whitepaper §4 — "Cipher Key Wrapping".
+    ///
+    /// - Parameters:
+    ///   - preserved: The draft's carried-through wire fields; `cipherKey` is the wrapped key.
+    ///   - keys:      The wrapping key (vault or org), used only to unwrap the per-item key.
+    /// - Returns: `keys` when there is no per-item key, otherwise the unwrapped per-item key.
+    /// - Throws: `CipherMapperError.fieldDecryptionFailed("key")` when a per-item key exists but
+    ///   cannot be unwrapped or is not 64 bytes. Refusing to write is the safe failure: encrypting
+    ///   with the wrong key would produce an item no client can read.
+    private func resolveFieldKeys(preserved: PreservedCipherFields,
+                                 wrapping keys: CryptoKeys) throws -> CryptoKeys {
+        guard let encItemKey = preserved.cipherKey else { return keys }
+        do {
+            let enc     = try EncString(string: encItemKey)
+            let rawKey  = try enc.decrypt(keys: keys)
+            guard let perItemKey = CryptoKeys(data: rawKey) else {
+                throw CipherMapperError.fieldDecryptionFailed("key")
+            }
+            return perItemKey
+        } catch {
+            Self.logger.error("Per-item key could not be unwrapped — refusing to re-encrypt with the wrong key")
+            throw CipherMapperError.fieldDecryptionFailed("key")
+        }
     }
 
     // MARK: - Private: Reverse content dispatch
 
     private func encryptContent(
         _ content: DraftItemContent,
+        preserved: PreservedCipherFields,
         keys: CryptoKeys
     ) throws -> (
         type: Int,
@@ -399,7 +472,7 @@ nonisolated final class CipherMapper: Sendable {
         // Must match the forward mapper (mapContent) and the Bitwarden server CipherType enum.
         switch content {
         case .login(let c):
-            return (1, try toRawLogin(c, keys: keys), nil, nil, nil, nil)
+            return (1, try toRawLogin(c, preserved: preserved, keys: keys), nil, nil, nil, nil)
         case .secureNote:
             return (2, nil, nil, nil, RawSecureNoteData(type: 0), nil)
         case .card(let c):
@@ -413,7 +486,14 @@ nonisolated final class CipherMapper: Sendable {
 
     // MARK: - Private: Login reverse map
 
-    private func toRawLogin(_ c: DraftLoginContent, keys: CryptoKeys) throws -> RawLoginData {
+    /// Re-encrypts a login draft.
+    ///
+    /// The three trailing fields are copied from `preserved` rather than encrypted: they belong to
+    /// features Prizm does not implement, and Vaultwarden stores the whole `login` object verbatim
+    /// (`cipher.data = type_data.to_string()`), so omitting them deletes them server-side.
+    private func toRawLogin(_ c: DraftLoginContent,
+                            preserved: PreservedCipherFields,
+                            keys: CryptoKeys) throws -> RawLoginData {
         let rawURIs: [RawURI] = try c.uris.map { uri in
             let encURI = try encryptString(uri.uri, keys: keys)
             return RawURI(uri: encURI, match: uri.matchType?.rawValue)
@@ -422,7 +502,10 @@ nonisolated final class CipherMapper: Sendable {
             username: try c.username.map { try encryptString($0, keys: keys) },
             password: try c.password.map { try encryptString($0, keys: keys) },
             uris:     rawURIs,
-            totp:     try c.totp.map { try encryptString($0, keys: keys) }
+            totp:     try c.totp.map { try encryptString($0, keys: keys) },
+            fido2Credentials:     preserved.fido2Credentials.isEmpty ? nil : preserved.fido2Credentials,
+            passwordRevisionDate: preserved.passwordRevisionDate,
+            autofillOnPageLoad:   preserved.autofillOnPageLoad
         )
     }
 

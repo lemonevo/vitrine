@@ -238,6 +238,12 @@ nonisolated struct DraftVaultItem: Equatable {
     /// The collections this item is assigned to within its organization.
     /// Empty for personal items and org items not yet assigned to a collection.
     var collectionIds: [String]
+    /// Wire fields Prizm does not interpret, carried through the edit unchanged.
+    ///
+    /// Not user-editable and never displayed — its only job is to reach
+    /// `CipherMapper.toRawCipher` so the outgoing `PUT` body still contains the passkeys,
+    /// password history and per-item key the item arrived with. See `PreservedCipherFields`.
+    let preserved: PreservedCipherFields
 
     /// Creates a blank draft for a new item of the given type.
     static func blank(type: ItemType) -> DraftVaultItem {
@@ -265,7 +271,8 @@ nonisolated struct DraftVaultItem: Equatable {
     /// Memberwise initialiser for programmatic construction (blank drafts, tests).
     init(id: String, folderId: String? = nil, name: String, isFavorite: Bool, isDeleted: Bool,
          creationDate: Date, revisionDate: Date, content: DraftItemContent, reprompt: Int,
-         organizationId: String? = nil, collectionIds: [String] = []) {
+         organizationId: String? = nil, collectionIds: [String] = [],
+         preserved: PreservedCipherFields = .empty) {
         self.id = id
         self.folderId = folderId
         self.name = name
@@ -277,6 +284,7 @@ nonisolated struct DraftVaultItem: Equatable {
         self.reprompt = reprompt
         self.organizationId = organizationId
         self.collectionIds = collectionIds
+        self.preserved = preserved
     }
 
     /// Converts an immutable `VaultItem` into a mutable draft ready for editing.
@@ -291,6 +299,7 @@ nonisolated struct DraftVaultItem: Equatable {
         self.reprompt = item.reprompt
         self.organizationId = item.organizationId
         self.collectionIds = item.collectionIds
+        self.preserved = item.preserved
         self.content = {
             switch item.content {
             case .login(let c):      return .login(DraftLoginContent(c))
@@ -322,6 +331,9 @@ extension VaultItem {
         self.reprompt = draft.reprompt
         self.organizationId = draft.organizationId
         self.collectionIds = draft.collectionIds
+        // Carried through unchanged: this reconstruction happens on the way *back* from an edit,
+        // so the unmodelled wire fields must survive it or a save would drop them.
+        self.preserved = draft.preserved
         // Drafts do not carry attachment state — attachments are managed via
         // AttachmentRepository and written back through the server response, not through
         // the edit draft. Preserve an empty list here; the actual attachments come from

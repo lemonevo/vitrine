@@ -15,23 +15,39 @@ struct PrizmApp: App {
 
     @StateObject private var container: AppContainer
     @StateObject private var rootVM:    RootViewModel
+    @StateObject private var localization = LocalizationManager.shared
     @State       private var optionKeyMonitor = OptionKeyMonitor()
 
     // Used by the About menu item to open the custom About window scene.
     @Environment(\.openWindow) private var openWindow
 
     init() {
+        // Install the Bundle.main override before anything can resolve a string.
+        // `@StateObject` would create the manager lazily on first body access, which
+        // happens to be early enough today — this makes the ordering explicit rather
+        // than incidental.
+        _ = LocalizationManager.shared
+
         let c = AppContainer()
         _container = StateObject(wrappedValue: c)
         _rootVM    = StateObject(wrappedValue: RootViewModel(container: c))
         NSApplication.shared.activate()
     }
 
+    /// The locale for date and number formatting. String lookups are handled by
+    /// `LocalizationManager`'s `Bundle.main` override — this only aligns formatters.
+    private var locale: Locale { Locale(identifier: localization.language) }
+
     var body: some Scene {
         WindowGroup {
             rootView
                 .frame(minWidth: 480, minHeight: 360)
                 .environment(optionKeyMonitor)
+                .environment(\.locale, locale)
+                // Rebuilds the whole hierarchy when the language changes. SwiftUI
+                // caches resolved strings inside view values, so without this the
+                // bundle would switch but the on-screen text would not.
+                .id(localization.language)
         }
         .windowStyle(.titleBar)
         .windowToolbarStyle(.unified(showsTitle: false))
@@ -117,6 +133,8 @@ struct PrizmApp: App {
         // free resize since the content is a fixed-layout info panel.
         Window("About Prizm", id: "about") {
             AboutView()
+                .environment(\.locale, locale)
+                .id(localization.language)
         }
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentSize)
@@ -126,6 +144,8 @@ struct PrizmApp: App {
         // the container explicitly via .environmentObject().
         Settings {
             SettingsView(authRepository: container.authRepository)
+                .environment(\.locale, locale)
+                .id(localization.language)
         }
     }
 
@@ -214,12 +234,18 @@ protocol RootViewModelDependencies: AnyObject {
     var vaultKeyCache: VaultKeyCache { get }
     /// The per-organisation symmetric key cache. Cleared on vault lock alongside the vault store.
     var orgKeyCache: OrgKeyCache { get }
+    /// Derives the one-time code for `Item ▸ Copy Code`. Injected rather than constructed here so
+    /// the crypto stays in the Data layer (Constitution §II) and the generator stays testable.
+    var totpGenerator: any TOTPGenerator { get }
     func makeLoginViewModel() -> LoginViewModel
     func makeUnlockViewModel(account: Account) -> UnlockViewModel
     func makeVaultBrowserViewModel() -> VaultBrowserViewModel
     /// Returns a fresh sync timestamp repository and use case scoped to the given email.
     /// Called after login/unlock to re-scope to the correct account before the first sync.
     func makeSyncTimestampDependencies(for email: String) -> (repository: any SyncTimestampRepository, useCase: any GetLastSyncDateUseCase)
+    /// Points the favicon loader at the signed-in account's icon service. Called at the vault
+    /// transition, once the account's server URL is known; before that nothing is fetched.
+    func refreshWebsiteIcons() async
 }
 
 extension AppContainer: RootViewModelDependencies {
@@ -375,6 +401,9 @@ final class RootViewModel: ObservableObject {
             // be written under the fallback empty-email key. Should not occur in normal flow.
             logger.error("\(caller, privacy: .public)(.vault): no stored account; sync timestamp not re-scoped")
         }
+        // The account's server URL is now known, so the favicon loader can be pointed at that
+        // server's icon endpoint. Until this runs the loader fetches nothing at all.
+        Task { await container.refreshWebsiteIcons() }
         screen = .vault
         // Defer handleSyncCompleted to the next run-loop cycle so that the initial
         // VaultBrowserView layout pass (triggered by `screen = .vault` above) commits
@@ -417,13 +446,17 @@ final class RootViewModel: ObservableObject {
     }
 
     /// Shows a confirmation alert before signing out (FR-014).
+    ///
+    /// `NSAlert` is built from plain `String`s, so every title has to be resolved
+    /// through `L(…)` explicitly — nothing here is picked up by SwiftUI's
+    /// `LocalizedStringKey` handling.
     func confirmSignOut() {
         let alert = NSAlert()
-        alert.messageText = "Sign Out"
-        alert.informativeText = "All local data will be cleared."
+        alert.messageText = L("Sign Out")
+        alert.informativeText = L("All local data will be cleared.")
         alert.alertStyle = .warning
-        alert.addButton(withTitle: "Sign Out")
-        alert.addButton(withTitle: "Cancel")
+        alert.addButton(withTitle: L("Sign Out"))
+        alert.addButton(withTitle: L("Cancel"))
         guard alert.runModal() == .alertFirstButtonReturn else { return }
         signOut()
     }
@@ -510,7 +543,11 @@ final class RootViewModel: ObservableObject {
         switch field {
         case .username: return login.username
         case .password: return login.password
-        case .totp:     return login.totp
+        // The stored `totp` is the long-lived shared secret, NOT a one-time code. Copying it would
+        // hand the recipient a permanent second factor — and the clipboard is globally readable for
+        // 30 seconds. Generate the code instead; when the stored value is unusable this returns nil
+        // and the menu command stays disabled rather than copying something wrong.
+        case .totp:     return container.totpGenerator.code(for: login.totp)
         case .website:  return login.uris.first?.uri
         }
     }
