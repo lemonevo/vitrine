@@ -441,6 +441,12 @@ final class AuthRepositoryImpl: AuthRepository, EmbeddedBiometricUnlock {
         LAContext().canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: nil)
     }
 
+    /// Asked of the injected service rather than re-probing statically, so the answer
+    /// always describes the object that will actually perform the writes.
+    var biometricGateIsSystemEnforced: Bool {
+        biometricKeychain.isSystemEnforced
+    }
+
     var biometricUnlockAvailable: Bool {
         // Fast synchronous check for UI binding (design Decision 5).
         // Actual Keychain item existence is verified only inside unlockWithBiometrics().
@@ -458,10 +464,19 @@ final class AuthRepositoryImpl: AuthRepository, EmbeddedBiometricUnlock {
         guard let userId = try? readString(key: KeychainKey.activeUserId) else {
             throw AuthError.biometricUnavailable
         }
-        try biometricKeychain.writeBiometric(
-            data: data,
-            key: KeychainKey.biometricVaultKey(userId)
-        )
+        do {
+            try biometricKeychain.writeBiometric(
+                data: data,
+                key: KeychainKey.biometricVaultKey(userId)
+            )
+        } catch KeychainError.unexpectedStatus(let status) where status == errSecMissingEntitlement {
+            // Reachable only when the build claimed system enforcement but the ACL write
+            // was refused anyway: the capability probe tests the data-protection Keychain
+            // *without* an access control, and the ACL needs the same entitlement again.
+            // Name the real cause rather than letting the switch flip back in silence.
+            logger.error("Biometric write rejected: missing keychain-access-groups entitlement")
+            throw AuthError.biometricUnsupportedInBuild
+        }
         UserDefaults.standard.set(true, forKey: "biometricUnlockEnabled")
         logger.info("Biometric unlock enabled")
     }

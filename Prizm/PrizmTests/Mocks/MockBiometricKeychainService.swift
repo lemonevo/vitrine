@@ -6,6 +6,10 @@ final class MockBiometricKeychainService: BiometricKeychainService {
     private var store: [String: Data] = [:]
     var readError: Error?
     var writeError: Error?
+    /// Defaults to the strong path; set to `false` to cover an unsigned build.
+    var stubbedIsSystemEnforced: Bool = true
+
+    var isSystemEnforced: Bool { stubbedIsSystemEnforced }
 
     func writeBiometric(data: Data, key: String) throws {
         if let err = writeError { throw err }

@@ -1,3 +1,4 @@
+import Security
 import XCTest
 @testable import Prizm
 
@@ -63,6 +64,40 @@ final class AuthRepositoryImplBiometricTests: XCTestCase {
         let key = KeychainKey.biometricVaultKey(testUserId)
         let data = try await mockBiometricKeychain.readBiometric(key: key)
         XCTAssertEqual(data.count, 64)
+    }
+
+    /// An ad-hoc signed build cannot create a biometric Keychain item: macOS rejects the
+    /// write with `errSecMissingEntitlement` because `keychain-access-groups` is missing.
+    /// That must surface as a named error — the old code let the write throw and the
+    /// Settings toggle flipped back with no explanation at all.
+    func testEnableBiometricUnlock_missingEntitlement_reportsUnsupportedBuild() async {
+        mockCrypto._isUnlocked = true
+        mockBiometricKeychain.writeError = KeychainError.unexpectedStatus(errSecMissingEntitlement)
+
+        do {
+            try await sut.enableBiometricUnlock()
+            XCTFail("Expected biometricUnsupportedInBuild")
+        } catch {
+            XCTAssertEqual(error as? AuthError, .biometricUnsupportedInBuild)
+        }
+        XCTAssertFalse(
+            UserDefaults.standard.bool(forKey: "biometricUnlockEnabled"),
+            "a failed write must not leave the preference enabled"
+        )
+    }
+
+    /// Only the entitlement failure gets the friendly name; anything else stays a
+    /// `KeychainError` so the caller can still see the raw OSStatus.
+    func testEnableBiometricUnlock_otherKeychainFailure_propagates() async {
+        mockCrypto._isUnlocked = true
+        mockBiometricKeychain.writeError = KeychainError.unexpectedStatus(errSecIO)
+
+        do {
+            try await sut.enableBiometricUnlock()
+            XCTFail("Expected the KeychainError to propagate")
+        } catch {
+            XCTAssertEqual(error as? KeychainError, .unexpectedStatus(errSecIO))
+        }
     }
 
     // MARK: - disableBiometricUnlock

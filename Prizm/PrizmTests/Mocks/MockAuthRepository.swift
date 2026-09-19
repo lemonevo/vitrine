@@ -93,6 +93,9 @@ final class MockAuthRepository: AuthRepository {
 
     var stubbedDeviceBiometricCapable: Bool = false
     var stubbedBiometricUnlockAvailable: Bool = false
+    /// Defaults to `true` (macOS enforces the gate); set to `false` to cover a build
+    /// without a signing Team ID, where Prizm evaluates the policy itself.
+    var stubbedBiometricGateIsSystemEnforced: Bool = true
     private(set) var enableBiometricUnlockCalled: Bool = false
     private(set) var disableBiometricUnlockCalled: Bool = false
     private(set) var unlockWithBiometricsCalled: Bool = false
@@ -102,6 +105,7 @@ final class MockAuthRepository: AuthRepository {
 
     var deviceBiometricCapable: Bool { stubbedDeviceBiometricCapable }
     var biometricUnlockAvailable: Bool { stubbedBiometricUnlockAvailable }
+    var biometricGateIsSystemEnforced: Bool { stubbedBiometricGateIsSystemEnforced }
 
     func enableBiometricUnlock() async throws {
         enableBiometricUnlockCalled = true

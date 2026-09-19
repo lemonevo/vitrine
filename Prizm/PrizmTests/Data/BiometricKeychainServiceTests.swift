@@ -1,27 +1,78 @@
+import LocalAuthentication
 import XCTest
 @testable import Prizm
 
 /// Tests for `BiometricKeychainServiceImpl`.
 ///
-/// Biometric Keychain operations require `.biometryCurrentSet` access control,
-/// which cannot be exercised in CI (no enrolled biometrics). These tests use
-/// `useDataProtectionKeychain: false` to exercise the SecItem code paths without
-/// the biometric gate — the access control flag is tested manually (task 10.4).
+/// Biometric Keychain operations in `.systemEnforced` mode require a
+/// `.biometryCurrentSet` access control, which cannot be exercised here (no enrolled
+/// biometrics, and no `keychain-access-groups` entitlement on an ad-hoc signed build).
+/// These tests therefore run in `.appEnforced` mode with a no-op policy evaluator,
+/// which exercises every SecItem code path without the biometric gate.
 @MainActor
 final class BiometricKeychainServiceTests: XCTestCase {
 
     private var sut: BiometricKeychainServiceImpl!
+    private var evaluator: NoopBiometricPolicyEvaluator!
     private let testKey = "bw.macos.test:biometricKey"
 
     override func setUp() async throws {
         try await super.setUp()
-        sut = BiometricKeychainServiceImpl(useDataProtectionKeychain: false)
+        evaluator = NoopBiometricPolicyEvaluator()
+        sut = BiometricKeychainServiceImpl(mode: .appEnforced, evaluator: evaluator)
         try? sut.deleteBiometric(key: testKey)
     }
 
     override func tearDown() async throws {
         try? sut.deleteBiometric(key: testKey)
         try await super.tearDown()
+    }
+
+    // MARK: - Mode
+
+    /// The mode has to be observable: Settings reports which layer enforces the gate.
+    func testModeIsReported() {
+        XCTAssertFalse(sut.isSystemEnforced, "constructed with .appEnforced")
+        let strong = BiometricKeychainServiceImpl(mode: .systemEnforced, evaluator: evaluator)
+        XCTAssertTrue(strong.isSystemEnforced)
+    }
+
+    /// `preferred()` must never pick a mode the build cannot use. On this machine the
+    /// probe answers for real, so the assertion is written against the probe itself.
+    func testPreferredModeMatchesCapabilityProbe() {
+        XCTAssertEqual(
+            BiometricKeychainServiceImpl.preferred().isSystemEnforced,
+            BiometricKeychainServiceImpl.systemEnforcementAvailable
+        )
+    }
+
+    // MARK: - Gate
+
+    /// Every read must go through the policy evaluator — that evaluation *is* the gate
+    /// in `.appEnforced` mode.
+    func testReadEvaluatesPolicy() async throws {
+        try sut.writeBiometric(data: Data(count: 64), key: testKey)
+        _ = try await sut.readBiometric(key: testKey)
+        XCTAssertEqual(evaluator.evaluateCallCount, 1)
+        XCTAssertEqual(evaluator.lastReason, L("unlock your Prizm vault"))
+    }
+
+    func testReadWithContextEvaluatesPolicyOnThatContext() async throws {
+        try sut.writeBiometric(data: Data(count: 64), key: testKey)
+        _ = try await sut.readBiometric(key: testKey, context: LAContext())
+        XCTAssertEqual(evaluator.evaluateCallCount, 1)
+    }
+
+    /// A refused evaluation must surface, not fall through to the stored bytes.
+    func testReadSurfacesEvaluationFailure() async throws {
+        try sut.writeBiometric(data: Data(count: 64), key: testKey)
+        evaluator.error = LAError(.userCancel)
+        do {
+            _ = try await sut.readBiometric(key: testKey)
+            XCTFail("Expected the evaluation failure to propagate")
+        } catch {
+            XCTAssertEqual((error as? LAError)?.code, .userCancel)
+        }
     }
 
     // MARK: - Write + Read

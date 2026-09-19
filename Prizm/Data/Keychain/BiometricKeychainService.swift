@@ -1,6 +1,64 @@
 import Foundation
 import LocalAuthentication
 
+/// How the biometric gate on a stored item is enforced.
+enum BiometricStorageMode: Equatable {
+
+    /// The item carries a `.biometryCurrentSet` access control on the data-protection
+    /// Keychain, so macOS itself refuses to release the bytes without a successful
+    /// biometric evaluation — and invalidates the item when enrollment changes.
+    ///
+    /// This is the design of record (design Decision 2). It needs the
+    /// `keychain-access-groups` entitlement, so only a build signed with a real Team ID
+    /// can use it.
+    case systemEnforced
+
+    /// The item lives in the legacy login Keychain with no access control, and Prizm
+    /// evaluates the biometric policy in-process before every read.
+    ///
+    /// The prompt the user sees is identical; what differs is who enforces it. macOS
+    /// will release the bytes to any process already on the item's ACL, so the gate is
+    /// only as strong as this process. Used when `systemEnforced` is impossible, and
+    /// reported to Settings rather than silently substituted.
+    case appEnforced
+}
+
+/// Evaluates the biometric policy that gates a Keychain read.
+///
+/// Injected rather than called inline so the SecItem code paths stay exercisable
+/// without enrolled biometrics — a test runner must not raise a Touch ID prompt.
+protocol BiometricPolicyEvaluating {
+    /// Prompts on a fresh context and returns it, so the same evaluation can be handed
+    /// to `SecItemCopyMatching` via `kSecUseAuthenticationContext`.
+    func evaluate(reason: String) async throws -> LAContext
+
+    /// Prompts on a caller-supplied context. `EmbeddedTouchIDView` pairs a context with
+    /// an inline `LAAuthenticationView`; evaluating on that same context routes the
+    /// prompt through the embedded view instead of a system modal.
+    func evaluate(on context: LAContext, reason: String) async throws
+}
+
+/// The system's own Touch ID / Face ID prompt.
+struct SystemBiometricPolicyEvaluator: BiometricPolicyEvaluating {
+    func evaluate(reason: String) async throws -> LAContext {
+        let context = LAContext()
+        try await evaluate(on: context, reason: reason)
+        return context
+    }
+
+    func evaluate(on context: LAContext, reason: String) async throws {
+        try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
+            context.evaluatePolicy(
+                .deviceOwnerAuthenticationWithBiometrics,
+                localizedReason: reason
+            ) { _, error in
+                if let error = error { cont.resume(throwing: error) }
+                else { cont.resume() }
+            }
+        }
+    }
+}
+
 /// Provides biometric-gated read, write, and delete access to the macOS Keychain.
 ///
 /// Separate from `KeychainService` because `kSecAccessControl` (used here for
@@ -10,6 +68,14 @@ import LocalAuthentication
 /// This is a Data-layer implementation detail consumed only by `AuthRepositoryImpl`.
 /// It MUST NOT be placed in the Domain layer (Constitution §II).
 protocol BiometricKeychainService {
+    /// Whether macOS itself enforces the biometric gate on the stored item.
+    ///
+    /// `true` only when the item carries a `.biometryCurrentSet` access control, which
+    /// needs the `keychain-access-groups` entitlement. When `false` the Touch ID prompt
+    /// is identical but Prizm evaluates it, so the protection is only as strong as this
+    /// process — callers surface which of the two is in force instead of assuming.
+    var isSystemEnforced: Bool { get }
+
     /// Write `data` for `key` behind a biometric access control gate.
     func writeBiometric(data: Data, key: String) throws
     /// Read and return the data stored for `key`, triggering biometric authentication.

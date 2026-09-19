@@ -83,6 +83,16 @@ protocol AuthRepository: AnyObject {
     /// Fast synchronous check suitable for UI binding — does NOT read the Keychain.
     var biometricUnlockAvailable: Bool { get }
 
+    /// Whether macOS itself enforces the biometric gate on the stored vault key.
+    ///
+    /// Distinct from `deviceBiometricCapable`, which only says the hardware works.
+    /// `false` means the key is held in the legacy login Keychain and Prizm evaluates
+    /// the Touch ID policy itself: the prompt is the same, but the protection is only
+    /// as strong as this process. That is the case for any build without a real signing
+    /// Team ID, because a `.biometryCurrentSet` item needs the `keychain-access-groups`
+    /// entitlement. Settings states which of the two is in force.
+    var biometricGateIsSystemEnforced: Bool { get }
+
     /// Stores the current vault symmetric key in a biometric-protected Keychain item.
     /// Requires the vault to be unlocked (keys in memory).
     /// - Throws: `AuthError.biometricUnavailable` if the vault is locked.
@@ -126,30 +136,38 @@ nonisolated enum AuthError: Error, LocalizedError, Equatable {
     case biometricItemNotFound
     /// Biometric unlock cannot be enabled — vault is locked (keys not in memory).
     case biometricUnavailable
+    /// Biometric unlock cannot be enabled on this build at all.
+    ///
+    /// The Keychain rejected the write with `errSecMissingEntitlement`: biometric storage
+    /// needs the `keychain-access-groups` entitlement, which only a Team ID-signed build
+    /// can carry. An ad-hoc signed build is permanently unable to use the feature.
+    case biometricUnsupportedInBuild
 
     var errorDescription: String? {
         switch self {
         case .invalidCredentials:
-            return "Invalid email or master password. Check your email and master password."
+            return L("Invalid email or master password. Check your email and master password.")
         case .invalidTwoFactorCode:
-            return "Invalid two-factor code. Please try again."
+            return L("Invalid two-factor code. Please try again.")
         case .invalidURL:
-            return "Invalid server URL. Make sure to include https://."
+            return L("Invalid server URL. Make sure to include https://.")
         case .serverUnreachable:
-            return "Cannot reach the server. Verify the URL and check your connection."
+            return L("Cannot reach the server. Verify the URL and check your connection.")
         case .unrecognizedServer:
-            return "This server doesn't appear to be a Bitwarden instance."
+            return L("This server doesn't appear to be a Bitwarden instance.")
         case .networkUnavailable:
-            return "No internet connection. Check your network connection."
+            return L("No internet connection. Check your network connection.")
         case .unsupported2FAMethod(let name):
-            return "Two-factor method '\(name)' is not supported. Use an authenticator app."
+            return L("Two-factor method '%@' is not supported. Use an authenticator app.", name)
         case .biometricInvalidated:
-            return "Your Touch ID settings have changed. Please enter your master password to continue."
+            return L("Your Touch ID settings have changed. Please enter your master password to continue.")
         case .biometricItemNotFound:
             // Intentionally nil — this error is handled silently in UnlockViewModel.
             return nil
         case .biometricUnavailable:
-            return "Biometric unlock is not available. Please unlock with your master password."
+            return L("Biometric unlock is not available. Please unlock with your master password.")
+        case .biometricUnsupportedInBuild:
+            return L("This build of Prizm is not signed with an Apple Developer certificate, so macOS does not allow it to store the key Touch ID unlock needs.")
         }
     }
 }
