@@ -22,6 +22,9 @@ nonisolated enum KeychainError: Error, Equatable {
 /// `com.prizm` service, accessible only when the device is unlocked and
 /// not backed up to iCloud (`kSecAttrAccessibleWhenUnlockedThisDeviceOnly`).
 ///
+/// The protocol exposes a per-key API, but the implementation deliberately does not
+/// map keys to Keychain items one-to-one — see `KeychainServiceImpl`.
+///
 /// All operations are synchronous and throw `KeychainError` on failure.
 protocol KeychainService {
     /// Write `data` for `key`, replacing any existing value.
@@ -37,25 +40,48 @@ protocol KeychainService {
 
 /// Concrete Keychain implementation using Security.framework SecItem APIs.
 ///
-/// Items are stored as generic passwords (`kSecClassGenericPassword`) in the
-/// **data protection keychain** (`kSecUseDataProtectionKeychain: true`), which uses
-/// entitlement-based access control instead of per-binary code-signature ACLs.
-/// This means any build signed with the same Team ID and the `keychain-access-groups`
-/// entitlement can read existing items — eliminating the keychain password prompts
-/// that appear on every new debug build when using the legacy login keychain.
+/// ## One item, many keys
 ///
-/// Each item carries:
+/// Every logical key lives in a **single** generic-password item: a JSON object whose
+/// values are base64-encoded blobs. `write` / `read` / `delete` are therefore
+/// read-modify-write operations over that one record.
+///
+/// This is not an optimisation — it is a correctness requirement on the legacy login
+/// keychain. macOS grants access per *(binary code signature × individual item)*, so an
+/// app that spreads its state over N items raises N separate authorisation dialogs on
+/// first launch after a rebuild, each demanding the **login keychain password** (the
+/// macOS account password — *not* the vault master password). Prizm used to store nine
+/// items and asked nine times. One item means at most one prompt.
+///
+/// The trade-off is that a single record now holds everything: it is written whole, so
+/// a partially-written store is impossible, and losing it costs the cached session
+/// (device ID, tokens, email, KDF params) — never vault data, which lives on the server.
+///
+/// ## Keychain selection
+///
+/// Items go to the **data protection keychain** (`kSecUseDataProtectionKeychain: true`)
+/// when available, which uses entitlement-based access control instead of per-binary
+/// code-signature ACLs: any build signed with the same Team ID and the
+/// `keychain-access-groups` entitlement can read existing items, so no prompt ever
+/// appears. Ad-hoc signed builds have no Team ID, and `keychain-access-groups` is a
+/// *restricted* entitlement that makes AMFI kill the process, so they fall back to the
+/// legacy login keychain, where the prompt is unavoidable — just now at most once.
+///
+/// The item carries:
 /// - `kSecAttrService`: `"com.prizm"` — scopes items to this app.
-/// - `kSecAttrAccount`: caller-provided `key` — allows multiple distinct items.
+/// - `kSecAttrAccount`: `KeychainServiceImpl.storeAccount` — the single store.
 /// - `kSecAttrAccessible`: `kSecAttrAccessibleWhenUnlockedThisDeviceOnly` — secrets
 ///   are available only while the device is unlocked and are not backed up to iCloud
 ///   or migrated to new devices (per Bitwarden Security Whitepaper §5: Keychain Storage).
-/// - `kSecUseDataProtectionKeychain`: `true` — opts into the modern keychain stack;
-///   the access group is inferred from the first entry in the `keychain-access-groups`
-///   entitlement (`$(AppIdentifierPrefix)com.prizm`).
 final class KeychainServiceImpl: KeychainService {
 
-    private let service = "com.prizm"
+    /// Account name of the single generic-password item that holds every key.
+    ///
+    /// Changing this value orphans the existing store: the app would start at the
+    /// sign-in screen and write a fresh one. Kept stable on purpose.
+    static let storeAccount = "store"
+
+    private let service: String
     private let logger = Logger(subsystem: "com.prizm", category: "KeychainService")
 
     /// When `true`, routes all queries through the modern data protection keychain
@@ -65,7 +91,25 @@ final class KeychainServiceImpl: KeychainService {
     /// Pass an explicit value in tests to bypass the probe.
     private let useDataProtectionKeychain: Bool
 
-    init(useDataProtectionKeychain: Bool? = nil) {
+    /// Serialises read-modify-write cycles on the shared store.
+    ///
+    /// The store is a single record, so two concurrent `write` calls that each
+    /// read-modify-write would silently drop one of the two keys. `KeychainService` is
+    /// called from `@MainActor` code today, but the protocol makes no isolation promise,
+    /// and a lost token would be an unpleasant failure to debug.
+    private let lock = NSLock()
+
+    /// In-memory view of the store: `key` → base64-encoded value.
+    private typealias Store = [String: String]
+
+    /// - Parameters:
+    ///   - service: Keychain service name. Override in tests to keep test data out of
+    ///     the app's real store (a shared store means a test run would otherwise
+    ///     rewrite the live session).
+    ///   - useDataProtectionKeychain: `nil` probes the entitlement; pass an explicit
+    ///     value to skip the probe.
+    init(service: String = "com.prizm", useDataProtectionKeychain: Bool? = nil) {
+        self.service = service
         if let explicit = useDataProtectionKeychain {
             self.useDataProtectionKeychain = explicit
             return
@@ -87,7 +131,7 @@ final class KeychainServiceImpl: KeychainService {
         // deleted immediately on success.
         var probe: [CFString: Any] = [
             kSecClass:                     kSecClassGenericPassword,
-            kSecAttrService:               "com.prizm",
+            kSecAttrService:               service,
             kSecAttrAccount:               "__entitlement-probe__",
             kSecAttrAccessible:            kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
             kSecUseDataProtectionKeychain: true,
@@ -112,18 +156,18 @@ final class KeychainServiceImpl: KeychainService {
         }
     }
 
-    /// Returns the base Keychain query dictionary for `key`.
+    /// Returns the base Keychain query dictionary for `account`.
     ///
     /// `kSecUseDataProtectionKeychain: true` routes all queries to the modern data
     /// protection keychain. The access group is not set explicitly — for sandboxed apps,
     /// Security.framework automatically uses the first entry in the `keychain-access-groups`
     /// entitlement (`$(AppIdentifierPrefix)com.prizm`). Setting it explicitly here
     /// would require embedding the resolved Team ID in source code.
-    private func baseQuery(for key: String) -> [CFString: Any] {
+    private func baseQuery(for account: String) -> [CFString: Any] {
         var query: [CFString: Any] = [
             kSecClass:       kSecClassGenericPassword,
             kSecAttrService: service,
-            kSecAttrAccount: key,
+            kSecAttrAccount: account,
         ]
         if useDataProtectionKeychain {
             query[kSecUseDataProtectionKeychain] = true
@@ -131,54 +175,13 @@ final class KeychainServiceImpl: KeychainService {
         return query
     }
 
-    // MARK: Write
+    // MARK: - Store primitives
 
-    /// Writes `data` for `key` using SecItemAdd, or updates an existing item with SecItemUpdate.
+    /// Reads and decodes the store, returning an empty store when no item exists yet.
     ///
-    /// Uses an upsert pattern: attempt to add first; if `errSecDuplicateItem` is returned,
-    /// update the existing item.  This avoids a read-before-write and is the recommended
-    /// pattern per Apple's "Storing Keys in the Keychain" technical note.
-    func write(data: Data, key: String) throws {
-        var query = baseQuery(for: key)
-        query[kSecAttrAccessible] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
-        query[kSecValueData]      = data
-
-        let addStatus = SecItemAdd(query as CFDictionary, nil)
-
-        if addStatus == errSecSuccess {
-            logger.debug("Keychain write: \(key, privacy: .public)")
-            return
-        }
-
-        if addStatus == errSecDuplicateItem {
-            let updateAttributes: [CFString: Any] = [
-                kSecValueData:      data,
-                kSecAttrAccessible: kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
-            ]
-            let updateStatus = SecItemUpdate(
-                baseQuery(for: key) as CFDictionary,
-                updateAttributes as CFDictionary
-            )
-            guard updateStatus == errSecSuccess else {
-                logger.error("Keychain error: status \(updateStatus)")
-                throw KeychainError.unexpectedStatus(updateStatus)
-            }
-            logger.debug("Keychain write: \(key, privacy: .public)")
-            return
-        }
-
-        logger.error("Keychain error: status \(addStatus)")
-        throw KeychainError.unexpectedStatus(addStatus)
-    }
-
-    // MARK: Read
-
-    /// Reads and returns the stored data for `key`.
-    ///
-    /// `kSecMatchLimit: kSecMatchLimitOne` ensures only the first matching item is
-    /// returned.  `kSecReturnData: true` requests the raw data blob.
-    func read(key: String) throws -> Data {
-        var query = baseQuery(for: key)
+    /// Must be called with `lock` held.
+    private func loadStore() throws -> Store {
+        var query = baseQuery(for: Self.storeAccount)
         query[kSecMatchLimit] = kSecMatchLimitOne
         query[kSecReturnData] = true
 
@@ -190,28 +193,127 @@ final class KeychainServiceImpl: KeychainService {
             guard let data = result as? Data else {
                 throw KeychainError.invalidData
             }
-            return data
+            do {
+                return try JSONDecoder().decode(Store.self, from: data)
+            } catch {
+                // A store we cannot decode is not recoverable in place — surfacing it
+                // loudly beats silently returning `[:]`, which would make every key
+                // look absent and quietly sign the user out.
+                logger.error("Keychain store is unreadable: \(String(describing: error), privacy: .public)")
+                throw KeychainError.invalidData
+            }
         case errSecItemNotFound:
-            throw KeychainError.itemNotFound
+            return [:]
         default:
             logger.error("Keychain error: status \(status)")
             throw KeychainError.unexpectedStatus(status)
         }
     }
 
+    /// Encodes and writes the store as the single item.
+    ///
+    /// Must be called with `lock` held.
+    private func saveStore(_ store: Store) throws {
+        let data = try JSONEncoder().encode(store)
+        try upsert(data: data, account: Self.storeAccount)
+    }
+
+    // MARK: Write
+
+    /// Upserts `data` for `account` using SecItemAdd, or SecItemUpdate on a duplicate.
+    ///
+    /// Uses an upsert pattern: attempt to add first; if `errSecDuplicateItem` is returned,
+    /// update the existing item.  This avoids a read-before-write and is the recommended
+    /// pattern per Apple's "Storing Keys in the Keychain" technical note.
+    private func upsert(data: Data, account: String) throws {
+        var query = baseQuery(for: account)
+        query[kSecAttrAccessible] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+        query[kSecValueData]      = data
+
+        let addStatus = SecItemAdd(query as CFDictionary, nil)
+
+        if addStatus == errSecSuccess {
+            logger.debug("Keychain write: \(account, privacy: .public)")
+            return
+        }
+
+        if addStatus == errSecDuplicateItem {
+            let updateAttributes: [CFString: Any] = [
+                kSecValueData:      data,
+                kSecAttrAccessible: kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
+            ]
+            let updateStatus = SecItemUpdate(
+                baseQuery(for: account) as CFDictionary,
+                updateAttributes as CFDictionary
+            )
+            guard updateStatus == errSecSuccess else {
+                logger.error("Keychain error: status \(updateStatus)")
+                throw KeychainError.unexpectedStatus(updateStatus)
+            }
+            logger.debug("Keychain write: \(account, privacy: .public)")
+            return
+        }
+
+        logger.error("Keychain error: status \(addStatus)")
+        throw KeychainError.unexpectedStatus(addStatus)
+    }
+
+    /// Stores `data` under `key` in the shared store, creating the item on first write.
+    func write(data: Data, key: String) throws {
+        lock.lock()
+        defer { lock.unlock() }
+
+        var store = try loadStore()
+        store[key] = data.base64EncodedString()
+        try saveStore(store)
+    }
+
+    // MARK: Read
+
+    /// Returns the data stored for `key`, or throws `KeychainError.itemNotFound`.
+    func read(key: String) throws -> Data {
+        lock.lock()
+        defer { lock.unlock() }
+
+        let store = try loadStore()
+        guard let encoded = store[key] else {
+            throw KeychainError.itemNotFound
+        }
+        guard let data = Data(base64Encoded: encoded) else {
+            throw KeychainError.invalidData
+        }
+        return data
+    }
+
     // MARK: Delete
 
-    /// Deletes the item for `key`.  If the item does not exist (`errSecItemNotFound`),
-    /// this method returns silently — callers do not need to check existence first.
+    /// Removes `key` from the shared store.  If the key does not exist
+    /// (`errSecItemNotFound`), this method returns silently — callers do not need to
+    /// check existence first.
+    ///
+    /// When the last key is removed the backing item is deleted outright, so a signed-out
+    /// app leaves no trace in the keychain.
     func delete(key: String) throws {
-        let status = SecItemDelete(baseQuery(for: key) as CFDictionary)
-        switch status {
-        case errSecSuccess, errSecItemNotFound:
-            logger.debug("Keychain delete: \(key, privacy: .public)")
+        lock.lock()
+        defer { lock.unlock() }
+
+        var store = try loadStore()
+        guard store.removeValue(forKey: key) != nil else {
             return
-        default:
-            logger.error("Keychain error: status \(status)")
-            throw KeychainError.unexpectedStatus(status)
         }
+
+        if store.isEmpty {
+            let status = SecItemDelete(baseQuery(for: Self.storeAccount) as CFDictionary)
+            switch status {
+            case errSecSuccess, errSecItemNotFound:
+                logger.debug("Keychain delete: \(Self.storeAccount, privacy: .public) (last key removed)")
+                return
+            default:
+                logger.error("Keychain error: status \(status)")
+                throw KeychainError.unexpectedStatus(status)
+            }
+        }
+
+        try saveStore(store)
     }
 }
