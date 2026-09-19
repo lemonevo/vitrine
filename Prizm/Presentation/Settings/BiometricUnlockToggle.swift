@@ -1,25 +1,22 @@
-import LocalAuthentication
 import SwiftUI
 
 /// Toggle for enabling/disabling biometric vault unlock in Settings.
 ///
-/// Visible only when the device supports biometrics. Disabled with an explanatory
-/// label when the vault is locked (enabling requires vault keys in memory).
+/// Rendered by `SettingsView` only when biometrics are actually usable. Disabled with
+/// an explanatory label when the vault is locked (enabling requires vault keys in memory).
 struct BiometricUnlockToggle: View {
 
     let authRepository: any AuthRepository
 
+    /// User-facing label for the available biometry ("Touch ID", "Face ID").
+    /// Resolved once by `SettingsView` so the toggle does not re-probe `LAContext`.
+    let biometryName: String
+
     @State private var isEnabled: Bool = UserDefaults.standard.bool(forKey: "biometricUnlockEnabled")
     @State private var isProcessing = false
     @State private var showVaultLockedHint = false
-
-    private var biometryName: String {
-        switch LAContext().biometryType {
-        case .touchID: return "Touch ID"
-        case .faceID:  return "Face ID"
-        default:       return "Biometric"
-        }
-    }
+    /// Why the last attempt failed, when it was not the "vault is locked" case.
+    @State private var failureReason: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -31,6 +28,10 @@ struct BiometricUnlockToggle: View {
 
             if showVaultLockedHint {
                 Text("Unlock your vault to change this setting")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else if let failureReason {
+                Text(failureReason)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -47,10 +48,16 @@ struct BiometricUnlockToggle: View {
                 try await authRepository.disableBiometricUnlock()
             }
             showVaultLockedHint = false
+            failureReason = nil
         } catch {
             isEnabled = !enabled
             if (error as? AuthError) == .biometricUnavailable {
                 showVaultLockedHint = true
+            } else {
+                // Never flip the switch back in silence. An unexplained revert is
+                // indistinguishable from a control that does not respond, which is exactly
+                // how the missing-entitlement failure presented itself.
+                failureReason = error.localizedDescription
             }
         }
     }

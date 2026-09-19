@@ -12,11 +12,13 @@ struct BiometricEnrollmentPromptView: View {
     let onEnable: () -> Void
     let onDismiss: () -> Void
 
+    // Sensor names ("Touch ID", "Face ID") are Apple product names and stay
+    // untranslated; only the generic fallback is localised.
     private var biometryName: String {
         switch LAContext().biometryType {
         case .touchID: return "Touch ID"
         case .faceID:  return "Face ID"
-        default:       return "Biometrics"
+        default:       return L("Biometrics")
         }
     }
 
@@ -56,27 +58,30 @@ struct BiometricEnrollmentPromptView: View {
     private var heading: String {
         switch reason {
         case .firstTime:
-            return "Enable \(biometryName) to unlock faster"
+            return L("Enable %@ to unlock faster", biometryName)
         case .reEnrollAfterInvalidation:
-            return "Re-enable \(biometryName)"
+            return L("Re-enable %@", biometryName)
         }
     }
 
     private var bodyText: String {
         switch reason {
         case .firstTime:
-            return "You can also enable this in Settings at any time."
+            return L("You can also enable this in Settings at any time.")
         case .reEnrollAfterInvalidation:
-            return "Your \(biometryName) settings changed — a fingerprint was added or removed. For your security, Prizm disabled \(biometryName) unlock. Would you like to re-enable it?"
+            return L(
+                "Your %@ settings changed — a fingerprint was added or removed. For your security, Prizm disabled %@ unlock. Would you like to re-enable it?",
+                biometryName, biometryName
+            )
         }
     }
 
     private var enableButtonLabel: String {
         switch reason {
         case .firstTime:
-            return "Enable \(biometryName)"
+            return L("Enable %@", biometryName)
         case .reEnrollAfterInvalidation:
-            return "Re-enable \(biometryName)"
+            return L("Re-enable %@", biometryName)
         }
     }
 
