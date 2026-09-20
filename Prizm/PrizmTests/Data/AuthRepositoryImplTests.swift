@@ -1,7 +1,7 @@
 import XCTest
 @testable import Prizm
 
-/// Failing tests for AuthRepositoryImpl (T023, T024).
+/// Tests for AuthRepositoryImpl (T023, T024).
 /// These will fail until AuthRepositoryImpl + PrizmAPIClient are implemented (T027–T029).
 @MainActor
 final class AuthRepositoryImplTests: XCTestCase {
@@ -91,7 +91,7 @@ final class AuthRepositoryImplTests: XCTestCase {
         XCTAssertEqual(account.userId, "user-guid-001")
     }
 
-    /// Returns .requiresTwoFactor(.authenticatorApp) when server sends 2FA challenge with provider 0.
+    /// Returns the authenticator-app challenge when the server offers provider 0.
     func testLoginWithPassword_2FARequired_returnsRequiresTwoFactor() async throws {
         let serverEnv = ServerEnvironment(
             base: URL(string: "https://vault.example.com")!,
@@ -114,12 +114,11 @@ final class AuthRepositoryImplTests: XCTestCase {
         guard case .requiresTwoFactor(let method) = result else {
             return XCTFail("Expected .requiresTwoFactor, got \(result)")
         }
-        guard case .authenticatorApp = method else {
-            return XCTFail("Expected .authenticatorApp, got \(method)")
-        }
+        XCTAssertEqual(method.provider, .authenticatorApp,
+                       "provider 0 must be recognised as the authenticator app")
     }
 
-    /// Returns .requiresTwoFactor(.unsupported) when server only offers non-TOTP methods.
+    /// Names the method it cannot complete, rather than reporting a generic failure.
     func testLoginWithPassword_unsupported2FA_returnsUnsupported() async throws {
         let serverEnv = ServerEnvironment(
             base: URL(string: "https://vault.example.com")!,
@@ -130,7 +129,9 @@ final class AuthRepositoryImplTests: XCTestCase {
         mockAPI.preLoginResponse = PreLoginResponse(
             kdf: 0, kdfIterations: 600_000, kdfMemory: nil, kdfParallelism: nil
         )
-        mockAPI.tokenTwoFactorProviders = [3]   // Duo — not supported in v1
+        // Duo. This said [3] with the comment "Duo" until the provider numbers were checked
+        // against Vaultwarden: 3 is YubiKey, which Prizm now completes.
+        mockAPI.tokenTwoFactorProviders = [2]
         mockCrypto.stubbedServerHash = "hash=="
 
         let result = try await sut.loginWithPassword(
@@ -141,15 +142,17 @@ final class AuthRepositoryImplTests: XCTestCase {
         guard case .requiresTwoFactor(let method) = result else {
             return XCTFail("Expected .requiresTwoFactor")
         }
-        guard case .unsupported = method else {
+        guard case .unsupported(let names) = method else {
             return XCTFail("Expected .unsupported, got \(method)")
         }
+        XCTAssertEqual(names, ["Duo"],
+                       "the error must name the method the server asked for")
     }
 
-    // MARK: - T024: loginWithTOTP
+    // MARK: - Completing the challenge
 
-    /// loginWithTOTP completes the 2FA challenge and returns the authenticated Account.
-    func testLoginWithTOTP_correctCode_returnsAccount() async throws {
+    /// loginWithTwoFactorCode completes the challenge and returns the authenticated Account.
+    func testLoginWithTwoFactorCode_correctCode_returnsAccount() async throws {
         let serverEnv = ServerEnvironment(
             base: URL(string: "https://vault.example.com")!,
             overrides: nil
@@ -173,12 +176,12 @@ final class AuthRepositoryImplTests: XCTestCase {
             userId: "user-guid-001", email: "alice@example.com", name: "Alice"
         )
 
-        let account = try await sut.loginWithTOTP(code: "123456", rememberDevice: false)
+        let account = try await sut.loginWithTwoFactorCode("123456", rememberDevice: false)
         XCTAssertEqual(account.email, "alice@example.com")
     }
 
-    /// loginWithTOTP with wrong code throws .invalidTwoFactorCode.
-    func testLoginWithTOTP_wrongCode_throws() async throws {
+    /// A rejected code throws .invalidTwoFactorCode.
+    func testLoginWithTwoFactorCode_wrongCode_throws() async throws {
         let serverEnv = ServerEnvironment(
             base: URL(string: "https://vault.example.com")!,
             overrides: nil
@@ -193,7 +196,7 @@ final class AuthRepositoryImplTests: XCTestCase {
 
         let sut = self.sut!
         await XCTAssertThrowsErrorAsync(
-            try await sut.loginWithTOTP(code: "000000", rememberDevice: false)
+            try await sut.loginWithTwoFactorCode("000000", rememberDevice: false)
         ) { error in
             XCTAssertEqual(error as? AuthError, .invalidTwoFactorCode)
         }
@@ -201,7 +204,7 @@ final class AuthRepositoryImplTests: XCTestCase {
 
     // MARK: - cancelTwoFactor
 
-    /// cancelTwoFactor clears pendingTwoFactor so a subsequent loginWithTOTP throws .invalidCredentials.
+    /// cancelTwoFactor clears the pending challenge so a subsequent code is refused.
     func testCancelTwoFactor_clearsPendingState() async throws {
         let serverEnv = ServerEnvironment(
             base: URL(string: "https://vault.example.com")!,
@@ -213,16 +216,16 @@ final class AuthRepositoryImplTests: XCTestCase {
         mockCrypto.stubbedServerHash   = "hash=="
         _ = try await sut.loginWithPassword(email: "alice@example.com", masterPassword: Data("pw!".utf8))
 
-        // Cancel before entering the TOTP code.
+        // Cancel before entering a code.
         sut.cancelTwoFactor()
 
-        // A subsequent TOTP attempt must fail because pending state was cleared.
+        // A subsequent code must be refused because the pending state was cleared.
         let sut = self.sut!
         await XCTAssertThrowsErrorAsync(
-            try await sut.loginWithTOTP(code: "123456", rememberDevice: false)
+            try await sut.loginWithTwoFactorCode("123456", rememberDevice: false)
         ) { error in
             XCTAssertEqual(error as? AuthError, .invalidCredentials,
-                           "loginWithTOTP must throw .invalidCredentials when no pending state exists")
+                           "loginWithTwoFactorCode must throw .invalidCredentials when no pending state exists")
         }
     }
 

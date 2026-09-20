@@ -65,7 +65,7 @@ final class LoginUseCaseTests: XCTestCase {
     /// When loginWithPassword returns .requiresTwoFactor, the use case returns the same result
     /// without triggering a sync.
     func testExecute_requires2FA_returnsTwoFactorWithoutSync() async throws {
-        mockAuth.stubbedLoginResult = .requiresTwoFactor(.authenticatorApp)
+        mockAuth.stubbedLoginResult = .requiresTwoFactor(.challenge(.authenticatorApp))
 
         let result = try await sut.execute(
             serverURL:      serverURL,
@@ -76,9 +76,7 @@ final class LoginUseCaseTests: XCTestCase {
         guard case .requiresTwoFactor(let method) = result else {
             return XCTFail("Expected .requiresTwoFactor, got \(result)")
         }
-        guard case .authenticatorApp = method else {
-            return XCTFail("Expected .authenticatorApp, got \(method)")
-        }
+        XCTAssertEqual(method.provider, .authenticatorApp)
         XCTAssertFalse(mockSync.syncCalled, "Sync must not be called when 2FA is required")
     }
 
@@ -117,21 +115,21 @@ final class LoginUseCaseTests: XCTestCase {
         XCTAssertTrue(mockSync.syncCalled, "Sync should still be attempted")
     }
 
-    // MARK: - cancelTOTP
+    // MARK: - cancelTwoFactor
 
-    /// cancelTOTP delegates to auth.cancelTwoFactor() — clears pending in-memory key material.
-    func testCancelTOTP_callsCancelTwoFactor() async throws {
-        mockAuth.stubbedLoginResult = .requiresTwoFactor(.authenticatorApp)
+    /// cancelTwoFactor delegates to auth.cancelTwoFactor() — clears pending in-memory key material.
+    func testCancelTwoFactor_callsCancelTwoFactor() async throws {
+        mockAuth.stubbedLoginResult = .requiresTwoFactor(.challenge(.authenticatorApp))
         _ = try await sut.execute(
             serverURL:      serverURL,
             email:          email,
             masterPassword: masterPassword
         )
 
-        sut.cancelTOTP()
+        sut.cancelTwoFactor()
 
         XCTAssertTrue(mockAuth.cancelTwoFactorCalled,
-                      "cancelTOTP must forward to auth.cancelTwoFactor to clear pending key material")
+                      "cancelTwoFactor must forward to auth.cancelTwoFactor to clear pending key material")
     }
 
     // MARK: - Helpers

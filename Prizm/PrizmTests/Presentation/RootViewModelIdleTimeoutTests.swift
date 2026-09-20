@@ -89,7 +89,7 @@ final class RootViewModelIdleTimeoutTests: XCTestCase {
     /// A locked vault has nothing to lock; a timer running against the login screen would be pure
     /// overhead.
     func test_lockedScreensDoNotObserveInput() async throws {
-        for screen in [RootViewModel.Screen.login, .loading, .unlock, .totpPrompt] {
+        for screen in [RootViewModel.Screen.login, .loading, .unlock, .twoFactorPrompt(.authenticatorApp)] {
             sut.screen = screen
             try? await Task.sleep(for: .milliseconds(30))
             XCTAssertFalse(deps.mockIdleMonitor.isRunning, "\(screen) must not observe idle time")

@@ -57,7 +57,7 @@ final class LoginViewModelTests: XCTestCase {
 
     /// signIn() clears the password field when the server returns .requiresTwoFactor (Constitution §III).
     func testSignIn_requiresTwoFactor_clearsPasswordField() async throws {
-        mockUseCase.stubbedResult = .requiresTwoFactor(.authenticatorApp)
+        mockUseCase.stubbedResult = .requiresTwoFactor(.challenge(.authenticatorApp))
         sut.serverURL = "https://vault.example.com"
         sut.email     = "alice@example.com"
         sut.password  = "SuperSecret1!"
@@ -65,7 +65,7 @@ final class LoginViewModelTests: XCTestCase {
         let exp = expectation(description: "flow transitions to 2FA prompt")
         sut.$flowState
             .dropFirst()
-            .filter { $0 == .totpPrompt }
+            .filter { if case .twoFactorPrompt = $0 { return true }; return false }
             .first()
             .sink { _ in exp.fulfill() }
             .store(in: &cancellables)
@@ -88,15 +88,15 @@ final class LoginViewModelTests: XCTestCase {
                        "execute must not be called when password is empty")
     }
 
-    // MARK: - cancelTOTP
+    // MARK: - cancelTwoFactor
 
-    /// cancelTOTP() delegates to the use case and resets flow state to .login.
-    func testCancelTOTP_callsUseCaseAndResetsState() {
-        sut.cancelTOTP()
+    /// cancelTwoFactor() delegates to the use case and resets flow state to .login.
+    func testCancelTwoFactor_callsUseCaseAndResetsState() {
+        sut.cancelTwoFactor()
 
-        XCTAssertTrue(mockUseCase.cancelTOTPCalled,
-                      "cancelTOTP must forward to loginUseCase.cancelTOTP()")
+        XCTAssertTrue(mockUseCase.cancelTwoFactorCalled,
+                      "cancelTwoFactor must forward to loginUseCase.cancelTwoFactor()")
         XCTAssertEqual(sut.flowState, .login,
-                       "flowState must return to .login after cancelling TOTP")
+                       "flowState must return to .login after cancelling the challenge")
     }
 }

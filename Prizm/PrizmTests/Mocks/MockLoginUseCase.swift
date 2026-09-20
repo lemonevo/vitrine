@@ -7,9 +7,15 @@ final class MockLoginUseCase: LoginUseCase {
 
     // MARK: - Call tracking
 
-    private(set) var executeCallCount:    Int  = 0
-    private(set) var cancelTOTPCalled:    Bool = false
-    private(set) var completeTOTPCalled:  Bool = false
+    private(set) var executeCallCount:       Int    = 0
+    private(set) var cancelTwoFactorCalled:  Bool   = false
+    private(set) var completeTwoFactorCalled: Bool  = false
+    private(set) var sendEmailCodeCallCount: Int    = 0
+
+    /// The code the view model submitted. Recorded because the point of several cases is that the
+    /// code reaches the use case unaltered — a YubiKey code filtered down to digits would still be
+    /// non-empty, so "was called" is not enough to catch it.
+    private(set) var submittedCode:          String?
 
     // MARK: - Stubs
 
@@ -25,7 +31,8 @@ final class MockLoginUseCase: LoginUseCase {
         )
     )
     var executeError: Error?
-    var completeTOTPError: Error?
+    var completeTwoFactorError: Error?
+    var sendEmailCodeError: Error?
 
     // MARK: - LoginUseCase
 
@@ -35,16 +42,22 @@ final class MockLoginUseCase: LoginUseCase {
         return stubbedResult
     }
 
-    func completeTOTP(code: String, rememberDevice: Bool) async throws -> Account {
-        completeTOTPCalled = true
-        if let err = completeTOTPError { throw err }
+    func completeTwoFactor(code: String, rememberDevice: Bool) async throws -> Account {
+        completeTwoFactorCalled = true
+        submittedCode = code
+        if let err = completeTwoFactorError { throw err }
         guard case .success(let account) = stubbedResult else {
             throw AuthError.invalidTwoFactorCode
         }
         return account
     }
 
-    func cancelTOTP() {
-        cancelTOTPCalled = true
+    func sendEmailTwoFactorCode() async throws {
+        sendEmailCodeCallCount += 1
+        if let err = sendEmailCodeError { throw err }
+    }
+
+    func cancelTwoFactor() {
+        cancelTwoFactorCalled = true
     }
 }

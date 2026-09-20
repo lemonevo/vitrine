@@ -22,6 +22,13 @@ actor MockPrizmAPIClient: PrizmAPIClientProtocol {
     nonisolated(unsafe) var tokenResponse: TokenResponse?
     nonisolated(unsafe) var tokenShouldThrow: Error?
     nonisolated(unsafe) var tokenTwoFactorProviders: [Int]?
+    /// The provider and code the last `identityToken` call carried.
+    nonisolated(unsafe) var lastTwoFactorProvider: Int?
+    nonisolated(unsafe) var lastTwoFactorToken:    String?
+    /// Recorded for `sendEmailTwoFactorCode`, which has no return value to assert on.
+    nonisolated(unsafe) var sendEmailCodeCallCount: Int    = 0
+    nonisolated(unsafe) var sendEmailCodeEmail:     String?
+    nonisolated(unsafe) var sendEmailCodeShouldThrow: Error?
 
     // MARK: - Stubs: fetchSync
 
@@ -72,6 +79,11 @@ actor MockPrizmAPIClient: PrizmAPIClientProtocol {
     ) async throws -> TokenResponse {
         if let err = tokenShouldThrow { throw err }
 
+        // Recorded so a test can assert the number on the wire is the provider the server asked
+        // for. The old code hard-coded 0, which is invisible unless something records it.
+        lastTwoFactorProvider = twoFactorProvider
+        lastTwoFactorToken    = twoFactorToken
+
         if let providers = tokenTwoFactorProviders, tokenResponse == nil {
             return TokenResponse(
                 accessToken:        "",
@@ -96,6 +108,12 @@ actor MockPrizmAPIClient: PrizmAPIClientProtocol {
             throw APIError.baseURLNotSet
         }
         return resp
+    }
+
+    func sendEmailTwoFactorCode(email: String, passwordHash: String) async throws {
+        sendEmailCodeCallCount += 1
+        sendEmailCodeEmail = email
+        if let err = sendEmailCodeShouldThrow { throw err }
     }
 
     func fetchSync() async throws -> SyncResponse {

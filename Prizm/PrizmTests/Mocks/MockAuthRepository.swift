@@ -56,11 +56,23 @@ final class MockAuthRepository: AuthRepository {
         return stubbedLoginResult
     }
 
-    func loginWithTOTP(code: String, rememberDevice: Bool) async throws -> Account {
+    /// The code that was submitted. Recorded because "was called" would pass for an empty string,
+    /// and a code mangled on its way through the prompt still reaches here as something.
+    private(set) var submittedTwoFactorCode: String?
+    private(set) var sendEmailCodeCallCount: Int = 0
+    var sendEmailCodeError: Error?
+
+    func loginWithTwoFactorCode(_ code: String, rememberDevice: Bool) async throws -> Account {
+        submittedTwoFactorCode = code
         guard case .success(let account) = stubbedLoginResult else {
             throw AuthError.invalidTwoFactorCode
         }
         return account
+    }
+
+    func sendEmailTwoFactorCode() async throws {
+        sendEmailCodeCallCount += 1
+        if let err = sendEmailCodeError { throw err }
     }
 
     func cancelTwoFactor() {
