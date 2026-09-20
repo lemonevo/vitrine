@@ -224,6 +224,7 @@
 "Logins with a password but no authenticator seed." = "Logins with a password but no authenticator seed.";
 "Lowercase (a–z)" = "Lowercase (a–z)";
 "Master password" = "Master password";
+"Master password re-prompt" = "Master password re-prompt";
 "Match Type" = "Match Type";
 "Match type settings" = "Match type settings";
 "Menu" = "Menu";
@@ -261,6 +262,7 @@
 "No previous passwords recorded." = "No previous passwords recorded.";
 "No revision date recorded" = "No revision date recorded";
 "No server URL is configured." = "No server URL is configured.";
+"No stored session was found. Sign in again to continue." = "No stored session was found. Sign in again to continue.";
 "None" = "None";
 "Not changed in over two years" = "Not changed in over two years";
 "Not favorited" = "Not favorited";
@@ -280,6 +282,7 @@
 "Open this item" = "Open this item";
 "Opens in browser" = "Opens in browser";
 "Opens this item in the vault" = "Opens this item in the vault";
+"Options" = "Options";
 "Organisation membership not imported" = "Organisation membership not imported";
 "Organization" = "Organization";
 "Organizations" = "Organizations";

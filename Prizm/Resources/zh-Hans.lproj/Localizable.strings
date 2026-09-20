@@ -224,6 +224,7 @@
 "Logins with a password but no authenticator seed." = "有密码但没有验证器密钥的登录项。";
 "Lowercase (a–z)" = "小写字母 (a–z)";
 "Master password" = "主密码";
+"Master password re-prompt" = "主密码重新确认";
 "Match Type" = "匹配方式";
 "Match type settings" = "匹配方式设置";
 "Menu" = "菜单";
@@ -261,6 +262,7 @@
 "No previous passwords recorded." = "没有记录旧密码。";
 "No revision date recorded" = "没有记录修改日期";
 "No server URL is configured." = "未配置服务器地址。";
+"No stored session was found. Sign in again to continue." = "找不到已保存的会话。请重新登录以继续。";
 "None" = "无";
 "Not changed in over two years" = "超过两年未更改";
 "Not favorited" = "未收藏";
@@ -280,6 +282,7 @@
 "Open this item" = "打开此条目";
 "Opens in browser" = "在浏览器中打开";
 "Opens this item in the vault" = "在保险库中打开此条目";
+"Options" = "选项";
 "Organisation membership not imported" = "未导入的组织归属";
 "Organization" = "组织";
 "Organizations" = "组织";
