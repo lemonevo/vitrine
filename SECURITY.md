@@ -232,6 +232,31 @@ The app is built with App Sandbox and Hardened Runtime enabled:
 
 ---
 
+## Server Trust
+
+Two optional settings, both off by default and both scoped to the one server the user configured:
+
+- **A private certificate authority** can be trusted, so a self-signed deployment works. When one
+  is trusted it is the *only* anchor for that host's chain — the system's own authorities are not
+  added alongside it. No App Transport Security exception is enabled, and no other host is
+  affected.
+- **Certificate pinning** records the SHA-256 of the leaf certificate on the first connection and
+  refuses any later certificate that differs. It is opt-in because a pin enabled by default would
+  lock a user out of their own server the first time they reinstall it.
+
+The trusted certificate and the recorded fingerprint are stored in the Keychain, per host,
+`WhenUnlockedThisDeviceOnly` and never synchronisable — not in `UserDefaults`, which any process
+running as the user can rewrite with one `defaults write`.
+
+**Untested: the TLS handshake itself.** `ServerTrustPolicy.decide` — the rule that decides what the
+handshake is asked to do — is a pure function and is fully unit-tested, and the certificate parsing
+is tested against a real certificate. The `SecTrust` evaluation in `ServerTrustDelegate` is not: a
+unit test cannot stand up a TLS server with a private authority, and faking `SecTrust` would test
+the fake. That gap is recorded here rather than left to be discovered, and it is the first thing to
+cover if a test host with a private authority ever becomes available.
+
+---
+
 ## Standards and References
 
 - [Bitwarden Security Whitepaper](https://bitwarden.com/help/bitwarden-security-white-paper/) — vault architecture, key derivation, encryption flow, attachment encryption (§4)

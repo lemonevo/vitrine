@@ -87,14 +87,19 @@ final class PasswordGeneratorViewModelTests: XCTestCase {
 
     /// Showing the score beside the length slider is only useful if moving the slider moves the
     /// score, so this pins the recomputation rather than any particular value.
-    func testStrength_isRecomputedWhenTheLengthChanges() {
+    /// Unwrapped with `XCTUnwrap` rather than `!` after an `XCTAssertNotNil`.
+    ///
+    /// `XCTAssertNotNil` reports a failure and lets execution continue, so the `!` that used to
+    /// follow it unwrapped a value the assertion had just said might be nil — and a trap takes the
+    /// whole run down, hiding every result after it. Unwrapping by throwing stops at this test
+    /// instead of at the process.
+    func testStrength_isRecomputedWhenTheLengthChanges() throws {
         let vm = PasswordGeneratorViewModel(provider: provider, defaults: defaults)
-        let before = vm.strength
+        let before = try XCTUnwrap(vm.strength, "the initial value should have been scored")
         vm.length = 128
 
-        XCTAssertNotNil(before)
-        XCTAssertNotNil(vm.strength)
-        XCTAssertGreaterThan(vm.strength!.guessesLog10, before!.guessesLog10)
+        let after = try XCTUnwrap(vm.strength, "changing the length should re-score the new value")
+        XCTAssertGreaterThan(after.guessesLog10, before.guessesLog10)
     }
 
     /// A failed generation leaves no value on screen, so it must leave no score either — a bar

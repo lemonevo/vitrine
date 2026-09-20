@@ -5,7 +5,11 @@ import Foundation
 ///
 /// Uses an in-memory dictionary instead of the real macOS Keychain.
 /// Records which keys were deleted so tests can assert on `signOut` cleanup.
-final class MockKeychainService: KeychainService {
+///
+/// `@unchecked Sendable` because `KeychainService` is now `Sendable` — a TLS challenge reads trust
+/// material through it off the main actor. The dictionary is only touched from the test's own
+/// actor, which is the same guarantee the real implementation makes with its lock.
+final class MockKeychainService: KeychainService, @unchecked Sendable {
 
     // MARK: - In-memory store
 
