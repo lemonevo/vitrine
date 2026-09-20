@@ -24,6 +24,10 @@
 "30 minutes" = "30 分钟";
 "30 seconds" = "30 秒";
 "5 minutes" = "5 分钟";
+"A commonly used password" = "常见密码";
+"A keyboard or alphabet sequence" = "键盘或字母序列";
+"A single dictionary word" = "单个词典单词";
+"A year or date" = "年份或日期";
 "About Prizm" = "关于 Prizm";
 "Acknowledgements" = "致谢";
 "Action Failed" = "操作失败";
@@ -124,6 +128,9 @@
 "Enter password" = "输入密码";
 "Enter the 6-digit code from your authenticator app." = "输入验证器应用中的 6 位验证码。";
 "Enter the password for %@ to unlock." = "输入 %@ 的密码以解锁。";
+"Estimated from the patterns this app recognises — repeated characters, common passwords, sequences and dates. It is not a breach check, and no password is sent anywhere to produce it." = "根据本应用能识别的模式估算 —— 重复字符、常见密码、序列和日期。这不是泄露检测，生成结果不会把密码发送到任何地方。";
+"Estimated strength: %@" = "预估强度：%@";
+"Estimated strength: %@. %@" = "预估强度：%@。%@";
 "Every custom field needs a name." = "每个自定义字段都需要名称。";
 "Exact" = "完全匹配";
 "Exceeds 500 MB limit" = "超过 500 MB 上限";
@@ -138,6 +145,7 @@
 "Export…" = "导出…";
 "Failed" = "失败";
 "Failed to decrypt your vault. Please sign in again." = "无法解密保险库。请重新登录。";
+"Fair" = "一般";
 "Favorite" = "收藏";
 "Favorited" = "已收藏";
 "Favorites" = "收藏夹";
@@ -196,6 +204,7 @@
 "Last Name" = "姓";
 "Length: %lld" = "长度：%lld";
 "License Number" = "驾驶证号";
+"Limited character variety" = "字符种类有限";
 "Linked" = "关联";
 "Lock Vault" = "锁定保险库";
 "Lock after" = "闲置后锁定";
@@ -243,6 +252,7 @@
 "Number" = "号码";
 "OK" = "好";
 "On timeout" = "超时后";
+"Only %d characters" = "仅 %d 个字符";
 "Open" = "打开";
 "Open %@" = "打开%@";
 "Open in browser" = "在浏览器中打开";
@@ -270,6 +280,7 @@
 "Remember this device" = "记住此设备";
 "Remove website" = "移除网站";
 "Rename" = "重命名";
+"Repeated characters" = "重复字符";
 "Restart required" = "需要重启";
 "Restore" = "恢复";
 "Retry" = "重试";
@@ -309,6 +320,7 @@
 "State" = "省/州";
 "Stop" = "停止";
 "Store it somewhere safe and delete it when you are done." = "请妥善保存，并在用完后删除。";
+"Strong" = "强";
 "Symbols (!@#$…)" = "符号 (!@#$…)";
 "Sync Now" = "立即同步";
 "Sync Now (⌘R)" = "立即同步（⌘R）";
@@ -359,7 +371,10 @@
 "Value" = "值";
 "Vaultwarden & Bitwarden — server API and vault format" = "Vaultwarden & Bitwarden —— 服务器 API 与保险库格式";
 "Version %@" = "版本 %@";
+"Very strong" = "很强";
+"Very weak" = "很弱";
 "View on GitHub" = "在 GitHub 上查看";
+"Weak" = "弱";
 "Website" = "网站";
 "Websites" = "网站";
 "Words: %lld" = "词数：%lld";

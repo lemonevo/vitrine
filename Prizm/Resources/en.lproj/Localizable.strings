@@ -24,6 +24,10 @@
 "30 minutes" = "30 minutes";
 "30 seconds" = "30 seconds";
 "5 minutes" = "5 minutes";
+"A commonly used password" = "A commonly used password";
+"A keyboard or alphabet sequence" = "A keyboard or alphabet sequence";
+"A single dictionary word" = "A single dictionary word";
+"A year or date" = "A year or date";
 "About Prizm" = "About Prizm";
 "Acknowledgements" = "Acknowledgements";
 "Action Failed" = "Action Failed";
@@ -124,6 +128,9 @@
 "Enter password" = "Enter password";
 "Enter the 6-digit code from your authenticator app." = "Enter the 6-digit code from your authenticator app.";
 "Enter the password for %@ to unlock." = "Enter the password for %@ to unlock.";
+"Estimated from the patterns this app recognises — repeated characters, common passwords, sequences and dates. It is not a breach check, and no password is sent anywhere to produce it." = "Estimated from the patterns this app recognises — repeated characters, common passwords, sequences and dates. It is not a breach check, and no password is sent anywhere to produce it.";
+"Estimated strength: %@" = "Estimated strength: %@";
+"Estimated strength: %@. %@" = "Estimated strength: %@. %@";
 "Every custom field needs a name." = "Every custom field needs a name.";
 "Exact" = "Exact";
 "Exceeds 500 MB limit" = "Exceeds 500 MB limit";
@@ -138,6 +145,7 @@
 "Export…" = "Export…";
 "Failed" = "Failed";
 "Failed to decrypt your vault. Please sign in again." = "Failed to decrypt your vault. Please sign in again.";
+"Fair" = "Fair";
 "Favorite" = "Favorite";
 "Favorited" = "Favorited";
 "Favorites" = "Favorites";
@@ -196,6 +204,7 @@
 "Last Name" = "Last Name";
 "Length: %lld" = "Length: %lld";
 "License Number" = "License Number";
+"Limited character variety" = "Limited character variety";
 "Linked" = "Linked";
 "Lock Vault" = "Lock Vault";
 "Lock after" = "Lock after";
@@ -243,6 +252,7 @@
 "Number" = "Number";
 "OK" = "OK";
 "On timeout" = "On timeout";
+"Only %d characters" = "Only %d characters";
 "Open" = "Open";
 "Open %@" = "Open %@";
 "Open in browser" = "Open in browser";
@@ -270,6 +280,7 @@
 "Remember this device" = "Remember this device";
 "Remove website" = "Remove website";
 "Rename" = "Rename";
+"Repeated characters" = "Repeated characters";
 "Restart required" = "Restart required";
 "Restore" = "Restore";
 "Retry" = "Retry";
@@ -309,6 +320,7 @@
 "State" = "State";
 "Stop" = "Stop";
 "Store it somewhere safe and delete it when you are done." = "Store it somewhere safe and delete it when you are done.";
+"Strong" = "Strong";
 "Symbols (!@#$…)" = "Symbols (!@#$…)";
 "Sync Now" = "Sync Now";
 "Sync Now (⌘R)" = "Sync Now (⌘R)";
@@ -359,7 +371,10 @@
 "Value" = "Value";
 "Vaultwarden & Bitwarden — server API and vault format" = "Vaultwarden & Bitwarden — server API and vault format";
 "Version %@" = "Version %@";
+"Very strong" = "Very strong";
+"Very weak" = "Very weak";
 "View on GitHub" = "View on GitHub";
+"Weak" = "Weak";
 "Website" = "Website";
 "Websites" = "Websites";
 "Words: %lld" = "Words: %lld";
