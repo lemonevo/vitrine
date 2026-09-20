@@ -71,4 +71,50 @@ final class PasswordGeneratorViewModelTests: XCTestCase {
         XCTAssertFalse(vm.capitalize)
         XCTAssertFalse(vm.includeNumber)
     }
+
+    // MARK: - Strength readout
+
+    /// The popover shows the score of the value it just produced, so the two must agree. The
+    /// estimator is injected rather than defaulted so the assertion does not depend on whether the
+    /// EFF word list happens to be reachable from the test bundle.
+    func testStrength_scoresTheGeneratedValue() {
+        let estimator = PasswordStrengthEstimator()
+        let vm = PasswordGeneratorViewModel(provider: provider, defaults: defaults,
+                                            estimator: estimator)
+        XCTAssertNotNil(vm.strength)
+        XCTAssertEqual(vm.strength, estimator.estimate(vm.generatedValue))
+    }
+
+    /// Showing the score beside the length slider is only useful if moving the slider moves the
+    /// score, so this pins the recomputation rather than any particular value.
+    func testStrength_isRecomputedWhenTheLengthChanges() {
+        let vm = PasswordGeneratorViewModel(provider: provider, defaults: defaults)
+        let before = vm.strength
+        vm.length = 128
+
+        XCTAssertNotNil(before)
+        XCTAssertNotNil(vm.strength)
+        XCTAssertGreaterThan(vm.strength!.guessesLog10, before!.guessesLog10)
+    }
+
+    /// A failed generation leaves no value on screen, so it must leave no score either — a bar
+    /// beside an error message would be scoring nothing.
+    func testStrength_isClearedWhenGenerationFails() {
+        let vm = PasswordGeneratorViewModel(provider: FailingRandomnessProvider(),
+                                            defaults: defaults)
+        XCTAssertNotNil(vm.errorMessage)
+        XCTAssertNil(vm.strength)
+    }
+}
+
+// MARK: - FailingRandomnessProvider
+
+/// A provider that always fails, for the generation-error path.
+private struct FailingRandomnessProvider: RandomnessProvider {
+
+    struct Failure: Error {}
+
+    func randomBytes(count: Int) throws -> [UInt8] {
+        throw Failure()
+    }
 }
