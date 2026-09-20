@@ -177,6 +177,7 @@
 "Hidden" = "隐藏";
 "Hide" = "隐藏";
 "Hide %@" = "隐藏%@";
+"Hide this previous password" = "隐藏这个旧密码";
 "History (%d)" = "历史记录（%d）";
 "Host" = "主机";
 "ID Numbers" = "证件号码";
@@ -298,6 +299,7 @@
 "Phone" = "电话";
 "Postal Code" = "邮政编码";
 "Preparing…" = "准备中…";
+"Previous passwords stay masked until you reveal them." = "旧密码保持遮罩状态，直到你手动显示。";
 "Previous passwords stay masked. Revealing one will require confirming your master password." = "旧密码保持遮罩状态。显示其中一个需要确认主密码。";
 "Privacy" = "隐私";
 "Private Key" = "私钥";
@@ -318,6 +320,7 @@
 "Reused passwords" = "重复使用的密码";
 "Reveal" = "显示";
 "Reveal %@" = "显示%@";
+"Reveal this previous password" = "显示这个旧密码";
 "SSH Key" = "SSH 密钥";
 "SSN" = "社保号";
 "Save" = "保存";
@@ -368,6 +371,7 @@
 "Syncing vault…" = "正在同步保险库…";
 "Syncing…" = "正在同步…";
 "Text" = "文本";
+"That is not the master password for this account." = "这不是此账户的主密码。";
 "The export file could not be read." = "无法读取导出文件。";
 "The exported file is not encrypted. Store it somewhere safe." = "导出的文件未加密，请妥善保存。";
 "The file is not encrypted. It contains every password, note, one-time-code seed and previous password in plain text." = "该文件未加密，其中以明文包含所有密码、备注、一次性验证码种子以及历史密码。";
@@ -432,6 +436,7 @@
 "open" = "打开";
 "save" = "保存";
 "unlock your Prizm vault" = "解锁你的 Prizm 保险库";
+"“%@” is protected. Enter your master password to continue." = "“%@”已受保护。请输入主密码以继续。";
 "“%@” will be moved to Trash." = "「%@」将被移到废纸篓。";
 "“%@” will be permanently deleted and cannot be recovered." = "「%@」将被永久删除，且无法恢复。";
 "“%@” will be permanently deleted." = "「%@」将被永久删除。";

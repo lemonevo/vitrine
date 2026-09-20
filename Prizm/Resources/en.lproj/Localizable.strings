@@ -177,6 +177,7 @@
 "Hidden" = "Hidden";
 "Hide" = "Hide";
 "Hide %@" = "Hide %@";
+"Hide this previous password" = "Hide this previous password";
 "History (%d)" = "History (%d)";
 "Host" = "Host";
 "ID Numbers" = "ID Numbers";
@@ -298,6 +299,7 @@
 "Phone" = "Phone";
 "Postal Code" = "Postal Code";
 "Preparing…" = "Preparing…";
+"Previous passwords stay masked until you reveal them." = "Previous passwords stay masked until you reveal them.";
 "Previous passwords stay masked. Revealing one will require confirming your master password." = "Previous passwords stay masked. Revealing one will require confirming your master password.";
 "Privacy" = "Privacy";
 "Private Key" = "Private Key";
@@ -318,6 +320,7 @@
 "Reused passwords" = "Reused passwords";
 "Reveal" = "Reveal";
 "Reveal %@" = "Reveal %@";
+"Reveal this previous password" = "Reveal this previous password";
 "SSH Key" = "SSH Key";
 "SSN" = "SSN";
 "Save" = "Save";
@@ -368,6 +371,7 @@
 "Syncing vault…" = "Syncing vault…";
 "Syncing…" = "Syncing…";
 "Text" = "Text";
+"That is not the master password for this account." = "That is not the master password for this account.";
 "The export file could not be read." = "The export file could not be read.";
 "The exported file is not encrypted. Store it somewhere safe." = "The exported file is not encrypted. Store it somewhere safe.";
 "The file is not encrypted. It contains every password, note, one-time-code seed and previous password in plain text." = "The file is not encrypted. It contains every password, note, one-time-code seed and previous password in plain text.";
@@ -432,6 +436,7 @@
 "open" = "open";
 "save" = "save";
 "unlock your Prizm vault" = "unlock your Prizm vault";
+"“%@” is protected. Enter your master password to continue." = "“%@” is protected. Enter your master password to continue.";
 "“%@” will be moved to Trash." = "“%@” will be moved to Trash.";
 "“%@” will be permanently deleted and cannot be recovered." = "“%@” will be permanently deleted and cannot be recovered.";
 "“%@” will be permanently deleted." = "“%@” will be permanently deleted.";
