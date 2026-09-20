@@ -90,7 +90,7 @@ final class AttachmentRowViewModel {
                     attachment: self.attachment
                 )
                 let tmpURL = try self.writeTempFile(data: data)
-                data.resetBytes(in: 0..<data.count)
+                data.zeroize()
                 self.fileOpener(tmpURL)
                 self.tempFileManager.register(url: tmpURL)
 
@@ -127,7 +127,7 @@ final class AttachmentRowViewModel {
                     attachment: self.attachment
                 )
                 try data.write(to: saveURL)
-                data.resetBytes(in: 0..<data.count)
+                data.zeroize()
                 self.logger.info("saveToDisk: saved \(self.attachment.id, privacy: .public)")
             } catch {
                 self.actionError = L("Could not save file: %@", error.localizedDescription)
@@ -194,11 +194,11 @@ final class AttachmentRowViewModel {
                     fileName: self.attachment.fileName,
                     data:     fileData
                 )
-                fileData.resetBytes(in: 0..<fileData.count)
+                fileData.zeroize()
                 self.onAttachmentChanged?()
                 self.logger.info("retryUpload: succeeded for \(self.attachment.id, privacy: .public)")
             } catch {
-                fileData.resetBytes(in: 0..<fileData.count)
+                fileData.zeroize()
                 self.retryError = L("Retry failed: %@", error.localizedDescription)
                 self.logger.error("retryUpload failed: \(error.localizedDescription, privacy: .public)")
             }

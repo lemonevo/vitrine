@@ -453,7 +453,7 @@ final class VaultBrowserViewModel: ObservableObject {
             // the parameter directly would be a mutable capture in concurrently-executing code.
             var buffer = password
             defer {
-                buffer.resetBytes(in: 0..<buffer.count)
+                buffer.zeroize()
                 isVerifyingReprompt = false
             }
             do {

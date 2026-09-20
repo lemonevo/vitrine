@@ -158,15 +158,15 @@ final class AttachmentAddViewModel: Identifiable {
                     fileName: self.fileName,
                     data:     fileData
                 )
-                fileData.resetBytes(in: 0..<fileData.count)
+                fileData.zeroize()
                 self.isDismissed = true
             } catch AttachmentError.premiumRequired {
-                fileData.resetBytes(in: 0..<fileData.count)
+                fileData.zeroize()
                 self.uploadError = L("Attachment storage requires a premium Bitwarden subscription.")
             } catch is CancellationError {
-                fileData.resetBytes(in: 0..<fileData.count)
+                fileData.zeroize()
             } catch {
-                fileData.resetBytes(in: 0..<fileData.count)
+                fileData.zeroize()
                 self.uploadError = L("Upload failed: %@", error.localizedDescription)
                 logger.error("upload failed: \(error.localizedDescription, privacy: .public)")
             }

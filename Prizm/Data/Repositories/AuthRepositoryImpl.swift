@@ -246,12 +246,8 @@ final class AuthRepositoryImpl: AuthRepository, EmbeddedBiometricUnlock {
         // buffer, not the stored struct's. In-place mutation through `pendingTwoFactor!`
         // is safe here because we verified non-nil one line above.
         if let pending = pendingTwoFactor {
-            pendingTwoFactor!.stretchedKeys.encryptionKey.resetBytes(
-                in: 0..<pending.stretchedKeys.encryptionKey.count
-            )
-            pendingTwoFactor!.stretchedKeys.macKey.resetBytes(
-                in: 0..<pending.stretchedKeys.macKey.count
-            )
+            pendingTwoFactor!.stretchedKeys.encryptionKey.zeroize()
+            pendingTwoFactor!.stretchedKeys.macKey.zeroize()
         }
         pendingTwoFactor = nil
         logger.info("Pending 2FA state cleared — stretched keys zeroed")
@@ -423,8 +419,8 @@ final class AuthRepositoryImpl: AuthRepository, EmbeddedBiometricUnlock {
         discardDerivedKeys(&masterKey, &stretched)
 
         let matches = constantTimeEqual(candidate.toData(), liveKeys.toData())
-        candidate.encryptionKey.resetBytes(in: 0..<candidate.encryptionKey.count)
-        candidate.macKey.resetBytes(in:       0..<candidate.macKey.count)
+        candidate.encryptionKey.zeroize()
+        candidate.macKey.zeroize()
 
         logger.info("Verify: master password \(matches ? "matched" : "did not match", privacy: .public)")
         return matches
@@ -435,9 +431,9 @@ final class AuthRepositoryImpl: AuthRepository, EmbeddedBiometricUnlock {
     /// The buffers are intermediates that exist only to answer one question; nothing else in the
     /// process holds a reference to them, so this is the whole job (Constitution §III).
     private func discardDerivedKeys(_ masterKey: inout Data, _ stretched: inout CryptoKeys) {
-        masterKey.resetBytes(in: 0..<masterKey.count)
-        stretched.encryptionKey.resetBytes(in: 0..<stretched.encryptionKey.count)
-        stretched.macKey.resetBytes(in:       0..<stretched.macKey.count)
+        masterKey.zeroize()
+        stretched.encryptionKey.zeroize()
+        stretched.macKey.zeroize()
     }
 
     // MARK: - Session

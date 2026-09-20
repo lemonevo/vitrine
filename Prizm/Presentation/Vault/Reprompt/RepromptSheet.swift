@@ -78,7 +78,7 @@ struct RepromptSheet: View {
         // schedule decides (Constitution §III).
         var buffer = Data(password.utf8)
         viewModel.submitReprompt(buffer)
-        buffer.resetBytes(in: 0..<buffer.count)
+        buffer.zeroize()
         password = ""
     }
 }

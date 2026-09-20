@@ -233,8 +233,8 @@ actor PrizmCryptoServiceImpl: PrizmCryptoService {
         // passed to in-flight decryption tasks retain their own CoW buffers until those
         // tasks complete; those copies cannot be zeroed here.
         if keys != nil {
-            keys!.encryptionKey.resetBytes(in: 0..<keys!.encryptionKey.count)
-            keys!.macKey.resetBytes(in: 0..<keys!.macKey.count)
+            keys!.encryptionKey.zeroize()
+            keys!.macKey.zeroize()
         }
         keys = nil
         logger.info("Vault locked — key material zeroed")
