@@ -403,6 +403,19 @@ items, one of which is gated on verifying an external algorithm (design D12).
 - [ ] `AccountFingerprintPhraseTests` — a known-answer vector taken from the reference
       implementation, not from Prizm's own output.
 
+### D2a. TOTP seed editing — **done**
+
+- [x] `DraftLoginContent.totp` becomes `var`; documented at the point of change (design D13).
+- [x] `LoginEditForm` — a masked **Authenticator Key (TOTP)** field, with a hint naming the two
+      shapes accepted (a bare secret, or the `otpauth://` URL).
+- [x] `ItemEditViewModel.totpSeedProducesCode` — asks the generator whether the value will produce
+      a code. Reported, never refused: a refused save would be a lockout.
+- [x] `ItemEditViewModelTotpSeedTests` — 12 cases, including that the value reaches the draft the
+      repository is handed, and that clearing the field clears it on the server.
+
+  Verified: 1050 tests / 9 failures against the same 9 baseline failures. Both `.lproj` at 474
+  keys, `verify_keys.py` PASS, **3/0** numstat per file.
+
 ### D3. Close out
 
 - [ ] Both `.strings` files.
@@ -412,6 +425,41 @@ items, one of which is gated on verifying an external algorithm (design D12).
 - [ ] Update `SECURITY.md`: what the export contains, what pinning does and does not cover, and
       the strength estimator's limits.
 - [ ] Update `ACCESSIBILITY.md` for the new controls.
+
+---
+
+## Wave E — queued, not started
+
+Two features the user asked for and agreed to schedule rather than do now. They are written down so
+the decision is not lost, and they are **not started until every item above them is closed** — the
+order below is the order they will be attempted.
+
+### E1. Passkey viewer (FIDO2, read-only)
+
+Show the passkeys already stored on a login item. Does **not** register or use them: real WebAuthn
+support is a separate, much larger piece of work and is not in scope here.
+
+- [ ] Decode `PreservedCipherFields.fido2Credentials` — the entries are today carried through
+      untouched but never interpreted.
+- [ ] Parse the COSE public key and surface rpId, user name and creation date.
+- [ ] A read-only section on `LoginDetailView`, shown only when there is something to show.
+- [ ] State in the UI that Prizm cannot *use* these yet — a list of passkeys with no such note
+      reads as a feature that does not work.
+- [ ] Tests with a fixture credential; malformed entries are skipped, not fatal.
+
+### E2. SSH agent
+
+A desktop-only capability that no other Prizm feature competes with. Prizm already stores SSH
+private keys (`SSHKeyContent.privateKey`); what is missing is everything that makes them usable.
+
+- [ ] A Unix socket, launched on demand.
+- [ ] The SSH agent protocol subset: identity listing and signing. Not the full message set.
+- [ ] Parse the OpenSSH private key formats Prizm can already hold.
+- [ ] **Every sign request goes through the master-password gate.** Without this the agent is an
+      unattended key-extraction path, which is worse than not having it.
+- [ ] Verify against `git`, `ssh`, and at least one editor's remote integration.
+
+  Sizing note: this is the largest item in the change. It is deliberately last.
 
 ---
 
