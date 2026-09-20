@@ -82,6 +82,7 @@
 "Copies %@ to clipboard" = "复制%@到剪贴板";
 "Copies to clipboard" = "复制到剪贴板";
 "Copy" = "复制";
+"Copy %@" = "复制%@";
 "Copy Code" = "复制验证码";
 "Copy Password" = "复制密码";
 "Copy Username" = "复制用户名";
@@ -169,6 +170,7 @@
 "Hidden" = "隐藏";
 "Hide" = "隐藏";
 "Hide %@" = "隐藏%@";
+"History (%d)" = "历史记录（%d）";
 "Host" = "主机";
 "ID Numbers" = "证件号码";
 "Icons are loaded from your own server, never from a third party. Turn this off to skip the request entirely — items then show a generic symbol." = "图标从你自己的服务器加载，不经过第三方。关闭后完全跳过该请求，条目改为显示通用图标。";
@@ -195,6 +197,7 @@
 "Items that belonged to an organisation were imported into your personal vault. The organisation and collection they came from cannot be recreated here." = "原本属于组织的项目已导入你的个人保险库。它们所属的组织和集合无法在此重建。";
 "Items you delete will appear here." = "你删除的项目会显示在这里。";
 "Keep Editing" = "继续编辑";
+"Kept in memory only. Cleared when the vault locks." = "仅保存在内存中，保险库锁定时清空。";
 "Key" = "密钥";
 "Key Fingerprint" = "密钥指纹";
 "Language" = "语言";
@@ -369,6 +372,7 @@
 "Use Password" = "使用密码";
 "Username" = "用户名";
 "Value" = "值";
+"Values you copy or use will appear here." = "你复制或使用的值会显示在这里。";
 "Vaultwarden & Bitwarden — server API and vault format" = "Vaultwarden & Bitwarden —— 服务器 API 与保险库格式";
 "Version %@" = "版本 %@";
 "Very strong" = "很强";

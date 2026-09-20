@@ -82,6 +82,7 @@
 "Copies %@ to clipboard" = "Copies %@ to clipboard";
 "Copies to clipboard" = "Copies to clipboard";
 "Copy" = "Copy";
+"Copy %@" = "Copy %@";
 "Copy Code" = "Copy Code";
 "Copy Password" = "Copy Password";
 "Copy Username" = "Copy Username";
@@ -169,6 +170,7 @@
 "Hidden" = "Hidden";
 "Hide" = "Hide";
 "Hide %@" = "Hide %@";
+"History (%d)" = "History (%d)";
 "Host" = "Host";
 "ID Numbers" = "ID Numbers";
 "Icons are loaded from your own server, never from a third party. Turn this off to skip the request entirely — items then show a generic symbol." = "Icons are loaded from your own server, never from a third party. Turn this off to skip the request entirely — items then show a generic symbol.";
@@ -195,6 +197,7 @@
 "Items that belonged to an organisation were imported into your personal vault. The organisation and collection they came from cannot be recreated here." = "Items that belonged to an organisation were imported into your personal vault. The organisation and collection they came from cannot be recreated here.";
 "Items you delete will appear here." = "Items you delete will appear here.";
 "Keep Editing" = "Keep Editing";
+"Kept in memory only. Cleared when the vault locks." = "Kept in memory only. Cleared when the vault locks.";
 "Key" = "Key";
 "Key Fingerprint" = "Key Fingerprint";
 "Language" = "Language";
@@ -369,6 +372,7 @@
 "Use Password" = "Use Password";
 "Username" = "Username";
 "Value" = "Value";
+"Values you copy or use will appear here." = "Values you copy or use will appear here.";
 "Vaultwarden & Bitwarden — server API and vault format" = "Vaultwarden & Bitwarden — server API and vault format";
 "Version %@" = "Version %@";
 "Very strong" = "Very strong";
