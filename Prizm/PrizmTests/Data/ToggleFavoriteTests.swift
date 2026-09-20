@@ -35,7 +35,11 @@ final class ToggleFavoriteTests: XCTestCase {
             renameCollection: StubRenameCollection(),
             deleteCollection: StubDeleteCollection(),
             syncTimestamp:    syncRepo,
-            getLastSyncDate:  GetLastSyncDateUseCaseImpl(repository: syncRepo)
+            getLastSyncDate:  GetLastSyncDateUseCaseImpl(repository: syncRepo),
+            export:           MockExportVaultUseCase(),
+            importVault:      MockImportVaultUseCase(),
+            fileSaver:        { _, _ in nil },
+            filePicker:       { nil }
         )
     }
 

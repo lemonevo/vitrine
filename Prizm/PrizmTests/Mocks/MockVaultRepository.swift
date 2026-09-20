@@ -99,6 +99,28 @@ final class MockVaultRepository: VaultRepository {
         return item
     }
 
+    // MARK: - passwordHistory(for:) stubbing
+
+    /// Decrypted history keyed by item id.
+    ///
+    /// Supplied directly rather than derived, because this double holds no key material and cannot
+    /// decrypt anything. Tests that need to prove the *real* decryption path belongs in
+    /// `VaultRepositoryImplTests`, against the real actor.
+    var stubbedPasswordHistory: [String: [PasswordHistoryEntry]] = [:]
+    var stubbedPasswordHistoryError: Error?
+    private(set) var passwordHistoryCallCount: Int = 0
+    private(set) var lastPasswordHistoryId: String?
+
+    func passwordHistory(for id: String) async throws -> [PasswordHistoryEntry] {
+        passwordHistoryCallCount += 1
+        lastPasswordHistoryId = id
+        if let stubbedPasswordHistoryError { throw stubbedPasswordHistoryError }
+        guard populatedItems.contains(where: { $0.id == id }) else {
+            throw VaultError.itemNotFound(id)
+        }
+        return stubbedPasswordHistory[id] ?? []
+    }
+
     func update(_ draft: DraftVaultItem) async throws -> VaultItem {
         updateCallCount += 1
         lastUpdatedDraft = draft
@@ -113,13 +135,24 @@ final class MockVaultRepository: VaultRepository {
 
     var stubbedCreateResult: VaultItem?
     var stubbedCreateError: Error?
+    /// Names whose `create` should fail. Mirrors `permanentDeleteErrorIds`: an import is N
+    /// independent requests, so the outcome that matters is the *partial* one, and a blanket error
+    /// cannot express it.
+    var createErrorNames: Set<String> = []
     private(set) var createCallCount: Int = 0
     private(set) var lastCreatedDraft: DraftVaultItem?
+    /// Every draft that reached `create`, in order. Lets a suite assert the run continued past a
+    /// failure rather than stopping at it.
+    private(set) var createdDrafts: [DraftVaultItem] = []
 
     func create(_ draft: DraftVaultItem) async throws -> VaultItem {
         createCallCount += 1
         lastCreatedDraft = draft
+        createdDrafts.append(draft)
         if let error = stubbedCreateError { throw error }
+        if createErrorNames.contains(draft.name) {
+            throw VaultError.decryptionFailed("the server rejected \(draft.name)")
+        }
         guard let result = stubbedCreateResult else {
             return VaultItem(draft)
         }

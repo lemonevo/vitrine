@@ -36,7 +36,11 @@ final class VaultBrowserViewModelSyncStatusTests: XCTestCase {
             renameCollection: StubRenameCollection(),
             deleteCollection: StubDeleteCollection(),
             syncTimestamp:    repo,
-            getLastSyncDate:  useCase
+            getLastSyncDate:  useCase,
+            export:           MockExportVaultUseCase(),
+            importVault:      MockImportVaultUseCase(),
+            fileSaver:        { _, _ in nil },
+            filePicker:       { nil }
         )
     }
 

@@ -82,7 +82,11 @@ final class VaultBrowserViewModelActionsTests: XCTestCase {
             renameCollection: StubRenameCollection(),
             deleteCollection: StubDeleteCollection(),
             syncTimestamp:    syncTimestamp,
-            getLastSyncDate:  GetLastSyncDateUseCaseImpl(repository: syncTimestamp)
+            getLastSyncDate:  GetLastSyncDateUseCaseImpl(repository: syncTimestamp),
+            export:           MockExportVaultUseCase(),
+            importVault:      MockImportVaultUseCase(),
+            fileSaver:        { _, _ in nil },
+            filePicker:       { nil }
         )
     }
 
