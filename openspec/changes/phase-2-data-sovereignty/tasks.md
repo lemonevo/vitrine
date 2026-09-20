@@ -196,27 +196,69 @@ items, one of which is gated on verifying an external algorithm (design D12).
 
 ### C1. Re-prompt: the model
 
-- [ ] `DraftVaultItem.reprompt` becomes `var`; `ItemEditViewModel` exposes it; the login edit form
+- [x] `DraftVaultItem.reprompt` becomes `var`; `ItemEditViewModel` exposes it; the edit form
       gains a **Master password re-prompt** toggle. Documented as newly mutable (design D13).
-- [ ] `Domain/UseCases/VerifyMasterPasswordUseCase.swift` + Data impl over
+- [x] `Domain/UseCases/VerifyMasterPasswordUseCase.swift` + Data impl over
       `AuthRepository.verifyMasterPassword(_:)`.
-- [ ] `AuthRepositoryImpl.verifyMasterPassword(_:)` — derive and compare, no session mutation
+- [x] `AuthRepositoryImpl.verifyMasterPassword(_:)` — derive and compare, no session mutation
       (design D7).
+
+  Notes:
+
+  - **The toggle is on the shared form, not on `LoginEditForm`.** The task said "login edit
+    form"; the spec's scenario says "the edit form is open for **any** item type", and the
+    spec is what the requirement is tested against. Cards, identities and SSH keys hold
+    secrets worth the same gate.
+  - **`DraftLoginContent.totp` was left as `let`.** Design D13 asks for `var` because "the
+    import path has to be able to set a TOTP seed" — but the import that landed in wave A
+    builds `LoginContent` through its initialiser and never mutates one, so there is no
+    caller. `var` with no caller is a promise nobody needs.
+  - **A wrong password is `false`; `AuthError.noStoredSession` is new.** For "the stored
+    session is unreadable". The alternative was reusing `.invalidCredentials`, whose message
+    tells the user their password was wrong — a different failure entirely.
+  - **The live key is read before the KDF runs**, so a locked vault reports "could not
+    check" rather than being flattened into "wrong password".
+  - **The comparison is constant time** (`Data/Crypto/ConstantTimeCompare.swift`). Data's `==`
+    returns at the first differing byte.
+  - Verified: 19 tests across the three new suites, 0 failures. Both `.lproj` at 436 keys,
+    3/0 numstat per file.
 
 ### C2. Re-prompt: the gate
 
-- [ ] `RootViewModel` — `repromptGrants: Set<String>`, `needsReprompt(for:)`,
+- [x] `RootViewModel` — `repromptGrants: Set<String>`, `needsReprompt(for:)`,
       `grantReprompt(for:)`, cleared in `lockVault()` and `signOut()`.
-- [ ] `VaultBrowserViewModel` — `revealedItemIds`, `pendingReprompt: (itemId, itemName)?`,
+- [x] `VaultBrowserViewModel` — `revealedItemIds`, `pendingReprompt: (itemId, itemName)?`,
       `requestReveal(itemId:)`, `submitReprompt(_:)`, `cancelReprompt()`.
-- [ ] `Presentation/Vault/Reprompt/RepromptSheet.swift` — a `SecureField`, the item name, an error
+- [x] `Presentation/Vault/Reprompt/RepromptSheet.swift` — a `SecureField`, the item name, an error
       on a wrong password, and no dismissal without an explicit cancel.
-- [ ] `LoginDetailView` / `ItemDetailView` — `isSecretRevealed` + `onRequestReveal` parameters.
-- [ ] `RootViewModel.copySelectedField` — copy password, copy TOTP and copy username-with-reprompt
+- [x] `LoginDetailView` / `ItemDetailView` — `isSecretRevealed` + `onRequestReveal` parameters.
+- [x] `RootViewModel.copySelectedField` — copy password, copy TOTP and copy username-with-reprompt
       route through the gate.
-- [ ] `VaultBrowserViewModel.copy` — a gated copy that is not performed until the grant exists.
-- [ ] `RepromptGateTests` — grant is per item; cleared on lock; a wrong password does not grant;
+- [x] `VaultBrowserViewModel.copy` — a gated copy that is not performed until the grant exists.
+- [x] `RepromptGateTests` — grant is per item; cleared on lock; a wrong password does not grant;
       an unprotected item never asks.
+
+  Notes — four deviations, each because the literal reading would have left a way around the gate:
+
+  - **`isSecretRevealed` + `onRequestReveal` are one value, `RevealGateBinding`.** They have to
+    travel through five type-specific detail views to reach the field view; three parameters is
+    three chances per view to drop one, and a dropped `isGated` is silent.
+  - **The gated copy is `copyGated(itemId:_:)`, not a change to `copy`.** `copy` still serves the
+    username, the URIs, the notes and plain custom fields, which are not gated. One entry point
+    for both would have gated the username.
+  - **Tapping a row copies it (FR-023), so a gated row's tap is gated too.** Routing only the
+    menu command would have left the gate walkable in one click.
+  - **The Option-key peek is suppressed on a gated field.** `MaskedFieldView` has always shown a
+    password while Option is held; leaving that working would have made the gate one modifier key
+    away from decoration.
+
+  Other decisions: hidden custom fields are gated on **all five** item types (not only logins),
+  while card numbers, identity values, SSH private keys and note bodies are not, per design D7.
+  The password-history section gains the reveal button wave B withheld, and its footnote stops
+  promising a prompt once the password has already been given this session.
+
+  Verified: 983 tests, 10 failures — the same set as the pre-wave baseline. 13 new gate cases,
+  0 failures. Both `.lproj` at 441 keys, 5/0 numstat per file.
 
 ### C3. Server trust
 
