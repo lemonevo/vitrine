@@ -86,6 +86,17 @@ final class ItemEditViewModel: ObservableObject {
         return strengthEstimator.estimate(password)
     }
 
+    /// The master-password re-prompt setting, as a Bool for the edit form's toggle.
+    ///
+    /// The domain model and the wire carry an `Int` (0 or 1) because that is what the server
+    /// sends and accepts. A toggle has no use for the difference between 0 and "any other
+    /// number", so the conversion is made here and nowhere else — a Bool on `DraftVaultItem`
+    /// would put a second, differently-typed copy of the setting in the tree.
+    var repromptEnabled: Bool {
+        get { draft.reprompt != 0 }
+        set { draft.reprompt = newValue ? 1 : 0 }
+    }
+
     // MARK: - Private state
 
     /// Snapshot of the item as it was when the sheet opened — used for `hasChanges`.

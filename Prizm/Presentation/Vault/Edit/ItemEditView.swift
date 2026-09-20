@@ -125,6 +125,23 @@ struct ItemEditView: View {
             // Per-type edit form.
             typeEditForm
 
+            // Options — deliberately outside the per-type form. Re-prompt is offered for
+            // every item type, not just logins: cards, identities and SSH keys carry
+            // secrets worth the same gate, and a reader who found the toggle only on the
+            // login form would reasonably conclude the others cannot be protected.
+            DetailSectionCard(L("Options")) {
+                HStack {
+                    Toggle(L("Master password re-prompt"), isOn: Binding(
+                        get:  { viewModel.repromptEnabled },
+                        set:  { viewModel.repromptEnabled = $0 }
+                    ))
+                    .accessibilityIdentifier(AccessibilityID.Edit.repromptToggle)
+                    Spacer()
+                }
+                .padding(.vertical, Spacing.rowVertical)
+                .padding(.horizontal, Spacing.rowHorizontal)
+            }
+
             // Delete button — shown only when editing an existing item (not during creation).
             if viewModel.isEditing, onDelete != nil {
                 Button("Delete Item") {

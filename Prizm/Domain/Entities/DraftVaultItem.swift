@@ -262,9 +262,16 @@ nonisolated struct DraftVaultItem: Equatable {
     let creationDate: Date
     let revisionDate: Date
     var content: DraftItemContent
-    /// Re-prompt setting from `VaultItem.reprompt` — carried through unchanged so PUT
-    /// round-trips it correctly. Not user-editable in v1.
-    let reprompt: Int
+    /// Master-password re-prompt setting, as the wire integer (0 = off, 1 = on).
+    ///
+    /// **Mutable as of wave C (design D13).** Nearly every other property here is `let` on
+    /// purpose — identity, deletion state, dates and preserved wire fields are not editable —
+    /// so a `var` in the middle of them needs saying out loud: the edit form now carries a
+    /// toggle for this setting and the value travels to the server on save.
+    ///
+    /// Still an `Int` rather than a `Bool` because `CipherMapper` and the server agree on the
+    /// integer; the form binds to a Bool derived from it rather than changing the wire shape.
+    var reprompt: Int
     /// Non-nil when this draft is being created/edited within a Bitwarden organization.
     var organizationId: String?
     /// The collections this item is assigned to within its organization.

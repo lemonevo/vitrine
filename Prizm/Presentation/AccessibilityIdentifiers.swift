@@ -127,6 +127,8 @@ nonisolated enum AccessibilityID {
         static let errorBanner   = "edit.errorBanner"
         /// The strength readout under the Login password field.
         static let passwordStrength = "edit.passwordStrength"
+        /// The "Master password re-prompt" toggle, present for every item type.
+        static let repromptToggle   = "edit.toggle.reprompt"
         /// The "Add Field" button in the custom-fields section.
         static let addCustomFieldButton = "edit.button.addCustomField"
         /// A custom-field row; `id` is the draft field's stable UUID.
