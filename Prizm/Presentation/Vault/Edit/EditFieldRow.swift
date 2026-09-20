@@ -77,6 +77,9 @@ struct MaskedEditFieldRow: View {
     @State private var maskTask: Task<Void, Never>?
     @State private var showGenerator = false
     @State private var generatorVM: PasswordGeneratorViewModel?
+    /// The session's generator history, installed at the vault root. `nil` outside the vault, which
+    /// is the only place this row is rendered — a generator opened without one records nothing.
+    @Environment(\.generatorHistory) private var generatorHistory
 
     // TODO: make the timeout app-wide configurable (UserDefaults pref) — deferred to v2.
     // Using 30 s as a sensible default, matching the clipboard auto-clear interval.
@@ -116,7 +119,10 @@ struct MaskedEditFieldRow: View {
             if generatorBinding != nil {
                 Button {
                     if generatorVM == nil {
-                        generatorVM = PasswordGeneratorViewModel(provider: CryptographicRandomnessProvider())
+                        generatorVM = PasswordGeneratorViewModel(
+                            provider: CryptographicRandomnessProvider(),
+                            history: generatorHistory
+                        )
                     }
                     showGenerator.toggle()
                 } label: {

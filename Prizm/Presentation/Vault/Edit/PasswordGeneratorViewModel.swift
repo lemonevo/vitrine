@@ -34,12 +34,25 @@ final class PasswordGeneratorViewModel: ObservableObject {
     /// `nil` when there is nothing to score.
     @Published private(set) var strength: StrengthEstimate?
 
+    /// The session's generated values, newest first.
+    ///
+    /// Computed, not stored: the list lives in `GeneratorHistory` so it can outlive this popover —
+    /// and be cleared when the vault locks — and a copy here would be one more thing to keep in step
+    /// with it.
+    var historyEntries: [GeneratorHistoryEntry] { history?.entries ?? [] }
+
     // MARK: - Dependencies
 
     private let provider: RandomnessProvider
     private let generator = PasswordGenerator()
     private let estimator: PasswordStrengthEstimator
     private let defaults: UserDefaults
+    /// The session history. `nil` where there is none to write to — previews, and tests that do not
+    /// exercise it — so the view model stays constructible without one.
+    private let history: GeneratorHistory?
+    /// Keeps the view in step with the history. `historyEntries` is computed, so a change made
+    /// anywhere else has to be forwarded or the section would go stale.
+    private var historySubscription: AnyCancellable?
     /// The pending clipboard-clear task, or `nil` when nothing is scheduled.
     ///
     /// Not `private` only so the test target can assert that a copy honours the *configured*
@@ -53,10 +66,12 @@ final class PasswordGeneratorViewModel: ObservableObject {
 
     init(provider: RandomnessProvider,
          defaults: UserDefaults = .standard,
-         estimator: PasswordStrengthEstimator = .application) {
+         estimator: PasswordStrengthEstimator = .application,
+         history: GeneratorHistory? = nil) {
         self.provider = provider
         self.defaults = defaults
         self.estimator = estimator
+        self.history = history
         let config = PasswordGeneratorConfig.load(from: defaults)
         self.mode = config.mode
         self.length = config.length
@@ -70,6 +85,11 @@ final class PasswordGeneratorViewModel: ObservableObject {
         self.capitalize = config.capitalize
         self.includeNumber = config.includeNumber
         isInitializing = false
+
+        historySubscription = history?.$entries
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.objectWillChange.send() }
+
         generate()
     }
 
@@ -99,9 +119,29 @@ final class PasswordGeneratorViewModel: ObservableObject {
         }
     }
 
-    /// Copies the current value, applying the configured clipboard-clearing interval.
+    /// Copies the current value, applying the configured clipboard-clearing interval, and records
+    /// it in the session history.
     func copyToClipboard() {
         copy(generatedValue)
+        history?.append(generatedValue)
+    }
+
+    /// Records the current value as accepted. The caller writes it into the target field.
+    ///
+    /// Separate from `copyToClipboard` because they are different acts with the same consequence: a
+    /// value the user chose to keep is worth remembering whether or not it passed through the
+    /// clipboard.
+    func accept() {
+        history?.append(generatedValue)
+    }
+
+    /// Copies a value from the history back to the clipboard.
+    ///
+    /// Deliberately does not re-record it. Copying an entry is not a new generation, and
+    /// re-appending would move that value to the top — with repeated copies, one value could fill
+    /// the whole list.
+    func copyHistoryEntry(_ entry: GeneratorHistoryEntry) {
+        copy(entry.value)
     }
 
     /// Writes `value` to the clipboard and schedules the clear.

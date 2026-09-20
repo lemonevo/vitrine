@@ -205,5 +205,9 @@ nonisolated enum AccessibilityID {
         static let triggerButton       = "generator.button.trigger"
         /// The strength readout under the generated value.
         static let strengthReadout     = "generator.strengthReadout"
+        /// The collapsible session-history section.
+        static let historySection      = "generator.history"
+        /// The copy button on a history row; `index` is the row's position, newest first.
+        static func historyCopyButton(_ index: Int) -> String { "generator.history.copy.\(index)" }
     }
 }

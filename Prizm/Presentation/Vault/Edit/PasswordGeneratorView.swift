@@ -7,6 +7,9 @@ struct PasswordGeneratorView: View {
     @ObservedObject var viewModel: PasswordGeneratorViewModel
     @Binding var targetValue: String?
     @Environment(\.dismiss) private var dismiss
+    /// Collapsed by default, per the spec. Local to the popover and not persisted: whether the
+    /// section was open last time is not worth remembering.
+    @State private var isHistoryExpanded = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -38,6 +41,11 @@ struct PasswordGeneratorView: View {
 
             // Action row
             actionRow
+
+            Divider()
+
+            // Session history
+            historyArea
         }
         .padding()
         .frame(width: 320)
@@ -153,12 +161,87 @@ struct PasswordGeneratorView: View {
             Spacer()
 
             Button(viewModel.mode == .password ? L("Use Password") : L("Use Passphrase")) {
+                // Recorded before the popover closes: this is the moment the value stops being a
+                // candidate and becomes the password.
+                viewModel.accept()
                 targetValue = viewModel.generatedValue
                 dismiss()
             }
             .disabled(viewModel.errorMessage != nil)
             .buttonStyle(.borderedProminent)
             .accessibilityIdentifier(AccessibilityID.Generator.useButton)
+        }
+    }
+
+    // MARK: - History
+
+    /// The values generated and used this session, newest first.
+    ///
+    /// Collapsed by default (spec `password-generator`): the popover exists to produce one password,
+    /// and an expanded list of everything generated this session would dominate it. The footer
+    /// states the lifetime because the list is memory-only — nothing on disk, gone on quit — and a
+    /// user who assumed otherwise would be trusting a store that does not exist.
+    @ViewBuilder
+    private var historyArea: some View {
+        DisclosureGroup(isExpanded: $isHistoryExpanded) {
+            VStack(alignment: .leading, spacing: 6) {
+                if viewModel.historyEntries.isEmpty {
+                    Text("Values you copy or use will appear here.")
+                        .font(Typography.fieldLabel)
+                        .foregroundStyle(.secondary)
+                } else {
+                    // The list is capped at 20 by `GeneratorHistory`, but the popover is only 320pt
+                    // wide and would otherwise grow past the bottom of the screen.
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 4) {
+                            ForEach(Array(viewModel.historyEntries.enumerated()),
+                                    id: \.element.id) { index, entry in
+                                historyRow(entry, index: index)
+                            }
+                        }
+                    }
+                    .frame(maxHeight: 180)
+                }
+
+                Text("Kept in memory only. Cleared when the vault locks.")
+                    .font(Typography.fieldLabel)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.top, 6)
+        } label: {
+            Text(L("History (%d)", viewModel.historyEntries.count))
+                .font(Typography.fieldLabel)
+        }
+        .accessibilityIdentifier(AccessibilityID.Generator.historySection)
+    }
+
+    @ViewBuilder
+    private func historyRow(_ entry: GeneratorHistoryEntry, index: Int) -> some View {
+        HStack(spacing: 6) {
+            Text(entry.value)
+                .font(Typography.fieldValue.monospaced())
+                .lineLimit(1)
+                .truncationMode(.middle)
+                .textSelection(.enabled)
+                .help(entry.value)
+
+            Spacer(minLength: 4)
+
+            // Time only, no date: everything in the list was generated during this session.
+            Text(entry.generatedAt, format: .dateTime.hour().minute())
+                .font(Typography.fieldLabel)
+                .foregroundStyle(.secondary)
+
+            Button {
+                viewModel.copyHistoryEntry(entry)
+            } label: {
+                Image(systemName: "doc.on.doc")
+                    .imageScale(.small)
+            }
+            .buttonStyle(.plain)
+            .help(L("Copy"))
+            .accessibilityLabel(L("Copy %@", entry.value))
+            .accessibilityIdentifier(AccessibilityID.Generator.historyCopyButton(index))
         }
     }
 
