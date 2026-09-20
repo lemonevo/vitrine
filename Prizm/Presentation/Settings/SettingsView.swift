@@ -25,6 +25,9 @@ struct SettingsView: View {
     let serverHost:          String?
     let pickCertificateFile: @MainActor () -> URL?
     let loadCertificates:    (URL) throws -> [Data]
+    /// Asks the use case for the account fingerprint phrase. Injected for the same reason as the
+    /// two above: the domain dependency stays behind the App layer (Constitution §II).
+    let loadFingerprint:     @MainActor () async -> String?
 
     /// The language is global state owned by the shared manager, so this observes the
     /// singleton directly rather than taking it as a parameter.
@@ -52,12 +55,14 @@ struct SettingsView: View {
          serverTrustStore:   any ServerTrustStore,
          serverHost:         String?,
          pickCertificateFile: @escaping @MainActor () -> URL?,
-         loadCertificates:   @escaping (URL) throws -> [Data]) {
+         loadCertificates:   @escaping (URL) throws -> [Data],
+         loadFingerprint:    @escaping @MainActor () async -> String?) {
         self.authRepository     = authRepository
         self.serverTrustStore   = serverTrustStore
         self.serverHost         = serverHost
         self.pickCertificateFile = pickCertificateFile
         self.loadCertificates   = loadCertificates
+        self.loadFingerprint    = loadFingerprint
         _biometry = State(
             initialValue: .probe(systemEnforced: authRepository.biometricGateIsSystemEnforced)
         )
@@ -106,6 +111,12 @@ struct SettingsView: View {
                 Text("Icons are loaded from your own server, never from a third party. Turn this off to skip the request entirely — items then show a generic symbol.\n\nThe clipboard is cleared only if Prizm's own value is still on it.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+            }
+
+            Section {
+                AccountFingerprintSection(loadPhrase: loadFingerprint)
+            } header: {
+                Text("Account")
             }
 
             Section {

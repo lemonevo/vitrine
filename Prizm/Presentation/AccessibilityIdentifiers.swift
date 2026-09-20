@@ -132,6 +132,14 @@ nonisolated enum AccessibilityID {
         static let confirmButton  = "reprompt.button.confirm"
     }
 
+    // MARK: - Account fingerprint (account-fingerprint)
+
+    enum Fingerprint {
+        static let phrase = "fingerprint.phrase"
+        static let copy   = "fingerprint.copy"
+        static let note   = "fingerprint.note"
+    }
+
     enum ServerTrust {
         static let pinningToggle      = "serverTrust.toggle.pinning"
         static let fingerprint        = "serverTrust.fingerprint"
