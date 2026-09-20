@@ -19,6 +19,9 @@ struct ItemDetailView: View {
     /// Factory for `AttachmentRowViewModel` — passed to `AttachmentsSectionView` so each
     /// row gets its own ViewModel instance (Constitution §II decoupling).
     var makeAttachmentRowViewModel: ((String, Attachment) -> AttachmentRowViewModel)? = nil
+    /// Factory for `PasswordHistoryViewModel`. Only login items use it, and only ones the server
+    /// says carry a history; the detail view decides that, not the container.
+    var makePasswordHistoryViewModel: ((String) -> PasswordHistoryViewModel)? = nil
     /// Called when an attachment upload sheet is dismissed, whether the upload
     /// succeeded or was cancelled. The parent view uses this to refresh `itemSelection`
     /// so the attachment list in the detail pane reflects the new server state.
@@ -248,7 +251,8 @@ struct ItemDetailView: View {
     @ViewBuilder
     private func typeDetailView(for item: VaultItem) -> some View {
         switch item.content {
-        case .login(let l):      LoginDetailView(item: item, login: l, onCopy: onCopy)
+        case .login(let l):      LoginDetailView(item: item, login: l, onCopy: onCopy,
+                                                makePasswordHistoryViewModel: makePasswordHistoryViewModel)
         case .card(let c):       CardDetailView(item: item, card: c, onCopy: onCopy)
         case .identity(let i):   IdentityDetailView(item: item, identity: i, onCopy: onCopy)
         case .secureNote(let n): SecureNoteDetailView(item: item, secureNote: n, onCopy: onCopy)

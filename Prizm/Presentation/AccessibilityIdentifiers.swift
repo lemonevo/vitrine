@@ -211,6 +211,23 @@ nonisolated enum AccessibilityID {
         static func historyCopyButton(_ index: Int) -> String { "generator.history.copy.\(index)" }
     }
 
+    // MARK: - Password History (password-history-view)
+
+    enum PasswordHistory {
+        static let section      = "passwordHistory.section"
+        /// The entry count in the disclosure label. Absent until the section has been opened once.
+        static let countBadge   = "passwordHistory.count"
+        static let progress     = "passwordHistory.progress"
+        static let errorMessage = "passwordHistory.error"
+        static let emptyState   = "passwordHistory.empty"
+        /// The footnote explaining that revealing requires the master password.
+        static let revealNote   = "passwordHistory.revealNote"
+
+        /// The masked value of one entry; `index` is its position, newest first.
+        static func value(_ index: Int) -> String { "passwordHistory.value.\(index)" }
+        static func copyButton(_ index: Int) -> String { "passwordHistory.copy.\(index)" }
+    }
+
     // MARK: - Vault Health Report (vault-health-report)
 
     enum Health {

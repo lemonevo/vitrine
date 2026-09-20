@@ -12,6 +12,15 @@ struct LoginDetailView: View {
     let item:  VaultItem
     let login: LoginContent
     let onCopy: (String) -> Void
+    /// Builds the item's password-history view model. Nil means the section is not offered.
+    ///
+    /// A factory rather than a view model because the detail view is reconstructed on every render:
+    /// the view model has to be created per item and held in `@State`, and it must be *re*-created
+    /// when the selection changes.
+    var makePasswordHistoryViewModel: ((String) -> PasswordHistoryViewModel)? = nil
+
+    /// Held so the section keeps its state across renders, and re-created when the item changes.
+    @State private var passwordHistoryVM: PasswordHistoryViewModel?
 
     // A Credentials card is only meaningful when at least one credential field is present.
     private var hasCredentials: Bool {
@@ -77,6 +86,17 @@ struct LoginDetailView: View {
                         )
                     }
                 }
+
+                if let passwordHistoryVM {
+                    PasswordHistorySection(viewModel: passwordHistoryVM, onCopy: onCopy)
+                }
             }
+        .task(id: item.id) {
+            // Only for an item that actually has history, and only then does anything get
+            // decrypted — the section's own collapse/expand is what triggers the read (design D10).
+            passwordHistoryVM = item.preserved.passwordHistory.isEmpty
+                ? nil
+                : makePasswordHistoryViewModel?(item.id)
+        }
     }
 }

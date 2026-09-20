@@ -71,6 +71,8 @@ final class AppContainer: ObservableObject {
     /// Runs the five local checks over the decrypted vault. Makes no request of any kind — see
     /// design D6 for why the sixth check every password manager offers is refused.
     let generateVaultHealthReportUseCase: GenerateVaultHealthReportUseCaseImpl
+    /// Reads one item's previous passwords, on demand and without keeping them (design D10).
+    let getPasswordHistoryUseCase:        GetPasswordHistoryUseCaseImpl
 
     // MARK: - Attachment use cases
 
@@ -170,6 +172,7 @@ final class AppContainer: ObservableObject {
         self.exportVaultUseCase              = ExportVaultUseCaseImpl(vault: vault)
         self.importVaultUseCase              = ImportVaultUseCaseImpl(vault: vault)
         self.generateVaultHealthReportUseCase = GenerateVaultHealthReportUseCaseImpl(vault: vault)
+        self.getPasswordHistoryUseCase        = GetPasswordHistoryUseCaseImpl(vault: vault)
         // Attachment use cases — Upload and Download inject VaultKeyService;
         // Delete does NOT (no key material required, Constitution §VI).
         self.uploadAttachmentUseCase   = UploadAttachmentUseCaseImpl(repository: attachmentRepo, vaultKeyService: vaultKeyService)
@@ -400,6 +403,16 @@ final class AppContainer: ObservableObject {
     @MainActor
     func makeHealthReportViewModel() -> HealthReportViewModel {
         HealthReportViewModel(useCase: generateVaultHealthReportUseCase)
+    }
+
+    /// Creates a `PasswordHistoryViewModel` for one item.
+    ///
+    /// Per item rather than shared: the entries belong to one cipher, and the view model drops them
+    /// when its section collapses, so a shared instance would keep one item's previous passwords
+    /// alive while the user is looking at a different item.
+    @MainActor
+    func makePasswordHistoryViewModel(itemId: String) -> PasswordHistoryViewModel {
+        PasswordHistoryViewModel(itemId: itemId, useCase: getPasswordHistoryUseCase)
     }
 
     /// Creates an `AttachmentRowViewModel` for the given cipher + attachment pair.

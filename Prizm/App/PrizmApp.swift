@@ -270,6 +270,9 @@ struct PrizmApp: App {
                 },
                 makeAttachmentRowViewModel: { cipherId, attachment in
                     container.makeAttachmentRowViewModel(cipherId: cipherId, attachment: attachment)
+                },
+                makePasswordHistoryViewModel: { itemId in
+                    container.makePasswordHistoryViewModel(itemId: itemId)
                 }
             )
             // Installed here rather than on the app's root: the generator only exists inside the
