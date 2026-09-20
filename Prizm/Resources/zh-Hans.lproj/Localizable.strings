@@ -18,6 +18,7 @@
 "%d of %d items could not be deleted. They are still in Trash." = "%d/%d 个项目无法删除，它们仍在回收站中。";
 "%lld certificate(s)" = "%lld 个证书";
 "(unnamed)" = "（未命名）";
+"000000" = "000000";
 "1 hour" = "1 小时";
 "1 minute" = "1 分钟";
 "10 seconds" = "10 秒";
@@ -55,6 +56,7 @@
 "Attachments" = "附件";
 "Attachments and passkeys are not included. Items in Trash are not included." = "不包含附件和通行密钥，也不包含回收站中的项目。";
 "Authentication code" = "验证码";
+"Authenticator app" = "验证器 App";
 "Avoid ambiguous characters" = "避免易混淆字符";
 "Azure upload failed" = "Azure 上传失败";
 "Biometric unlock" = "生物识别解锁";
@@ -78,6 +80,7 @@
 "Choose where to save the attachment" = "选择附件的保存位置";
 "City" = "城市";
 "Clear clipboard after" = "清除剪贴板间隔";
+"Code" = "验证码";
 "Collection" = "集合";
 "Collection name" = "集合名称";
 "Company" = "公司";
@@ -127,6 +130,8 @@
 "Domain" = "域名";
 "Done" = "完成";
 "Download failed. If this keeps happening, try locking and unlocking your vault." = "下载失败。如果反复出现，请尝试锁定后重新解锁保险库。";
+"Duo" = "Duo";
+"Duo (organization)" = "Duo（组织）";
 "Duplicate" = "创建副本";
 "Edit" = "编辑";
 "Email" = "邮箱";
@@ -137,6 +142,7 @@
 "Enter master password" = "输入主密码";
 "Enter password" = "输入密码";
 "Enter the 6-digit code from your authenticator app." = "输入验证器应用中的 6 位验证码。";
+"Enter the code that was emailed to you." = "输入通过邮件发送给你的验证码。";
 "Enter the password for %@ to unlock." = "输入 %@ 的密码以解锁。";
 "Estimated from the patterns this app recognises — repeated characters, common passwords, sequences and dates. It is not a breach check, and no password is sent anywhere to produce it." = "根据本应用能识别的模式估算 —— 重复字符、常见密码、序列和日期。这不是泄露检测，生成结果不会把密码发送到任何地方。";
 "Estimated strength: %@" = "预估强度：%@";
@@ -310,17 +316,21 @@
 "Privacy" = "隐私";
 "Private Key" = "私钥";
 "Prizm Is Locked" = "Prizm 已锁定";
+"Prizm cannot complete the two-factor method “%@”. Sign in from another Bitwarden client, or use one to change the method this account asks for." = "Prizm 无法完成“%@”这种两步验证方式。请改用其他 Bitwarden 客户端登录，或用其他客户端修改此账户要求的方式。";
 "Prizm could not read the certificate for %@, so the connection was not made." = "Prizm 无法读取 %@ 的证书，因此未建立连接。";
 "Prizm could not read the stored certificate settings for %@, so the connection was not made. %@" = "Prizm 无法读取已保存的 %@ 证书设置，因此未建立连接。%@";
 "Public Key" = "公钥";
+"Put the cursor in the field below, then tap the metal contact on your YubiKey. The key types the code for you." = "把光标点进下面的输入框，然后触摸 YubiKey 的金属触点。密钥会自动输入验证码。";
 "Re-enable %@" = "重新启用%@";
 "Reading the file" = "正在读取文件";
 "Reading the file…" = "正在读取文件…";
+"Recovery code" = "恢复代码";
 "Regular Expression" = "正则表达式";
 "Remember this device" = "记住此设备";
 "Remove website" = "移除网站";
 "Rename" = "重命名";
 "Repeated characters" = "重复字符";
+"Resend code" = "重新发送验证码";
 "Restart required" = "需要重启";
 "Restore" = "恢复";
 "Retry" = "重试";
@@ -380,6 +390,7 @@
 "Synced yesterday" = "昨天同步";
 "Syncing vault…" = "正在同步保险库…";
 "Syncing…" = "正在同步…";
+"Tap your YubiKey" = "轻触 YubiKey";
 "Text" = "文本";
 "That file does not contain a certificate. Choose a .pem, .crt or .cer file exported from your server." = "该文件不含证书。请选择从服务器导出的 .pem、.crt 或 .cer 文件。";
 "That is not the master password for this account." = "这不是此账户的主密码。";
@@ -409,6 +420,7 @@
 "Two-factor method '%@' is not supported. Use an authenticator app." = "不支持的两步验证方式「%@」。请使用验证器应用。";
 "Two-step login" = "两步验证登录";
 "Types" = "类型";
+"U2F security key" = "U2F 安全密钥";
 "Unfavorite" = "取消收藏";
 "Unknown Field" = "未知字段";
 "Unknown date" = "日期未知";
@@ -436,6 +448,7 @@
 "View on GitHub" = "在 GitHub 上查看";
 "Weak" = "弱";
 "Weak passwords" = "弱密码";
+"WebAuthn" = "WebAuthn";
 "Website" = "网站";
 "Websites" = "网站";
 "Words: %lld" = "词数：%lld";
@@ -445,9 +458,11 @@
 "Your secrets. Your server. Our user interface." = "你的密码。你的服务器。我们的界面。";
 "Your session has expired. Try signing out and signing in again." = "会话已过期。请退出登录后重新登录。";
 "Your unsaved changes will be lost." = "未保存的修改将丢失。";
+"YubiKey" = "YubiKey";
 "[No fingerprint]" = "[无指纹]";
 "copied" = "已复制";
 "copy" = "复制";
+"method %lld" = "方式 %lld";
 "open" = "打开";
 "save" = "保存";
 "unlock your Prizm vault" = "解锁你的 Prizm 保险库";

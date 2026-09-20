@@ -18,6 +18,7 @@
 "%d of %d items could not be deleted. They are still in Trash." = "%d of %d items could not be deleted. They are still in Trash.";
 "%lld certificate(s)" = "%lld certificate(s)";
 "(unnamed)" = "(unnamed)";
+"000000" = "000000";
 "1 hour" = "1 hour";
 "1 minute" = "1 minute";
 "10 seconds" = "10 seconds";
@@ -55,6 +56,7 @@
 "Attachments" = "Attachments";
 "Attachments and passkeys are not included. Items in Trash are not included." = "Attachments and passkeys are not included. Items in Trash are not included.";
 "Authentication code" = "Authentication code";
+"Authenticator app" = "Authenticator app";
 "Avoid ambiguous characters" = "Avoid ambiguous characters";
 "Azure upload failed" = "Azure upload failed";
 "Biometric unlock" = "Biometric unlock";
@@ -78,6 +80,7 @@
 "Choose where to save the attachment" = "Choose where to save the attachment";
 "City" = "City";
 "Clear clipboard after" = "Clear clipboard after";
+"Code" = "Code";
 "Collection" = "Collection";
 "Collection name" = "Collection name";
 "Company" = "Company";
@@ -127,6 +130,8 @@
 "Domain" = "Domain";
 "Done" = "Done";
 "Download failed. If this keeps happening, try locking and unlocking your vault." = "Download failed. If this keeps happening, try locking and unlocking your vault.";
+"Duo" = "Duo";
+"Duo (organization)" = "Duo (organization)";
 "Duplicate" = "Duplicate";
 "Edit" = "Edit";
 "Email" = "Email";
@@ -137,6 +142,7 @@
 "Enter master password" = "Enter master password";
 "Enter password" = "Enter password";
 "Enter the 6-digit code from your authenticator app." = "Enter the 6-digit code from your authenticator app.";
+"Enter the code that was emailed to you." = "Enter the code that was emailed to you.";
 "Enter the password for %@ to unlock." = "Enter the password for %@ to unlock.";
 "Estimated from the patterns this app recognises — repeated characters, common passwords, sequences and dates. It is not a breach check, and no password is sent anywhere to produce it." = "Estimated from the patterns this app recognises — repeated characters, common passwords, sequences and dates. It is not a breach check, and no password is sent anywhere to produce it.";
 "Estimated strength: %@" = "Estimated strength: %@";
@@ -310,17 +316,21 @@
 "Privacy" = "Privacy";
 "Private Key" = "Private Key";
 "Prizm Is Locked" = "Prizm Is Locked";
+"Prizm cannot complete the two-factor method “%@”. Sign in from another Bitwarden client, or use one to change the method this account asks for." = "Prizm cannot complete the two-factor method “%@”. Sign in from another Bitwarden client, or use one to change the method this account asks for.";
 "Prizm could not read the certificate for %@, so the connection was not made." = "Prizm could not read the certificate for %@, so the connection was not made.";
 "Prizm could not read the stored certificate settings for %@, so the connection was not made. %@" = "Prizm could not read the stored certificate settings for %@, so the connection was not made. %@";
 "Public Key" = "Public Key";
+"Put the cursor in the field below, then tap the metal contact on your YubiKey. The key types the code for you." = "Put the cursor in the field below, then tap the metal contact on your YubiKey. The key types the code for you.";
 "Re-enable %@" = "Re-enable %@";
 "Reading the file" = "Reading the file";
 "Reading the file…" = "Reading the file…";
+"Recovery code" = "Recovery code";
 "Regular Expression" = "Regular Expression";
 "Remember this device" = "Remember this device";
 "Remove website" = "Remove website";
 "Rename" = "Rename";
 "Repeated characters" = "Repeated characters";
+"Resend code" = "Resend code";
 "Restart required" = "Restart required";
 "Restore" = "Restore";
 "Retry" = "Retry";
@@ -380,6 +390,7 @@
 "Synced yesterday" = "Synced yesterday";
 "Syncing vault…" = "Syncing vault…";
 "Syncing…" = "Syncing…";
+"Tap your YubiKey" = "Tap your YubiKey";
 "Text" = "Text";
 "That file does not contain a certificate. Choose a .pem, .crt or .cer file exported from your server." = "That file does not contain a certificate. Choose a .pem, .crt or .cer file exported from your server.";
 "That is not the master password for this account." = "That is not the master password for this account.";
@@ -409,6 +420,7 @@
 "Two-factor method '%@' is not supported. Use an authenticator app." = "Two-factor method '%@' is not supported. Use an authenticator app.";
 "Two-step login" = "Two-step login";
 "Types" = "Types";
+"U2F security key" = "U2F security key";
 "Unfavorite" = "Unfavorite";
 "Unknown Field" = "Unknown Field";
 "Unknown date" = "Unknown date";
@@ -436,6 +448,7 @@
 "View on GitHub" = "View on GitHub";
 "Weak" = "Weak";
 "Weak passwords" = "Weak passwords";
+"WebAuthn" = "WebAuthn";
 "Website" = "Website";
 "Websites" = "Websites";
 "Words: %lld" = "Words: %lld";
@@ -445,9 +458,11 @@
 "Your secrets. Your server. Our user interface." = "Your secrets. Your server. Our user interface.";
 "Your session has expired. Try signing out and signing in again." = "Your session has expired. Try signing out and signing in again.";
 "Your unsaved changes will be lost." = "Your unsaved changes will be lost.";
+"YubiKey" = "YubiKey";
 "[No fingerprint]" = "[No fingerprint]";
 "copied" = "copied";
 "copy" = "copy";
+"method %lld" = "method %lld";
 "open" = "open";
 "save" = "save";
 "unlock your Prizm vault" = "unlock your Prizm vault";
