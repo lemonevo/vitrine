@@ -76,6 +76,23 @@ final class MockAuthRepository: AuthRepository {
         return account
     }
 
+    func verifyMasterPassword(_ masterPassword: Data) async throws -> Bool {
+        verifyMasterPasswordCallCount += 1
+        verifyMasterPasswordPasswords.append(masterPassword)
+        if let error = verifyMasterPasswordError { throw error }
+        return stubbedVerifyMasterPasswordResult
+    }
+
+    /// How many times `verifyMasterPassword` was called.
+    private(set) var verifyMasterPasswordCallCount: Int = 0
+    /// Every password submitted, in order, so a test can assert the gate does not re-ask.
+    private(set) var verifyMasterPasswordPasswords: [Data] = []
+    /// The answer to return. `true` by default because the interesting cases are the ones
+    /// where the caller then has to do something.
+    var stubbedVerifyMasterPasswordResult: Bool = true
+    /// When non-nil, `verifyMasterPassword` throws this instead of answering.
+    var verifyMasterPasswordError: Error?
+
     func storedAccount() -> Account? { stubbedStoredAccount }
 
     /// Stub for `storedAccount()`. Defaults to nil.

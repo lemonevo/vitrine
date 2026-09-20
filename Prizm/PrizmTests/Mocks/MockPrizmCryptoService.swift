@@ -41,8 +41,24 @@ actor MockPrizmCryptoService: PrizmCryptoService {
     }
 
     func decryptSymmetricKey(encUserKey: String, stretchedKeys: CryptoKeys) async throws -> CryptoKeys {
-        stubbedVaultKeys
+        decryptSymmetricKeyCallCount += 1
+        if let error = decryptSymmetricKeyError { throw error }
+        return stubbedDecryptedSymmetricKeys ?? stubbedVaultKeys
     }
+
+    /// When non-nil, `decryptSymmetricKey` returns this rather than `stubbedVaultKeys`.
+    ///
+    /// A test needs the decrypted result to be able to differ from the key the vault is
+    /// unlocked with. Without this the two stubs are the same object and the comparison in
+    /// `verifyMasterPassword` can never fail, so its comparison step goes untested and only
+    /// its decryption step is covered.
+    nonisolated(unsafe) var stubbedDecryptedSymmetricKeys: CryptoKeys?
+
+    /// When non-nil, `decryptSymmetricKey` throws this. A wrong master password fails the MAC
+    /// check inside that call, so this is how a test simulates one.
+    nonisolated(unsafe) var decryptSymmetricKeyError: Error?
+
+    nonisolated(unsafe) private(set) var decryptSymmetricKeyCallCount: Int = 0
 
     func decryptList(ciphers: [RawCipher]) async throws -> (items: [VaultItem], failedCount: Int, cipherKeys: [String: Data]) {
         (items: stubbedDecryptList, failedCount: stubbedFailedCount, cipherKeys: [:])
@@ -54,11 +70,18 @@ actor MockPrizmCryptoService: PrizmCryptoService {
 
     func unlockWith(keys: CryptoKeys) async {
         _isUnlocked = true
+        unlockWithCallCount += 1
     }
 
     func lockVault() async {
         _isUnlocked = false
+        lockVaultCallCount += 1
     }
+
+    /// Both are counts rather than booleans so a test can assert a read-only check
+    /// performed **neither** of them — the point of `verifyMasterPassword` not being an unlock.
+    nonisolated(unsafe) private(set) var unlockWithCallCount: Int = 0
+    nonisolated(unsafe) private(set) var lockVaultCallCount:  Int = 0
 
     func currentKeys() throws -> CryptoKeys {
         guard _isUnlocked else { throw PrizmCryptoServiceError.vaultLocked }
