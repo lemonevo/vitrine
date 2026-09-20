@@ -182,6 +182,21 @@ nonisolated struct PasswordStrengthEstimator: Sendable {
         self.shortestEntry = lengths.min() ?? 0
     }
 
+    // MARK: - The app's estimator
+
+    /// The estimator the app runs: the embedded popularity list, plus the EFF word list when the
+    /// bundle can supply it.
+    ///
+    /// The word list is read from the bundle rather than written down here so a generated
+    /// passphrase's words cost their real `7776` instead of being priced as unrelated letters.
+    /// Under `swift test` `Bundle.main` is the xctest runner and the resource is absent, so this
+    /// degrades to the popularity list alone rather than trapping — the same degradation the
+    /// generator itself has, and the reason the `wordList` parameter defaults to `nil`.
+    static let application: PasswordStrengthEstimator = {
+        let words = PasswordGenerator.effWordList
+        return PasswordStrengthEstimator(wordList: words.isEmpty ? nil : Set(words))
+    }()
+
     // MARK: - Scoring
 
     /// Scores one password. Never makes a network request and never logs the password.

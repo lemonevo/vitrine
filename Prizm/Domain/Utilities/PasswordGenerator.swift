@@ -14,7 +14,9 @@ struct PasswordGenerator {
 
     // MARK: - EFF word list (loaded once, cached)
 
-    static let effWordList: [String] = {
+    /// Read-only and pure — a function of the bundle, not of the instance — so it is `nonisolated`
+    /// and can be read from the strength estimator as well as from here.
+    nonisolated static let effWordList: [String] = {
         guard let url = Bundle.main.url(forResource: "eff-large-wordlist", withExtension: "txt"),
               let contents = try? String(contentsOf: url, encoding: .utf8) else {
             return []
