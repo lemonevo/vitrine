@@ -210,4 +210,29 @@ nonisolated enum AccessibilityID {
         /// The copy button on a history row; `index` is the row's position, newest first.
         static func historyCopyButton(_ index: Int) -> String { "generator.history.copy.\(index)" }
     }
+
+    // MARK: - Vault Health Report (vault-health-report)
+
+    enum Health {
+        static let sheet         = "health.sheet"
+        /// The green "all five checks passed" banner.
+        static let cleanBanner   = "health.banner.clean"
+        /// The amber "n issues found" banner. Distinct from `cleanBanner` so a test can tell the two
+        /// apart without reading the text, which changes with the language.
+        static let summaryBanner = "health.banner.summary"
+        static let errorMessage  = "health.error"
+        static let retryButton   = "health.button.retry"
+        static let doneButton    = "health.button.done"
+        /// The note explaining that compromised-password checking is not performed.
+        static let breachNote    = "health.breachNote"
+
+        /// One check's section; `check` is `HealthCheck.rawValue`.
+        static func section(_ check: String) -> String { "health.section.\(check)" }
+        /// The finding-count badge in a section header.
+        static func sectionCount(_ check: String) -> String { "health.section.\(check).count" }
+        /// One finding row; `index` is its position within its own section.
+        static func findingRow(_ check: String, _ index: Int) -> String {
+            "health.finding.\(check).\(index)"
+        }
+    }
 }
