@@ -48,6 +48,18 @@ protocol VaultRepository: AnyObject, Sendable {
     /// - Throws: `VaultError.vaultLocked` if the vault is locked.
     func passwordHistory(for id: String) async throws -> [PasswordHistoryEntry]
 
+    /// Decrypts the display fields of the passkeys stored on the item with `id`.
+    ///
+    /// Read-only by construction: `PasskeyCredential` has no field for the credential's private key,
+    /// and this method does not decrypt it. See that type for why the omission is the design.
+    ///
+    /// A credential that cannot be decrypted, or that is not shaped like one, is skipped rather than
+    /// failing the whole list — the same rule as the password history, for the same reason.
+    ///
+    /// - Throws: `VaultError.itemNotFound` if `id` is not in the store.
+    /// - Throws: `VaultError.vaultLocked` if the vault is locked.
+    func passkeys(for id: String) async throws -> [PasskeyCredential]
+
     /// Replaces the in-memory vault store and rebuilds all read indexes.
     /// Called by `SyncRepositoryImpl` after a successful sync.
     func populate(items: [VaultItem], folders: [Folder], organizations: [Organization],

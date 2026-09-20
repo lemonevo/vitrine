@@ -55,8 +55,16 @@ nonisolated struct PreservedCipherFields: Sendable, Equatable, Hashable {
     /// key was wrapped with it.
     var cipherKey: String?
 
-    /// `login.fido2Credentials[]` — passkeys stored by Bitwarden's browser extension or mobile
-    /// app. Opaque to Prizm: preserved, never read.
+    /// `login.fido2Credentials[]` — passkeys stored by Bitwarden's browser extension or mobile app.
+    ///
+    /// Preserved untouched on every save, which is the part that matters most: a full PUT that
+    /// omitted them deleted passkeys the user registered elsewhere.
+    ///
+    /// **No longer opaque, but read only in part.** `VaultRepositoryImpl.passkeys(for:)` decrypts the
+    /// display fields on demand for the read-only listing. It does **not** decrypt `keyValue`, which
+    /// is the credential's private key — see `PasskeyCredential`. This comment said "never read"
+    /// until that listing existed, and a comment that understates what the code does is the one kind
+    /// someone acts on.
     var fido2Credentials: [JSONValue] = []
 
     /// `login.passwordRevisionDate` — when the login's password was last changed.
