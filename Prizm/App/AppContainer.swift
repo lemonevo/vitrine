@@ -43,6 +43,8 @@ final class AppContainer: ObservableObject {
     let searchVaultUseCase:              SearchVaultUseCaseImpl
     let editVaultItemUseCase:            EditVaultItemUseCaseImpl
     let createVaultItemUseCase:          CreateVaultItemUseCaseImpl
+    let duplicateVaultItemUseCase:       DuplicateVaultItemUseCaseImpl
+    let emptyTrashUseCase:               EmptyTrashUseCaseImpl
     let deleteVaultItemUseCase:          DeleteVaultItemUseCaseImpl
     let permanentDeleteVaultItemUseCase: PermanentDeleteVaultItemUseCaseImpl
     let restoreVaultItemUseCase:         RestoreVaultItemUseCaseImpl
@@ -67,6 +69,11 @@ final class AppContainer: ObservableObject {
     /// Singleton temp-file manager — injected into `AttachmentRowViewModel` via the
     /// `TempFileManaging` protocol to keep Presentation decoupled from AppKit (Constitution §II).
     let tempFileManager: AttachmentTempFileManager
+
+    /// Drives the configurable idle timeout. Owns an `NSEvent` local monitor while the vault is
+    /// unlocked; injected into `RootViewModel` through `RootViewModelDependencies` so tests never
+    /// install one.
+    let idleMonitor: any VaultIdleMonitoring
 
     // MARK: - Init
 
@@ -123,6 +130,8 @@ final class AppContainer: ObservableObject {
         self.searchVaultUseCase              = SearchVaultUseCaseImpl(vault: vault)
         self.editVaultItemUseCase            = EditVaultItemUseCaseImpl(repository: vault)
         self.createVaultItemUseCase          = CreateVaultItemUseCaseImpl(repository: vault)
+        self.duplicateVaultItemUseCase       = DuplicateVaultItemUseCaseImpl(repository: vault)
+        self.emptyTrashUseCase               = EmptyTrashUseCaseImpl(repository: vault)
         self.deleteVaultItemUseCase          = DeleteVaultItemUseCaseImpl(repository: vault)
         self.permanentDeleteVaultItemUseCase = PermanentDeleteVaultItemUseCaseImpl(repository: vault)
         self.restoreVaultItemUseCase         = RestoreVaultItemUseCaseImpl(repository: vault)
@@ -141,6 +150,9 @@ final class AppContainer: ObservableObject {
         self.downloadAttachmentUseCase = DownloadAttachmentUseCaseImpl(repository: attachmentRepo, vaultKeyService: vaultKeyService)
         self.deleteAttachmentUseCase   = DeleteAttachmentUseCaseImpl(repository: attachmentRepo)
         self.tempFileManager           = AttachmentTempFileManager()
+        // Reads the timeout settings on every poll, so changing them in Settings takes effect
+        // immediately without recreating the monitor.
+        self.idleMonitor               = VaultIdleMonitor(settings: { VaultTimeoutSettings.load() })
     }
 
     // MARK: - Factories
@@ -195,6 +207,9 @@ final class AppContainer: ObservableObject {
             delete:           deleteVaultItemUseCase,
             permanentDelete:  permanentDeleteVaultItemUseCase,
             restore:          restoreVaultItemUseCase,
+            duplicate:        duplicateVaultItemUseCase,
+            emptyTrash:       emptyTrashUseCase,
+            sync:             syncUseCase,
             createFolder:     createFolderUseCase,
             renameFolder:     renameFolderUseCase,
             deleteFolder:     deleteFolderUseCase,

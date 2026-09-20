@@ -60,6 +60,28 @@ final class VaultBrowserViewModel: ObservableObject {
     }
     @Published private(set) var lastSyncedAt: Date?
     @Published var syncErrorMessage: String? = nil
+
+    /// `true` while a manual sync is in flight. Drives the toolbar button's disabled state and its
+    /// progress indicator, and gates ⌘R.
+    ///
+    /// Distinct from `SyncRepositoryImpl.isSyncing`, which protects the actor. This one protects
+    /// the button: without it the user could queue a second sync that the repository would then
+    /// reject with `SyncError.syncInProgress`.
+    @Published private(set) var isSyncing: Bool = false
+
+    /// Order the item list is displayed in. Persisted, so it survives relaunch.
+    ///
+    /// Applied here rather than in the repository because the repository's per-selection indexes
+    /// are pre-sorted at `populate()` time and must stay free of display preferences — see
+    /// `ItemSortOrder`.
+    @Published var sortOrder: ItemSortOrder {
+        didSet {
+            guard oldValue != sortOrder else { return }
+            ItemSortPreference.save(sortOrder)
+            refreshItems()
+        }
+    }
+
     /// Reflects whether the edit sheet is currently open. Used by `MenuBarViewModel`
     /// to enable/disable the Edit and Save menu bar actions.
     @Published private(set) var editSheetOpen: Bool = false
@@ -85,6 +107,9 @@ final class VaultBrowserViewModel: ObservableObject {
     private let deleteUseCase:          any DeleteVaultItemUseCase
     private let permanentDeleteUseCase: any PermanentDeleteVaultItemUseCase
     private let restoreUseCase:         any RestoreVaultItemUseCase
+    private let duplicateUseCase:       any DuplicateVaultItemUseCase
+    private let emptyTrashUseCase:      any EmptyTrashUseCase
+    private let syncUseCase:            any SyncUseCase
     private let createFolderUseCase:      any CreateFolderUseCase
     private let renameFolderUseCase:      any RenameFolderUseCase
     private let deleteFolderUseCase:      any DeleteFolderUseCase
@@ -126,6 +151,14 @@ final class VaultBrowserViewModel: ObservableObject {
 
     private var clipboardClearTask: Task<Void, Never>?
 
+    /// Whether a clipboard clear is currently pending.
+    ///
+    /// Read-only, and exposed for tests. "Never" must schedule *nothing* rather than a very long
+    /// timer, and the two are indistinguishable from the outside within any test's lifetime — which
+    /// is precisely the promise the setting makes. Asking whether a task exists is the only honest
+    /// way to assert it.
+    var isClipboardClearPending: Bool { clipboardClearTask != nil }
+
     // MARK: - Init
 
     init(
@@ -134,6 +167,9 @@ final class VaultBrowserViewModel: ObservableObject {
         delete:            any DeleteVaultItemUseCase,
         permanentDelete:   any PermanentDeleteVaultItemUseCase,
         restore:           any RestoreVaultItemUseCase,
+        duplicate:         any DuplicateVaultItemUseCase,
+        emptyTrash:        any EmptyTrashUseCase,
+        sync:              any SyncUseCase,
         createFolder:      any CreateFolderUseCase,
         renameFolder:      any RenameFolderUseCase,
         deleteFolder:      any DeleteFolderUseCase,
@@ -149,6 +185,9 @@ final class VaultBrowserViewModel: ObservableObject {
         self.deleteUseCase          = delete
         self.permanentDeleteUseCase = permanentDelete
         self.restoreUseCase         = restore
+        self.duplicateUseCase       = duplicate
+        self.emptyTrashUseCase      = emptyTrash
+        self.syncUseCase            = sync
         self.createFolderUseCase    = createFolder
         self.renameFolderUseCase    = renameFolder
         self.deleteFolderUseCase    = deleteFolder
@@ -158,6 +197,7 @@ final class VaultBrowserViewModel: ObservableObject {
         self.deleteCollectionUseCase = deleteCollection
         self.syncTimestamp          = syncTimestamp
         self.getLastSyncDate        = getLastSyncDate
+        self.sortOrder              = ItemSortPreference.load()
         refreshItems()
         refreshCounts()
         refreshFolders()
@@ -212,7 +252,12 @@ final class VaultBrowserViewModel: ObservableObject {
         searchQuery = ""
     }
 
-    /// Copies `value` to the pasteboard and schedules a 30-second auto-clear (FR-011).
+    /// Copies `value` to the pasteboard and schedules a clear after the configured interval
+    /// (FR-011, SC-004).
+    ///
+    /// The interval is read at copy time rather than captured once, so a Settings change applies to
+    /// the next copy without a relaunch. "Never" schedules nothing at all — not a very long timer,
+    /// which would still depend on the process outliving it.
     func copy(_ value: String) {
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
@@ -220,13 +265,20 @@ final class VaultBrowserViewModel: ObservableObject {
 
         // Cancel any previous clear task before scheduling a new one.
         clipboardClearTask?.cancel()
+        clipboardClearTask = nil
+
+        guard let seconds = ClipboardClearInterval.load().seconds else {
+            logger.debug("Clipboard left uncleared (interval is Never)")
+            return
+        }
+
         clipboardClearTask = Task {
             do {
-                try await Task.sleep(for: .seconds(30))
+                try await Task.sleep(for: .seconds(seconds))
                 // Only clear if our value is still on the clipboard.
                 if pasteboard.string(forType: .string) == value {
                     pasteboard.clearContents()
-                    logger.debug("Clipboard auto-cleared after 30 s")
+                    logger.debug("Clipboard auto-cleared after \(Int(seconds)) s")
                 }
             } catch {
                 // Task cancelled (e.g. new copy) — do nothing.
@@ -254,7 +306,7 @@ final class VaultBrowserViewModel: ObservableObject {
                 } else {
                     scope = sidebarSelection
                 }
-                displayedItems = try await search.execute(query: searchQuery, in: scope)
+                displayedItems = sortOrder.sort(try await search.execute(query: searchQuery, in: scope))
             } catch {
                 logger.error("Failed to load vault items: \(error.localizedDescription, privacy: .public)")
                 displayedItems = []
@@ -424,6 +476,82 @@ final class VaultBrowserViewModel: ObservableObject {
         } catch {
             logger.error("Permanent delete failed for \(id, privacy: .public): \(error.localizedDescription, privacy: .public)")
             actionError = error.localizedDescription
+        }
+    }
+
+    // MARK: - Manual sync
+
+    /// Runs a vault sync on demand and folds the outcome into the same state the automatic sync
+    /// uses, so a manual sync cannot drift from the login-time one.
+    ///
+    /// Re-entrancy is guarded here as well as in the UI. `SyncRepositoryImpl` also refuses a
+    /// concurrent sync, which covers the race between this button and a login-time sync — that
+    /// refusal surfaces as the ordinary error banner rather than as two syncs racing.
+    func performManualSync() {
+        guard !isSyncing else { return }
+        isSyncing = true
+        Task {
+            defer { isSyncing = false }
+            do {
+                // Progress messages are not surfaced for a manual sync: the toolbar already shows a
+                // spinner, and the messages are sub-second for a small vault.
+                let result = try await syncUseCase.execute(progress: { _ in })
+                logger.info("Manual sync completed: \(result.totalCiphers) ciphers, \(result.failedDecryptionCount) failed")
+                handleSyncCompleted(syncedAt: result.syncedAt)
+            } catch {
+                logger.error("Manual sync failed: \(error.localizedDescription, privacy: .public)")
+                // `handleSyncError` deliberately does not touch the timestamp: it must keep
+                // reflecting the last *successful* sync.
+                handleSyncError(error.localizedDescription)
+            }
+        }
+    }
+
+    // MARK: - Duplicate
+
+    /// Duplicates the item with `id` and selects the copy.
+    ///
+    /// Selecting the copy rather than the original is what makes the action useful — the reason to
+    /// duplicate is almost always to then edit the copy.
+    func duplicateItem(id: String) {
+        Task {
+            do {
+                let copy = try await duplicateUseCase.execute(id: id)
+                logger.info("Item duplicated: \(id, privacy: .public) → \(copy.id, privacy: .public)")
+                refreshItems()
+                refreshCounts()
+                itemSelection = copy
+            } catch {
+                logger.error("Duplicate failed for \(id, privacy: .public): \(error.localizedDescription, privacy: .public)")
+                actionError = error.localizedDescription
+            }
+        }
+    }
+
+    // MARK: - Empty Trash
+
+    /// Permanently deletes every item in Trash.
+    ///
+    /// Failures are reported rather than thrown: emptying Trash is a sequence of independent
+    /// requests, and the user needs to know how much was actually removed. See `EmptyTrashResult`.
+    func performEmptyTrash() async {
+        let result = await emptyTrashUseCase.execute()
+        logger.info("Empty Trash: \(result.deletedCount) deleted, \(result.failedCount) failed")
+
+        refreshItems()
+        refreshCounts()
+
+        if result.hadFailures {
+            actionError = L("%d of %d items could not be deleted. They are still in Trash.",
+                            result.failedCount, result.deletedCount + result.failedCount)
+        }
+
+        // Deselect only if the selected item is genuinely gone. Re-reading Trash rather than
+        // assuming: on a partial failure the selected item may well still be there, and clearing
+        // the detail pane would be a lie.
+        if let selectedId = itemSelection?.id, itemSelection?.isDeleted == true {
+            let remaining = (try? await vault.items(for: .trash))?.map(\.id) ?? []
+            if !remaining.contains(selectedId) { itemSelection = nil }
         }
     }
 

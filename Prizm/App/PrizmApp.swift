@@ -80,9 +80,22 @@ struct PrizmApp: App {
                 .disabled(!rootVM.isVaultUnlocked)
             }
 
+            // View menu — "Sync Now" lives here rather than in the Item menu because it acts on the
+            // whole vault, not on the selected item. ⌘R matches the refresh shortcut users expect.
+            CommandGroup(after: .sidebar) {
+                Divider()
+
+                Button("Sync Now") {
+                    rootVM.vaultBrowserVM.performManualSync()
+                }
+                .keyboardShortcut("r", modifiers: .command)
+                .disabled(!rootVM.menuBarCanSync)
+            }
+
             // "Item" menu — sits in the standard macOS menu bar next to Edit/View/Window.
             // Edit opens the edit sheet for the selected vault item (⌘E).
             // Save persists in-flight edits (⌘S).
+            // Duplicate creates a copy of the selected item (⌘D).
             // Buttons are disabled by `rootVM` Combine subscriptions that track
             // item selection and edit-sheet state.
             CommandMenu("Item") {
@@ -97,6 +110,12 @@ struct PrizmApp: App {
                 }
                 .disabled(!rootVM.menuBarCanSave)
                 .keyboardShortcut("s", modifiers: .command)
+
+                Button("Duplicate") {
+                    rootVM.duplicateSelectedItem()
+                }
+                .disabled(!rootVM.menuBarCanDuplicate)
+                .keyboardShortcut("d", modifiers: .command)
 
                 Divider()
 
@@ -246,6 +265,9 @@ protocol RootViewModelDependencies: AnyObject {
     /// Points the favicon loader at the signed-in account's icon service. Called at the vault
     /// transition, once the account's server URL is known; before that nothing is fetched.
     func refreshWebsiteIcons() async
+    /// Idle-timeout observation. Injected so `RootViewModel` can be tested without installing a
+    /// real `NSEvent` monitor, which is the one part of the feature a unit test cannot exercise.
+    var idleMonitor: any VaultIdleMonitoring { get }
 }
 
 extension AppContainer: RootViewModelDependencies {
@@ -280,6 +302,13 @@ final class RootViewModel: ObservableObject {
     /// Whether the Save command should be enabled: the edit sheet is currently open.
     @Published private(set) var menuBarCanSave: Bool = false
 
+    /// Whether the Duplicate command should be enabled: an item is selected, it is not in Trash,
+    /// and no edit sheet is open (duplicating mid-edit would race the in-flight draft).
+    @Published private(set) var menuBarCanDuplicate: Bool = false
+
+    /// Whether "Sync Now" should be enabled: the vault is unlocked and no sync is in flight.
+    @Published private(set) var menuBarCanSync: Bool = false
+
     /// The login content of the currently selected item, or nil. Drives copy command disabled state.
     @Published private(set) var selectedLogin: LoginContent?
 
@@ -290,6 +319,8 @@ final class RootViewModel: ObservableObject {
     let vaultBrowserVM:   VaultBrowserViewModel
 
     private let container: any RootViewModelDependencies
+    /// Drives the configurable idle timeout. Started only while the vault is unlocked.
+    private let idleMonitor: any VaultIdleMonitoring
     /// Combine subscriptions — held for the lifetime of this object.
     /// Using Combine (not SwiftUI .onChange) so transitions fire regardless
     /// of whether the source view is currently in the view hierarchy.
@@ -303,6 +334,7 @@ final class RootViewModel: ObservableObject {
         self.container      = container
         self.loginVM        = container.makeLoginViewModel()
         self.vaultBrowserVM = container.makeVaultBrowserViewModel()
+        self.idleMonitor    = container.idleMonitor
 
         // Check for stored session at launch.
         if let account = container.authRepo.storedAccount() {
@@ -311,6 +343,12 @@ final class RootViewModel: ObservableObject {
         } else {
             self.screen   = .login
             self.unlockVM = nil
+        }
+
+        // Route the timeout into the same teardown paths the sleep / screensaver / screen-lock
+        // locks use, so the idle timeout introduces no third way to destroy or retain key material.
+        idleMonitor.onTimeout = { [weak self] action in
+            self?.handleIdleTimeout(action)
         }
 
         subscribeToFlowStates()
@@ -325,6 +363,24 @@ final class RootViewModel: ObservableObject {
     // MARK: - Combine subscriptions
 
     private func subscribeToFlowStates() {
+        // Idle-timeout observation follows the unlocked state exactly. Driving it from `screen`
+        // rather than from each transition site means a new transition cannot forget to start or
+        // stop the monitor, and it is the same predicate as `isVaultUnlocked`.
+        //
+        // `menuBarCanSync` is recomputed here for the same reason. It depends on both halves —
+        // unlocked *and* not syncing — but the `isSyncing` publisher below only emits when a sync
+        // starts or finishes. Observing it alone would leave ⌘R disabled from launch until the
+        // first sync, and the shortcut is one of the ways to start one: the command could never
+        // enable itself.
+        $screen
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] screen in
+                guard let self else { return }
+                self.updateIdleMonitoring(for: screen)
+                self.menuBarCanSync = self.isVaultUnlocked && !self.vaultBrowserVM.isSyncing
+            }
+            .store(in: &cancellables)
+
         // Login flow — observe for the lifetime of the app (loginVM is never replaced).
         loginVM.$flowState
             .receive(on: DispatchQueue.main)
@@ -341,24 +397,35 @@ final class RootViewModel: ObservableObject {
 
         // canEdit: item selected AND edit sheet not yet open.
         // canSave: edit sheet is open.
-        // Both are derived by watching editSheetOpen and itemSelection independently.
+        // canDuplicate: item selected, not trashed, and no edit sheet open.
+        // All three are derived by watching editSheetOpen and itemSelection independently.
         // `for await` on @Published.values avoids Combine callbacks (CLAUDE.md async/await rule).
         Task { [weak self, vaultBrowserVM] in
             for await open in vaultBrowserVM.$editSheetOpen.values {
                 guard let self else { break }
                 self.menuBarCanSave = open
                 self.menuBarCanEdit = vaultBrowserVM.itemSelection != nil && !open
+                self.menuBarCanDuplicate = vaultBrowserVM.itemSelection.map { !$0.isDeleted && !open } ?? false
             }
         }
         Task { [weak self, vaultBrowserVM] in
             for await selection in vaultBrowserVM.$itemSelection.values {
                 guard let self else { break }
                 self.menuBarCanEdit = selection != nil && !vaultBrowserVM.editSheetOpen
+                self.menuBarCanDuplicate = (selection.map { !$0.isDeleted } ?? false)
+                    && !vaultBrowserVM.editSheetOpen
                 if case .login(let login) = selection?.content {
                     self.selectedLogin = login
                 } else {
                     self.selectedLogin = nil
                 }
+            }
+        }
+        // Sync Now is enabled only while the vault is unlocked and no sync is already running.
+        Task { [weak self, vaultBrowserVM] in
+            for await syncing in vaultBrowserVM.$isSyncing.values {
+                guard let self else { break }
+                self.menuBarCanSync = self.isVaultUnlocked && !syncing
             }
         }
 
@@ -508,6 +575,33 @@ final class RootViewModel: ObservableObject {
         }
     }
 
+    // MARK: - Idle timeout
+
+    /// Starts idle observation while the vault is unlocked and stops it otherwise.
+    ///
+    /// A locked vault has nothing to lock, and a timer running against the unlock screen would be
+    /// pure overhead.
+    private func updateIdleMonitoring(for screen: Screen) {
+        switch screen {
+        case .vault, .syncing: idleMonitor.start()
+        case .login, .loading, .totpPrompt, .unlock: idleMonitor.stop()
+        }
+    }
+
+    /// Applies the configured timeout action.
+    ///
+    /// Both cases reuse an existing teardown: `lockVault()` clears the vault and every key cache
+    /// while keeping the stored session, `signOut()` additionally discards the session. Neither is
+    /// new, so the timeout cannot introduce a third, less-audited way to tear down key material.
+    func handleIdleTimeout(_ action: VaultTimeoutAction) {
+        guard isVaultUnlocked else { return }
+        logger.info("Idle timeout elapsed; action = \(action.rawValue, privacy: .public)")
+        switch action {
+        case .lock:    lockVault()
+        case .signOut: signOut()
+        }
+    }
+
     func handleUnlockFlow(_ state: UnlockFlowState) {
         switch state {
         case .unlock:       screen = .unlock
@@ -520,6 +614,17 @@ final class RootViewModel: ObservableObject {
             screen   = .login
         }
         logger.info("Screen transition → \(String(describing: state))")
+    }
+
+    // MARK: - Duplicate
+
+    /// Duplicates the item selected in the list pane.
+    ///
+    /// The copy is created on the server and becomes the new selection, so the user can edit it
+    /// straight away. Trashed items are excluded — see `menuBarCanDuplicate`.
+    func duplicateSelectedItem() {
+        guard let id = vaultBrowserVM.itemSelection?.id else { return }
+        vaultBrowserVM.duplicateItem(id: id)
     }
 
     // MARK: - Copy field from selected item
