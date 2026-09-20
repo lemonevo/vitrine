@@ -83,6 +83,15 @@ final class AppContainer: ObservableObject {
     /// install one.
     let idleMonitor: any VaultIdleMonitoring
 
+    // MARK: - Session-scoped, memory-only state
+
+    /// The values generated and used during this session, newest first.
+    ///
+    /// Held here rather than inside the generator's view model so `lockVault()` and `signOut()` can
+    /// clear it: the popover that produced a value is long gone by the time the vault locks, and a
+    /// value that was generated but never saved is still a credential (design D9).
+    let generatorHistory: GeneratorHistory
+
     // MARK: - Init
 
     init() {
@@ -163,6 +172,7 @@ final class AppContainer: ObservableObject {
         // Reads the timeout settings on every poll, so changing them in Settings takes effect
         // immediately without recreating the monitor.
         self.idleMonitor               = VaultIdleMonitor(settings: { VaultTimeoutSettings.load() })
+        self.generatorHistory          = GeneratorHistory()
     }
 
     // MARK: - Factories

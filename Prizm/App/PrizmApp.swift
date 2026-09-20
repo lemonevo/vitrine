@@ -261,6 +261,9 @@ struct PrizmApp: App {
                     container.makeAttachmentRowViewModel(cipherId: cipherId, attachment: attachment)
                 }
             )
+            // Installed here rather than on the app's root: the generator only exists inside the
+            // vault, and a value generated before unlock is not something that can happen.
+            .environment(\.generatorHistory, container.generatorHistory)
         }
     }
 }
@@ -291,6 +294,9 @@ protocol RootViewModelDependencies: AnyObject {
     /// Idle-timeout observation. Injected so `RootViewModel` can be tested without installing a
     /// real `NSEvent` monitor, which is the one part of the feature a unit test cannot exercise.
     var idleMonitor: any VaultIdleMonitoring { get }
+    /// The session's generator history. Cleared on lock and sign-out so a value that was generated
+    /// but never saved cannot outlive the session that produced it (design D9).
+    var generatorHistory: GeneratorHistory { get }
 }
 
 extension AppContainer: RootViewModelDependencies {
@@ -561,6 +567,7 @@ final class RootViewModel: ObservableObject {
             }
             await container.vaultRepo.clearVault()
             await container.vaultKeyCache.clear()
+            container.generatorHistory.clear()
             unlockVM = nil
             screen   = .login
             logger.info("Sign out completed")
@@ -580,6 +587,7 @@ final class RootViewModel: ObservableObject {
             // Key material must not outlive the vault session (Constitution §III).
             await container.vaultKeyCache.clear()
             await container.orgKeyCache.clear()
+            container.generatorHistory.clear()
             if let account = container.authRepo.storedAccount() {
                 unlockVM = container.makeUnlockViewModel(account: account)
                 screen = .unlock
