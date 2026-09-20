@@ -27,6 +27,27 @@ protocol VaultRepository: AnyObject, Sendable {
     /// Not cached — re-decrypts on every call (decrypt on demand, per spec).
     func itemDetail(id: String) async throws -> VaultItem
 
+    /// Decrypts the server-maintained password history of the item with `id`.
+    ///
+    /// Returns the previous passwords newest-first, or an empty array when the item has none.
+    ///
+    /// **Why the repository and not a mapper.** Decrypting a history entry needs the item's own
+    /// key resolution — the per-item key when the cipher carries one, otherwise the vault or
+    /// organisation key. That resolution already lives here (`CipherMapper.map` performs it for
+    /// the current password), and reimplementing it at a call site is how the two drift apart.
+    ///
+    /// **Never cached.** The plaintext is produced per call and dropped when the caller is done,
+    /// matching `itemDetail(id:)`. The encrypted form stays in
+    /// `PreservedCipherFields.passwordHistory` and continues to round-trip untouched.
+    ///
+    /// An entry that cannot be decrypted is skipped rather than failing the whole list: a history
+    /// with one damaged entry is still worth showing, and refusing to show any of it would hide
+    /// data the user owns.
+    ///
+    /// - Throws: `VaultError.itemNotFound` if `id` is not in the store.
+    /// - Throws: `VaultError.vaultLocked` if the vault is locked.
+    func passwordHistory(for id: String) async throws -> [PasswordHistoryEntry]
+
     /// Replaces the in-memory vault store and rebuilds all read indexes.
     /// Called by `SyncRepositoryImpl` after a successful sync.
     func populate(items: [VaultItem], folders: [Folder], organizations: [Organization],

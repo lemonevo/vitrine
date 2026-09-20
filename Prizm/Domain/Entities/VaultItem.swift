@@ -12,9 +12,17 @@ import Foundation
 /// history or per-item keys — without this type, editing an item's notes would silently delete
 /// all three, and toggling a favourite would do the same.
 ///
-/// **What is deliberately NOT done.** Nothing here is ever decrypted. Passkey private keys and
-/// historical passwords stay in their EncString form because no screen displays them, and
-/// decrypting secrets you do not show only widens the attack surface (Constitution §III).
+/// **What is deliberately NOT done.** Passkey private keys (`fido2Credentials`) and the per-item
+/// key (`cipherKey`) are never decrypted: no screen displays them, and decrypting secrets you do
+/// not show only widens the attack surface (Constitution §III).
+///
+/// **The one exception, and it was added later.** `passwordHistory` *is* decrypted, by
+/// `VaultRepository.passwordHistory(for:)` and by nothing else. Two features need it: the export,
+/// because the Bitwarden interchange format carries previous passwords in plaintext, and the
+/// detail view, which shows them behind the master-password re-prompt gate. The original comment
+/// here claimed nothing in this type is ever decrypted — that is no longer true, and leaving the
+/// sentence in place would make the file lie about itself. The rule is now: **history is decrypted
+/// on demand, never cached, never logged**; the other two fields remain opaque.
 ///
 /// Reference: Bitwarden server `CipherModel` / `CipherLoginModel`, Vaultwarden `CipherData`.
 nonisolated struct PreservedCipherFields: Sendable, Equatable, Hashable {

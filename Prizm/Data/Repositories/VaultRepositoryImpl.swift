@@ -236,6 +236,118 @@ actor VaultRepositoryImpl: VaultRepository {
         return item
     }
 
+    // MARK: - Password history (decrypt on demand)
+
+    /// Decrypts the server-maintained password history of the item with `id`.
+    ///
+    /// Newest-first ordering is the server's: Vaultwarden prepends each replaced password, so the
+    /// array arrives in the order it should be displayed and is not re-sorted here.
+    ///
+    /// A malformed or undecryptable entry is **skipped**, not fatal. A history with one damaged
+    /// entry is still worth showing, and refusing the whole list would hide data the user owns.
+    /// Each skip is logged with the cipher id — never with the value (Constitution §V).
+    func passwordHistory(for id: String) async throws -> [PasswordHistoryEntry] {
+        guard let item = items.first(where: { $0.id == id }) else {
+            throw VaultError.itemNotFound(id)
+        }
+        guard !item.preserved.passwordHistory.isEmpty else { return [] }
+
+        let keys = try await resolveCipherKeys(for: item)
+
+        return item.preserved.passwordHistory.compactMap { entry in
+            guard case .object(let fields) = entry,
+                  let passwordValue = fields["password"],
+                  case .string(let encryptedPassword) = passwordValue,
+                  !encryptedPassword.isEmpty
+            else {
+                logger.error("Skipping malformed password-history entry for cipher \(id, privacy: .public)")
+                return nil
+            }
+
+            let password: String
+            do {
+                let enc  = try EncString(string: encryptedPassword)
+                let data = try enc.decrypt(keys: keys)
+                guard let plaintext = String(data: data, encoding: .utf8) else {
+                    logger.error("Password-history entry is not valid UTF-8 for cipher \(id, privacy: .public)")
+                    return nil
+                }
+                password = plaintext
+            } catch {
+                logger.error("Skipping undecryptable password-history entry for cipher \(id, privacy: .public)")
+                return nil
+            }
+
+            var lastUsedDate: Date?
+            if case .string(let raw)? = fields["lastUsedDate"] {
+                lastUsedDate = Self.parseISODate(raw)
+            }
+            return PasswordHistoryEntry(password: password, lastUsedDate: lastUsedDate)
+        }
+    }
+
+    /// Resolves the 64-byte key that decrypts an item's fields.
+    ///
+    /// This mirrors `CipherMapper.map`'s key selection exactly: the per-item key when the cipher
+    /// carries one (unwrapped with the vault or organisation key), otherwise the vault or
+    /// organisation key itself. The rule is deliberately duplicated rather than shared, because
+    /// the mapper's copy is entangled with the whole decrypt-and-map pass; but it is four lines,
+    /// and it has to stay identical — a history entry must decrypt with the same key its item's
+    /// current password does.
+    private func resolveCipherKeys(for item: VaultItem) async throws -> CryptoKeys {
+        let vaultKeys: CryptoKeys
+        do {
+            vaultKeys = try await crypto.currentKeys()
+        } catch PrizmCryptoServiceError.vaultLocked {
+            throw VaultError.vaultLocked
+        }
+
+        let activeKeys: CryptoKeys
+        if let orgId = item.organizationId {
+            let orgKeys = await orgKeyCache.snapshot()
+            guard let orgKey = orgKeys[orgId] else {
+                throw VaultError.decryptionFailed("org key not found for org: \(orgId)")
+            }
+            activeKeys = orgKey
+        } else {
+            activeKeys = vaultKeys
+        }
+
+        guard let wrappedKey = item.preserved.cipherKey else { return activeKeys }
+
+        do {
+            let enc = try EncString(string: wrappedKey)
+            let raw = try enc.decrypt(keys: activeKeys)
+            return CryptoKeys(encryptionKey: raw.prefix(32), macKey: raw.suffix(32))
+        } catch {
+            logger.error("Per-item key decryption failed for cipher \(item.id, privacy: .public)")
+            throw VaultError.decryptionFailed("key")
+        }
+    }
+
+    /// Parses an ISO-8601 timestamp, with or without fractional seconds.
+    ///
+    /// The server is inconsistent: Vaultwarden writes `passwordHistory[].lastUsedDate` with
+    /// millisecond precision while some cipher dates come without. `CipherMapper` only handles the
+    /// fractional form, which is why this is a second parser rather than a shared one — the date
+    /// here is display metadata, so an unparseable value degrades to `nil` rather than failing.
+    nonisolated private static func parseISODate(_ raw: String) -> Date? {
+        if let date = iso8601WithFraction.date(from: raw) { return date }
+        return iso8601Plain.date(from: raw)
+    }
+
+    private nonisolated(unsafe) static let iso8601WithFraction: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return f
+    }()
+
+    private nonisolated(unsafe) static let iso8601Plain: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime]
+        return f
+    }()
+
     // MARK: - Update (write path — called by EditVaultItemUseCaseImpl)
 
     /// Re-encrypts `draft`, calls `PUT /api/ciphers/{id}`, splices the server-confirmed
