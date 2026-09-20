@@ -320,29 +320,35 @@ items, one of which is gated on verifying an external algorithm (design D12).
 - [x] Both `.strings` files — 456 keys each, identical sets, `plutil -lint` clean, 15/0 per file
       for C3. `verify_keys.py` reports PASS: 0 missing `L()` keys, 0 missing SwiftUI literals,
       0 `String`-typed parameters left unwrapped.
-- [ ] `swift build` clean; `swift test` at the baseline failure count. **Not reached — see below.**
+- [x] `swift build` clean; `swift test` at the baseline failure count — **1013 tests / 9 failures,
+      the same nine as the pre-C3 baseline, no crash.** Resolved by the fix below, not by working
+      around it.
 - [ ] Manual: set a re-prompt item, lock, unlock, confirm the prompt appears once; trust a
       self-signed certificate against a local server if one is available.
 
-  **The whole-suite run currently aborts part-way through, and C4 is the first item it blocks.**
-  `swift test` dies with signal 5; under lldb the stop reason is `EXC_BREAKPOINT` inside
-  `libsystem_malloc.dylib _xzm_xzone_malloc_freelist_outlined` — malloc's own heap-integrity trap,
-  not an assertion in Prizm's code. Established so far:
+  **The whole-suite run used to abort part-way through, and it was a real bug — now fixed.**
+  `swift test` died with signal 5; under lldb the stop reason was `EXC_BREAKPOINT` inside
+  `libsystem_malloc.dylib _xzm_xzone_malloc_freelist_outlined`, malloc's own heap-integrity trap.
+  Running the suite under AddressSanitizer named the writer:
 
-  - The pre-C3 commit (`23a9bec`) runs clean: 983 tests, the same 9 baseline failures, twice.
-  - With C3 and its 30 new tests, the run dies at the same place every time (4/4).
-  - With C3 but **without** the two real-Keychain suites (`KeychainServiceTests`,
-    `BiometricKeychainServiceTests`), the run completes: 993 tests, exactly the 9 baseline
-    failures, no crash.
-  - The 30 new tests pass on their own, and together with those two suites.
+  ```
+  ERROR: AddressSanitizer: heap-buffer-overflow ... WRITE of size 32
+  0 bytes after 32-byte region
+      #2 OrgKeyCache.clear() OrgKeyCache.swift:65
+  ```
 
-  No C3 code path is exercised by any test — `AppContainer` is never constructed in tests, so the
-  delegate, the store and the policy never run. What C3 does is shift the heap, and a corruption
-  that was previously silent lands on a live allocation. The two real-Keychain suites are the
-  suspects: they are the only tests that call `SecItem*` against the user's actual login keychain,
-  and whether they are granted access flips from build to build (the same suites report 9 failures
-  when granted and 23 when denied). Pinning it down means running those two under
-  `MallocStackLogging` / the malloc debug environment variables, which is the next step.
+  Every "zero this key material" call used `resetBytes(in: 0..<count)`. That range is an offset from
+  `startIndex`, and a `Data` cut out of a bigger one keeps the indices of the buffer it came from —
+  so the tail half of a 64-byte key, whose `startIndex` is 32, had bytes 32…63 written into a
+  32-byte allocation. `CryptoKeys` is built that way in two places (`keyData[32..<64]`,
+  `data.suffix(32)`), so all 30 call sites were exposed. Fixed by `Data.zeroize()`, which zeroes
+  through `withUnsafeMutableBytes` and therefore has no range to get wrong.
+
+  Two things worth keeping from the hunt. First, the symptom was allocated to the wrong suspect for
+  a while: removing the real-Keychain suites made the run complete, and they were the only tests
+  touching the user's login keychain — but they were innocent, and only the heap layout mattered.
+  Second, the corruption predates C3 by a long way; C3 did not introduce it, it moved the heap.
+  Anyone hitting "the test suite dies in malloc" should reach for `--sanitize=address` first.
 
 ---
 
