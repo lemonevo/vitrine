@@ -139,13 +139,13 @@ items, one of which is gated on verifying an external algorithm (design D12).
 
 ### B3. Generator history
 
-- [ ] `Domain/Utilities/GeneratorHistory.swift` — ring buffer, cap 20, `append(_:)`, `entries`,
+- [x] `Domain/Utilities/GeneratorHistory.swift` — ring buffer, cap 20, `append(_:)`, `entries`,
       `clear()`. Not `Codable`, not persisted (design D9).
-- [ ] `AppContainer` owns it; injected into `PasswordGeneratorViewModel`.
-- [ ] `RootViewModel.lockVault()` / `signOut()` clear it.
-- [ ] `PasswordGeneratorView` — a collapsible history section with a copy button per entry and a
+- [x] `AppContainer` owns it; injected into `PasswordGeneratorViewModel`.
+- [x] `RootViewModel.lockVault()` / `signOut()` clear it.
+- [x] `PasswordGeneratorView` — a collapsible history section with a copy button per entry and a
       footer stating it is cleared on lock and never written to disk.
-- [ ] `GeneratorHistoryTests` — cap, order, clear, and that a value is appended only on copy/accept.
+- [x] `GeneratorHistoryTests` — cap, order, clear, and that a value is appended only on copy/accept.
 
 ### B4. Vault health report
 
@@ -448,3 +448,32 @@ items, one of which is gated on verifying an external algorithm (design D12).
   rebuilds with both `.lproj` at 394 keys, `plutil -lint` clean and `codesign --verify --strict`
   passing. The 15 new keys (12 from B1, 3 from B2) are pure additions — the diff against the
   previous file removes nothing, so the existing sort is preserved rather than rewritten.
+
+- **B3 — the history.** A ring buffer of the last 20 values the user copied or accepted, held in
+  `AppContainer` and cleared by both teardown paths. Three things worth recording:
+
+  - **A fix that was not on the task list.** `PasswordGeneratorViewModel.copyToClipboard()` had
+    hardcoded 30 seconds since before the clipboard setting existed, so the one screen most likely
+    to put a password on the clipboard was the one screen `ClipboardClearInterval` did not reach.
+    The pasteboard write and the scheduled clear moved into a private `copy(_:)`, which the
+    history's per-entry copy now shares. `clipboardClearTask` lost its `private` so a test can
+    assert that `.never` schedules no task at all — the alternative is a test that waits ten seconds
+    to prove the setting was read.
+  - **Recording happens on copy and on accept, never on generation.** The length slider regenerates
+    on every step, so recording those would push the real entries out of a 20-slot buffer within a
+    few drags. `accept()` exists as its own call because the Use button writes the binding and
+    dismisses, so there was otherwise no point at which the view model learned the value had been
+    kept.
+  - **The history reaches the popover through the environment, not as a parameter.** The view model
+    is a `@State` object created inside `MaskedEditFieldRow` when the wand is first pressed, so a
+    parameter would be threaded through four views that otherwise know nothing about it. The key
+    defaults to `nil` rather than being an `@EnvironmentObject`, which would trap in every preview
+    and every view test that renders the row.
+
+  `historyEntries` is computed and the view model forwards `objectWillChange` from the shared list,
+  so a popover opened from a second field updates the first one's section.
+
+  Verified: 908 tests / 10 failures against the B2 baseline of 889 / 10, re-run in a worktree of
+  `4f18283` under the same temporary manifest. The failing set is **identical** — the same nine
+  cases — so all 19 new tests pass and nothing regressed. Both `.lproj` at 398 keys, `plutil -lint`
+  clean, 4/0 numstat per file.
