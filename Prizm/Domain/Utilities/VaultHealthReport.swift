@@ -90,8 +90,9 @@ nonisolated struct VaultHealthReport: Equatable, Sendable {
         byCheck.values.reduce(0) { $0 + $1.count }
     }
 
-    /// True when no check found anything. The UI shows a single reassuring line instead of five
-    /// empty sections.
+    /// True when no check found anything. The UI adds a reassuring banner for this case, but keeps
+    /// the five sections: a section that vanished when empty would make "checked, and clean"
+    /// indistinguishable from "never checked".
     var isClean: Bool { totalFindings == 0 }
 
     // MARK: - Running the checks

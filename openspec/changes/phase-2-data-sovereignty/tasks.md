@@ -149,17 +149,20 @@ items, one of which is gated on verifying an external algorithm (design D12).
 
 ### B4. Vault health report
 
-- [ ] `Domain/Utilities/VaultHealthReport.swift` — `HealthCheck` (five cases), `HealthFinding`
+- [x] `Domain/Utilities/VaultHealthReport.swift` — `HealthCheck` (five cases), `HealthFinding`
       (`itemId`, `itemName`, `detail`), `VaultHealthReport` (`findings(for:)`, counts).
-- [ ] `Domain/UseCases/GenerateVaultHealthReportUseCase.swift` + Data impl.
-- [ ] Checks per design D6. Reuse and staleness compare **decrypted** values; nothing leaves the
+- [x] `Domain/UseCases/GenerateVaultHealthReportUseCase.swift` + Data impl.
+- [x] Checks per design D6. Reuse and staleness compare **decrypted** values; nothing leaves the
       process.
-- [ ] `Presentation/Vault/Health/HealthReportView.swift` — grouped by check, count per group, an
-      empty-state per group, the item rows selectable, and the explicit note that compromised
-      passwords are not checked and why.
-- [ ] `PrizmApp` — `CommandMenu("Tools")` with **Vault Health Report…** (⌘⇧H).
-- [ ] `VaultHealthReportTests` — one test per check, plus a clean vault producing zero findings and
+- [x] `Presentation/Vault/Health/HealthReportViewModel.swift` + `HealthReportView.swift` — grouped
+      by check, count per group, an empty-state per group, the item rows selectable, and the
+      explicit note that compromised passwords are not checked and why.
+- [x] `PrizmApp` — `CommandMenu("Tools")` with **Vault Health Report…** (⌘⇧H). The view model is
+      held by `RootViewModel` and dropped on lock and sign-out: the report lists decrypted item
+      names.
+- [x] `VaultHealthReportTests` — one test per check, plus a clean vault producing zero findings and
       a vault where one item fails several checks appearing in each.
+- [x] `HealthReportViewModelTests` — a failed run surfaces a message, never an empty report.
 
 ### B5. Password history
 
@@ -477,3 +480,29 @@ items, one of which is gated on verifying an external algorithm (design D12).
   `4f18283` under the same temporary manifest. The failing set is **identical** — the same nine
   cases — so all 19 new tests pass and nothing regressed. Both `.lproj` at 398 keys, `plutil -lint`
   clean, 4/0 numstat per file.
+
+- **B4 — the health report.** Five local checks over the decrypted vault, opened from a new Tools
+  menu (⌘⇧H). Four decisions worth recording:
+
+  - **All five sections are always rendered, including the ones that found nothing.** A section that
+    disappeared when empty would make "checked, and clean" indistinguishable from "never checked" —
+    the same failure mode as a swallowed error. The count badge carries the answer instead. This
+    contradicts what `VaultHealthReport.isClean`'s comment originally promised, so the comment was
+    corrected rather than left describing a UI that was not built.
+  - **The view model is held by `RootViewModel`, not created in the sheet's content closure.**
+    SwiftUI re-evaluates that closure whenever the root view model publishes, so a view model built
+    there would be replaced — and reset to `.loading` — on every update, re-running the analysis in
+    a loop.
+  - **The report is dropped on lock and sign-out**, alongside the generator history. It lists
+    decrypted item names, so keeping it would leave decrypted content past the end of the session.
+  - **Two boundaries the tests pin down.** A URI with no scheme is *not* unsecured — the check is
+    about the transport, and a bare hostname says nothing about it, so counting those would list
+    most of a vault. And a login with no password is skipped by all four password-based checks
+    rather than reported as missing a second factor it could never have had.
+
+  The breach check is deliberately absent, and the sheet says so with the reason next to the five
+  that did run: it would mean sending part of a password to a third party.
+
+  Verified: 936 tests / 10 failures against the 909-test baseline taken before this change, with
+  the failing set **identical** — the same nine cases — so all 27 new tests pass. Both `.lproj` at
+  426 keys, `plutil -lint` clean, **28/0** numstat per file.
