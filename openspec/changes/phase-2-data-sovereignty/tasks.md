@@ -449,15 +449,53 @@ items, one of which is gated on verifying an external algorithm (design D12).
   Verified: 1050 tests / 9 failures against the same 9 baseline failures. Both `.lproj` at 474
   keys, `verify_keys.py` PASS, **3/0** numstat per file.
 
-### D3. Close out
+### D3. Close out — **done**
 
-- [ ] Both `.strings` files.
-- [ ] `swift build` clean; `swift test` at the baseline failure count.
-- [ ] Update `FEATURE-GAP-ANALYSIS.md` §3.4/§3.6 and §5: phase 2 complete, with anything dropped
-      and the reason.
-- [ ] Update `SECURITY.md`: what the export contains, what pinning does and does not cover, and
-      the strength estimator's limits.
-- [ ] Update `ACCESSIBILITY.md` for the new controls.
+- [x] Both `.strings` files. 480 keys each, identical key sets, sorted, `plutil -lint` clean, and
+      `references/verify_keys.py` PASS: 0 `L()` keys missing, 0 SwiftUI literals missing, **0
+      `String`-typed parameters left unwrapped** — the one check that finds a forgotten
+      localisation rather than a missing entry.
+- [x] `swift build` clean; `swift test` at the baseline failure count. **1064 tests / 9 failures**,
+      the same nine as before wave B (eight `PasswordGenerator` passphrase cases whose word list is
+      not in the `swift test` bundle, one `CardBackground`). No crash; the whole suite runs to the
+      end.
+- [x] Update `FEATURE-GAP-ANALYSIS.md` §0/§2/§3.4/§3.6 and §5. Done, and three rows changed shape
+      rather than ticking:
+
+      - the strength meter is **partial, not ✅** — "has a meter" and "uses zxcvbn" are different
+        claims, and the row now says which it is and points at SECURITY.md;
+      - export is **partial, not ✅** — unencrypted JSON only, no CSV / encrypted JSON / ZIP;
+      - the two dropped checks (exposed passwords, HIBP breach) are recorded in §5 as **dropped with
+        a reason**, not as unstarted work. A gap list that cannot tell the two apart is a task list
+        someone will try to finish.
+
+      Summary item 2 was also re-tensed: the five data-losing / leaking bugs are described as fixed
+      and point at §2, where their status already said so. Left as "must be fixed first", a document
+      about what is missing read as though it described the current build.
+
+- [x] Update `SECURITY.md`. Two new sections and one extended:
+
+      - **Vault Export and Import** — what the file contains, in plaintext: passwords, TOTP seeds,
+        and previous passwords. It is the most sensitive artefact the app produces and now says so.
+        Also that encrypted export is not produced, and that the importer *refuses* one rather than
+        failing part-way.
+      - **Password Strength Estimator** — what it does not model, and that when it is wrong it is
+        wrong low. Its two absences are stated as refusals.
+      - **Server Trust** gained what pinning does **not** cover: the first connection (trust on
+        first use — a pin armed while something is intercepting pins the interceptor), other hosts
+        (the icon service is a different host), and everything after the handshake. "The connection
+        is pinned" is otherwise read as covering all three.
+
+- [x] Update `ACCESSIBILITY.md` for the new controls. The header was two releases stale (1.3.0 /
+      2026-04-10 against a 1.4.3 build) and is now 1.4.3 / 2026-09-20. A **Controls Added in 1.4**
+      section lists every new surface with its identifier and label, and five criteria were updated
+      with the specific new cases.
+
+**One accessibility bug found while writing the document, and fixed rather than recorded.** The
+fingerprint phrase's copy button turns its icon into a tick — confirmation for anyone who can see
+it, and nothing at all for VoiceOver. A screen-reader user pressed a button and had no evidence
+anything happened. It now posts an announcement (`ef8ca89`). Worth noting that the document update
+is what surfaced it: without walking the control list, "the icon changes" reads as complete.
 
 ---
 
