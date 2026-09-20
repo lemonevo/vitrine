@@ -9,8 +9,12 @@
 "%@ is unavailable — %@ (LAError %lld)" = "此版本中%@不可用 —— %@ (LAError %lld)";
 "%@ or enter the password for %@ to unlock." = "%@，或输入 %@ 的密码以解锁。";
 "%@ unlock" = "%@ 解锁";
+"%d items were written." = "已写入 %d 个项目。";
 "%d items will be permanently deleted and cannot be recovered." = "%d 个项目将被永久删除，且无法恢复。";
+"%d items will be written to a file on this Mac." = "将把 %d 个项目写入这台 Mac 上的一个文件。";
+"%d of %d items" = "%d/%d 个项目";
 "%d of %d items could not be deleted. They are still in Trash." = "%d/%d 个项目无法删除，它们仍在回收站中。";
+"(unnamed)" = "（未命名）";
 "1 hour" = "1 小时";
 "1 minute" = "1 分钟";
 "10 seconds" = "10 秒";
@@ -36,9 +40,12 @@
 "Address Line 3" = "地址行 3";
 "All Items" = "全部项目";
 "All local data will be cleared." = "所有本地数据将被清除。";
+"An item has no name." = "某个项目没有名称。";
+"Anyone who can read the file can read your vault." = "任何能读取该文件的人都能读取你的保险库。";
 "Argon2Swift — Argon2id key derivation (RFC 9106)" = "Argon2Swift —— Argon2id 密钥派生 (RFC 9106)";
 "Attachment storage requires a premium Bitwarden subscription." = "附件存储需要 Bitwarden 高级订阅。";
 "Attachments" = "附件";
+"Attachments and passkeys are not included. Items in Trash are not included." = "不包含附件和通行密钥，也不包含回收站中的项目。";
 "Authentication code" = "验证码";
 "Avoid ambiguous characters" = "避免易混淆字符";
 "Azure upload failed" = "Azure 上传失败";
@@ -57,6 +64,7 @@
 "Card Number" = "卡号";
 "Cardholder Name" = "持卡人姓名";
 "Changing the language takes effect immediately for most of the interface." = "切换语言后大部分界面会立即生效。";
+"Choose an unencrypted Bitwarden JSON export" = "选择未加密的 Bitwarden JSON 导出文件";
 "Choose files to attach" = "选择要添加的文件";
 "Choose where to save the attachment" = "选择附件的保存位置";
 "City" = "城市";
@@ -103,6 +111,7 @@
 "Discard changes (Esc)" = "放弃更改 (Esc)";
 "Dismiss" = "关闭";
 "Domain" = "域名";
+"Done" = "完成";
 "Download failed. If this keeps happening, try locking and unlocking your vault." = "下载失败。如果反复出现，请尝试锁定后重新解锁保险库。";
 "Duplicate" = "创建副本";
 "Edit" = "编辑";
@@ -123,6 +132,11 @@
 "Expiration Year" = "有效期年份";
 "Expiry Month" = "到期月份";
 "Expiry Year" = "到期年份";
+"Export Complete" = "导出完成";
+"Export Vault" = "导出保险库";
+"Export Vault…" = "导出保险库…";
+"Export…" = "导出…";
+"Failed" = "失败";
 "Failed to decrypt your vault. Please sign in again." = "无法解密保险库。请重新登录。";
 "Favorite" = "收藏";
 "Favorited" = "已收藏";
@@ -135,6 +149,8 @@
 "First Name" = "名";
 "Folder" = "文件夹";
 "Folders" = "文件夹";
+"Folders created" = "已创建的文件夹";
+"Folders not created" = "未创建的文件夹";
 "Follow System" = "跟随系统";
 "Full Name" = "全名";
 "General" = "通用";
@@ -150,6 +166,12 @@
 "Icons are loaded from your own server, never from a third party. Turn this off to skip the request entirely — items then show a generic symbol." = "图标从你自己的服务器加载，不经过第三方。关闭后完全跳过该请求，条目改为显示通用图标。";
 "Icons are loaded from your own server, never from a third party. Turn this off to skip the request entirely — items then show a generic symbol.\n\nThe clipboard is cleared only if Prizm's own value is still on it." = "图标仅从你自己的服务器加载，绝不来自第三方。关闭此项可完全跳过请求——项目将显示通用符号。\n\n仅当剪贴板上仍是 Prizm 写入的值时，才会清除剪贴板。";
 "Identity" = "身份";
+"Import Complete" = "导入完成";
+"Import Vault…" = "导入保险库…";
+"Import only adds items. Nothing existing was changed or deleted." = "导入只会新增项目，不会修改或删除任何现有内容。";
+"Import progress" = "导入进度";
+"Imported" = "已导入";
+"Importing…" = "正在导入…";
 "Include number" = "包含数字";
 "Invalid email or master password. Check your email and master password." = "邮箱或主密码错误。请检查后重试。";
 "Invalid password encoding." = "密码编码无效。";
@@ -158,8 +180,11 @@
 "Invalid two-factor code. Please try again." = "两步验证码错误。请重试。";
 "Item" = "项目";
 "Item not found: %@" = "找不到项目：%@";
+"Item type %lld is not supported." = "不支持项目类型 %lld。";
+"Items are created one at a time. Stopping keeps everything already imported." = "项目会逐个创建。停止后，已导入的内容会继续保留。";
 "Items in \"%@\" will not be deleted. They will become unfoldered." = "“%@”中的项目不会被删除，它们将变为无文件夹状态。";
 "Items in “%@” will not be deleted. They will become unfoldered." = "「%@」中的项目不会被删除，它们将变为未分类。";
+"Items that belonged to an organisation were imported into your personal vault. The organisation and collection they came from cannot be recreated here." = "原本属于组织的项目已导入你的个人保险库。它们所属的组织和集合无法在此重建。";
 "Items you delete will appear here." = "你删除的项目会显示在这里。";
 "Keep Editing" = "继续编辑";
 "Key" = "密钥";
@@ -214,6 +239,7 @@
 "Not now" = "暂不";
 "Note" = "备注";
 "Notes" = "备注";
+"Nothing Was Imported" = "没有导入任何内容";
 "Number" = "号码";
 "OK" = "好";
 "On timeout" = "超时后";
@@ -222,6 +248,7 @@
 "Open in browser" = "在浏览器中打开";
 "Open source — all crypto is publicly auditable" = "开源 —— 所有加密实现均可公开审计";
 "Opens in browser" = "在浏览器中打开";
+"Organisation membership not imported" = "未导入的组织归属";
 "Organization" = "组织";
 "Organizations" = "组织";
 "Passphrase" = "密码短语";
@@ -237,6 +264,8 @@
 "Prizm Is Locked" = "Prizm 已锁定";
 "Public Key" = "公钥";
 "Re-enable %@" = "重新启用%@";
+"Reading the file" = "正在读取文件";
+"Reading the file…" = "正在读取文件…";
 "Regular Expression" = "正则表达式";
 "Remember this device" = "记住此设备";
 "Remove website" = "移除网站";
@@ -251,6 +280,7 @@
 "SSN" = "社保号";
 "Save" = "保存";
 "Save to Disk" = "保存到磁盘";
+"Saved to" = "保存位置";
 "Saves file to your chosen location" = "将文件保存到你选择的位置";
 "Saving…" = "正在保存…";
 "Search vault" = "搜索保险库";
@@ -273,9 +303,12 @@
 "Sign in with a different account" = "使用其他账号登录";
 "Signing in…" = "正在登录…";
 "Size" = "大小";
+"Skipped" = "已跳过";
 "Sort Order" = "排序方式";
 "Starts With" = "开头为";
 "State" = "省/州";
+"Stop" = "停止";
+"Store it somewhere safe and delete it when you are done." = "请妥善保存，并在用完后删除。";
 "Symbols (!@#$…)" = "符号 (!@#$…)";
 "Sync Now" = "立即同步";
 "Sync Now (⌘R)" = "立即同步（⌘R）";
@@ -290,11 +323,19 @@
 "Syncing vault…" = "正在同步保险库…";
 "Syncing…" = "正在同步…";
 "Text" = "文本";
+"The export file could not be read." = "无法读取导出文件。";
+"The exported file is not encrypted. Store it somewhere safe." = "导出的文件未加密，请妥善保存。";
+"The file is not encrypted. It contains every password, note, one-time-code seed and previous password in plain text." = "该文件未加密，其中以明文包含所有密码、备注、一次性验证码种子以及历史密码。";
 "The server response could not be read. Please try again." = "无法读取服务器响应，请重试。";
 "The timeout applies while the vault is unlocked and is measured from your last input in Prizm. Input in other applications does not count, so an untouched vault locks even if you are working elsewhere." = "超时仅在保险库解锁期间生效，并从你在 Prizm 中的最后一次输入开始计时。在其他应用中的输入不计入，因此即使你在别处工作，未被触碰的保险库也会锁定。";
 "The vault is locked. Please unlock to continue." = "保险库已锁定。请解锁后继续。";
+"There is nothing to export — the vault is empty." = "没有可导出的内容 —— 保险库是空的。";
 "This build is not signed with an Apple Developer certificate, so macOS cannot protect the key itself. Prizm asks for %@ instead — the same prompt, checked by the app rather than by the system." = "此版本未使用 Apple 开发者证书签名，macOS 无法保护钥匙串条目本身。Prizm 改为校验 %@ —— 提示完全一样，只是由应用而非系统核对。";
 "This build of Prizm is not signed with an Apple Developer certificate, so macOS does not allow it to store the key Touch ID unlock needs." = "当前 Prizm 构建没有 Apple 开发者签名，macOS 不允许它保存 Touch ID 解锁所需的密钥。";
+"This file is not an unencrypted Bitwarden export." = "该文件不是未加密的 Bitwarden 导出文件。";
+"This file is not encrypted. Delete it when you no longer need it." = "该文件未加密，不再需要时请将其删除。";
+"This includes %d items that belong to an organisation. The official Bitwarden export leaves those out." = "其中包含 %d 个属于组织的项目，而 Bitwarden 官方导出会忽略这些项目。";
+"This is an encrypted export. Prizm can only import unencrypted exports." = "这是加密导出文件。Prizm 只能导入未加密的导出文件。";
 "This item is in Trash." = "该项目在废纸篓中。";
 "This server doesn't appear to be a Bitwarden instance." = "该服务器似乎不是 Bitwarden 实例。";
 "Title" = "称谓";
@@ -305,6 +346,7 @@
 "Unfavorite" = "取消收藏";
 "Unknown Field" = "未知字段";
 "Unlock your vault to change this setting" = "解锁保险库后才能修改此设置";
+"Unsupported item." = "不支持的项目。";
 "Updated:" = "更新于：";
 "Upload" = "上传";
 "Upload failed: %@" = "上传失败：%@";
@@ -337,4 +379,5 @@
 "“%@” will be permanently deleted and cannot be recovered." = "「%@」将被永久删除，且无法恢复。";
 "“%@” will be permanently deleted." = "「%@」将被永久删除。";
 "“%@” will be permanently deleted. Items in this collection will remain in the vault." = "「%@」将被永久删除。集合中的项目仍会保留在保险库中。";
+"…and %d more." = "…还有 %d 项。";
 "→ %@" = "→ %@";

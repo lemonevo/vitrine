@@ -9,8 +9,12 @@
 "%@ is unavailable — %@ (LAError %lld)" = "%@ is unavailable — %@ (LAError %lld)";
 "%@ or enter the password for %@ to unlock." = "%@ or enter the password for %@ to unlock.";
 "%@ unlock" = "%@ unlock";
+"%d items were written." = "%d items were written.";
 "%d items will be permanently deleted and cannot be recovered." = "%d items will be permanently deleted and cannot be recovered.";
+"%d items will be written to a file on this Mac." = "%d items will be written to a file on this Mac.";
+"%d of %d items" = "%d of %d items";
 "%d of %d items could not be deleted. They are still in Trash." = "%d of %d items could not be deleted. They are still in Trash.";
+"(unnamed)" = "(unnamed)";
 "1 hour" = "1 hour";
 "1 minute" = "1 minute";
 "10 seconds" = "10 seconds";
@@ -36,9 +40,12 @@
 "Address Line 3" = "Address Line 3";
 "All Items" = "All Items";
 "All local data will be cleared." = "All local data will be cleared.";
+"An item has no name." = "An item has no name.";
+"Anyone who can read the file can read your vault." = "Anyone who can read the file can read your vault.";
 "Argon2Swift — Argon2id key derivation (RFC 9106)" = "Argon2Swift — Argon2id key derivation (RFC 9106)";
 "Attachment storage requires a premium Bitwarden subscription." = "Attachment storage requires a premium Bitwarden subscription.";
 "Attachments" = "Attachments";
+"Attachments and passkeys are not included. Items in Trash are not included." = "Attachments and passkeys are not included. Items in Trash are not included.";
 "Authentication code" = "Authentication code";
 "Avoid ambiguous characters" = "Avoid ambiguous characters";
 "Azure upload failed" = "Azure upload failed";
@@ -57,6 +64,7 @@
 "Card Number" = "Card Number";
 "Cardholder Name" = "Cardholder Name";
 "Changing the language takes effect immediately for most of the interface." = "Changing the language takes effect immediately for most of the interface.";
+"Choose an unencrypted Bitwarden JSON export" = "Choose an unencrypted Bitwarden JSON export";
 "Choose files to attach" = "Choose files to attach";
 "Choose where to save the attachment" = "Choose where to save the attachment";
 "City" = "City";
@@ -103,6 +111,7 @@
 "Discard changes (Esc)" = "Discard changes (Esc)";
 "Dismiss" = "Dismiss";
 "Domain" = "Domain";
+"Done" = "Done";
 "Download failed. If this keeps happening, try locking and unlocking your vault." = "Download failed. If this keeps happening, try locking and unlocking your vault.";
 "Duplicate" = "Duplicate";
 "Edit" = "Edit";
@@ -123,6 +132,11 @@
 "Expiration Year" = "Expiration Year";
 "Expiry Month" = "Expiry Month";
 "Expiry Year" = "Expiry Year";
+"Export Complete" = "Export Complete";
+"Export Vault" = "Export Vault";
+"Export Vault…" = "Export Vault…";
+"Export…" = "Export…";
+"Failed" = "Failed";
 "Failed to decrypt your vault. Please sign in again." = "Failed to decrypt your vault. Please sign in again.";
 "Favorite" = "Favorite";
 "Favorited" = "Favorited";
@@ -135,6 +149,8 @@
 "First Name" = "First Name";
 "Folder" = "Folder";
 "Folders" = "Folders";
+"Folders created" = "Folders created";
+"Folders not created" = "Folders not created";
 "Follow System" = "Follow System";
 "Full Name" = "Full Name";
 "General" = "General";
@@ -150,6 +166,12 @@
 "Icons are loaded from your own server, never from a third party. Turn this off to skip the request entirely — items then show a generic symbol." = "Icons are loaded from your own server, never from a third party. Turn this off to skip the request entirely — items then show a generic symbol.";
 "Icons are loaded from your own server, never from a third party. Turn this off to skip the request entirely — items then show a generic symbol.\n\nThe clipboard is cleared only if Prizm's own value is still on it." = "Icons are loaded from your own server, never from a third party. Turn this off to skip the request entirely — items then show a generic symbol.\n\nThe clipboard is cleared only if Prizm's own value is still on it.";
 "Identity" = "Identity";
+"Import Complete" = "Import Complete";
+"Import Vault…" = "Import Vault…";
+"Import only adds items. Nothing existing was changed or deleted." = "Import only adds items. Nothing existing was changed or deleted.";
+"Import progress" = "Import progress";
+"Imported" = "Imported";
+"Importing…" = "Importing…";
 "Include number" = "Include number";
 "Invalid email or master password. Check your email and master password." = "Invalid email or master password. Check your email and master password.";
 "Invalid password encoding." = "Invalid password encoding.";
@@ -158,8 +180,11 @@
 "Invalid two-factor code. Please try again." = "Invalid two-factor code. Please try again.";
 "Item" = "Item";
 "Item not found: %@" = "Item not found: %@";
+"Item type %lld is not supported." = "Item type %lld is not supported.";
+"Items are created one at a time. Stopping keeps everything already imported." = "Items are created one at a time. Stopping keeps everything already imported.";
 "Items in \"%@\" will not be deleted. They will become unfoldered." = "Items in \"%@\" will not be deleted. They will become unfoldered.";
 "Items in “%@” will not be deleted. They will become unfoldered." = "Items in “%@” will not be deleted. They will become unfoldered.";
+"Items that belonged to an organisation were imported into your personal vault. The organisation and collection they came from cannot be recreated here." = "Items that belonged to an organisation were imported into your personal vault. The organisation and collection they came from cannot be recreated here.";
 "Items you delete will appear here." = "Items you delete will appear here.";
 "Keep Editing" = "Keep Editing";
 "Key" = "Key";
@@ -214,6 +239,7 @@
 "Not now" = "Not now";
 "Note" = "Note";
 "Notes" = "Notes";
+"Nothing Was Imported" = "Nothing Was Imported";
 "Number" = "Number";
 "OK" = "OK";
 "On timeout" = "On timeout";
@@ -222,6 +248,7 @@
 "Open in browser" = "Open in browser";
 "Open source — all crypto is publicly auditable" = "Open source — all crypto is publicly auditable";
 "Opens in browser" = "Opens in browser";
+"Organisation membership not imported" = "Organisation membership not imported";
 "Organization" = "Organization";
 "Organizations" = "Organizations";
 "Passphrase" = "Passphrase";
@@ -237,6 +264,8 @@
 "Prizm Is Locked" = "Prizm Is Locked";
 "Public Key" = "Public Key";
 "Re-enable %@" = "Re-enable %@";
+"Reading the file" = "Reading the file";
+"Reading the file…" = "Reading the file…";
 "Regular Expression" = "Regular Expression";
 "Remember this device" = "Remember this device";
 "Remove website" = "Remove website";
@@ -251,6 +280,7 @@
 "SSN" = "SSN";
 "Save" = "Save";
 "Save to Disk" = "Save to Disk";
+"Saved to" = "Saved to";
 "Saves file to your chosen location" = "Saves file to your chosen location";
 "Saving…" = "Saving…";
 "Search vault" = "Search vault";
@@ -273,9 +303,12 @@
 "Sign in with a different account" = "Sign in with a different account";
 "Signing in…" = "Signing in…";
 "Size" = "Size";
+"Skipped" = "Skipped";
 "Sort Order" = "Sort Order";
 "Starts With" = "Starts With";
 "State" = "State";
+"Stop" = "Stop";
+"Store it somewhere safe and delete it when you are done." = "Store it somewhere safe and delete it when you are done.";
 "Symbols (!@#$…)" = "Symbols (!@#$…)";
 "Sync Now" = "Sync Now";
 "Sync Now (⌘R)" = "Sync Now (⌘R)";
@@ -290,11 +323,19 @@
 "Syncing vault…" = "Syncing vault…";
 "Syncing…" = "Syncing…";
 "Text" = "Text";
+"The export file could not be read." = "The export file could not be read.";
+"The exported file is not encrypted. Store it somewhere safe." = "The exported file is not encrypted. Store it somewhere safe.";
+"The file is not encrypted. It contains every password, note, one-time-code seed and previous password in plain text." = "The file is not encrypted. It contains every password, note, one-time-code seed and previous password in plain text.";
 "The server response could not be read. Please try again." = "The server response could not be read. Please try again.";
 "The timeout applies while the vault is unlocked and is measured from your last input in Prizm. Input in other applications does not count, so an untouched vault locks even if you are working elsewhere." = "The timeout applies while the vault is unlocked and is measured from your last input in Prizm. Input in other applications does not count, so an untouched vault locks even if you are working elsewhere.";
 "The vault is locked. Please unlock to continue." = "The vault is locked. Please unlock to continue.";
+"There is nothing to export — the vault is empty." = "There is nothing to export — the vault is empty.";
 "This build is not signed with an Apple Developer certificate, so macOS cannot protect the key itself. Prizm asks for %@ instead — the same prompt, checked by the app rather than by the system." = "This build is not signed with an Apple Developer certificate, so macOS cannot protect the key itself. Prizm asks for %@ instead — the same prompt, checked by the app rather than by the system.";
 "This build of Prizm is not signed with an Apple Developer certificate, so macOS does not allow it to store the key Touch ID unlock needs." = "This build of Prizm is not signed with an Apple Developer certificate, so macOS does not allow it to store the key Touch ID unlock needs.";
+"This file is not an unencrypted Bitwarden export." = "This file is not an unencrypted Bitwarden export.";
+"This file is not encrypted. Delete it when you no longer need it." = "This file is not encrypted. Delete it when you no longer need it.";
+"This includes %d items that belong to an organisation. The official Bitwarden export leaves those out." = "This includes %d items that belong to an organisation. The official Bitwarden export leaves those out.";
+"This is an encrypted export. Prizm can only import unencrypted exports." = "This is an encrypted export. Prizm can only import unencrypted exports.";
 "This item is in Trash." = "This item is in Trash.";
 "This server doesn't appear to be a Bitwarden instance." = "This server doesn't appear to be a Bitwarden instance.";
 "Title" = "Title";
@@ -305,6 +346,7 @@
 "Unfavorite" = "Unfavorite";
 "Unknown Field" = "Unknown Field";
 "Unlock your vault to change this setting" = "Unlock your vault to change this setting";
+"Unsupported item." = "Unsupported item.";
 "Updated:" = "Updated:";
 "Upload" = "Upload";
 "Upload failed: %@" = "Upload failed: %@";
@@ -337,4 +379,5 @@
 "“%@” will be permanently deleted and cannot be recovered." = "“%@” will be permanently deleted and cannot be recovered.";
 "“%@” will be permanently deleted." = "“%@” will be permanently deleted.";
 "“%@” will be permanently deleted. Items in this collection will remain in the vault." = "“%@” will be permanently deleted. Items in this collection will remain in the vault.";
+"…and %d more." = "…and %d more.";
 "→ %@" = "→ %@";
