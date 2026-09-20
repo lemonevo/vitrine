@@ -7,6 +7,10 @@ final class RootViewModelLockTests: XCTestCase {
 
     private var mockAuth: MockAuthRepository!
     private var mockVault: MockVaultRepository!
+    /// Held so a suite can reach the container's session-scoped state. The generator history is
+    /// cleared by `lockVault()` but is not observable through `sut`, so the test needs the same
+    /// container the view model was built with.
+    private var deps: MockRootDependencies!
     private var sut: RootViewModel!
 
     private let stubAccount = Account(
@@ -23,7 +27,7 @@ final class RootViewModelLockTests: XCTestCase {
         try await super.setUp()
         mockAuth = MockAuthRepository()
         mockVault = MockVaultRepository()
-        let deps = MockRootDependencies(auth: mockAuth, vault: mockVault)
+        deps = MockRootDependencies(auth: mockAuth, vault: mockVault)
         sut = RootViewModel(container: deps)
     }
 
@@ -131,5 +135,34 @@ final class RootViewModelLockTests: XCTestCase {
         guard case .unlock = sut.screen else {
             return XCTFail("Expected .unlock, got \(sut.screen)")
         }
+    }
+
+    // MARK: - lockVault() clears the generator history
+
+    /// A value generated but never saved is still a credential, so it must not survive the lock that
+    /// destroys every other piece of session state (design D9).
+    func testLockVault_clearsTheGeneratorHistory() async throws {
+        mockAuth.stubbedStoredAccount = stubAccount
+        sut.screen = .vault
+        deps.generatorHistory.append("generated-but-unsaved")
+        XCTAssertEqual(deps.generatorHistory.entries.count, 1)
+
+        sut.lockVault()
+        try await waitUntil { self.deps.generatorHistory.entries.isEmpty }
+
+        XCTAssertTrue(deps.generatorHistory.entries.isEmpty)
+    }
+
+    /// The no-op guard has to cover the history too. Locking a vault that is already locked must not
+    /// throw away a list the user may still be reading.
+    func testLockVault_keepsTheHistoryWhenItIsANoOp() async throws {
+        sut.screen = .login
+        deps.generatorHistory.append("kept")
+
+        sut.lockVault()
+        // Fixed sleep, matching the other no-op tests: there is no positive state change to poll for.
+        try await Task.sleep(for: .milliseconds(50))
+
+        XCTAssertEqual(deps.generatorHistory.entries.map(\.value), ["kept"])
     }
 }

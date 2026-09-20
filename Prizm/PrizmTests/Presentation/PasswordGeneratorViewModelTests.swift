@@ -105,6 +105,100 @@ final class PasswordGeneratorViewModelTests: XCTestCase {
         XCTAssertNotNil(vm.errorMessage)
         XCTAssertNil(vm.strength)
     }
+
+    // MARK: - Clipboard interval
+
+    /// The clear delay must come from Settings, not from a constant.
+    ///
+    /// Asserting on the scheduled task is how that is provable without waiting the interval out:
+    /// `.never` means no task at all, and a hardcoded delay would schedule one whatever the setting
+    /// says. The delay itself is `ClipboardClearIntervalTests`' subject, not this suite's.
+    func testCopy_schedulesNoClearWhenTheIntervalIsNever() {
+        ClipboardClearInterval.save(.never, to: defaults)
+        let vm = PasswordGeneratorViewModel(provider: provider, defaults: defaults)
+
+        vm.copyToClipboard()
+
+        XCTAssertEqual(NSPasteboard.general.string(forType: .string), vm.generatedValue)
+        XCTAssertNil(vm.clipboardClearTask)
+    }
+
+    func testCopy_schedulesAClearWhenAnIntervalIsConfigured() {
+        ClipboardClearInterval.save(.tenSeconds, to: defaults)
+        let vm = PasswordGeneratorViewModel(provider: provider, defaults: defaults)
+
+        vm.copyToClipboard()
+
+        XCTAssertNotNil(vm.clipboardClearTask)
+    }
+
+    // MARK: - History
+
+    func testCopy_recordsTheValueInTheHistory() {
+        let history = GeneratorHistory()
+        let vm = PasswordGeneratorViewModel(provider: provider, defaults: defaults, history: history)
+
+        vm.copyToClipboard()
+
+        XCTAssertEqual(history.entries.map(\.value), [vm.generatedValue])
+    }
+
+    func testAccept_recordsTheValueInTheHistory() {
+        let history = GeneratorHistory()
+        let vm = PasswordGeneratorViewModel(provider: provider, defaults: defaults, history: history)
+
+        vm.accept()
+
+        XCTAssertEqual(history.entries.map(\.value), [vm.generatedValue])
+    }
+
+    /// The spec records a value when it is *used*. The length slider regenerates on every step, so
+    /// recording on generation would fill a 20-slot buffer with values the user never looked at.
+    func testRegenerating_doesNotRecordAnything() {
+        let history = GeneratorHistory()
+        let vm = PasswordGeneratorViewModel(provider: provider, defaults: defaults, history: history)
+
+        for _ in 1...5 { vm.generate() }
+
+        XCTAssertTrue(history.entries.isEmpty)
+    }
+
+    /// Copying an entry is not a new generation. Re-recording it would move it to the top and, with
+    /// repeated copies, let one value fill the list.
+    func testCopyingFromTheHistory_doesNotRecordAgain() {
+        let history = GeneratorHistory()
+        let vm = PasswordGeneratorViewModel(provider: provider, defaults: defaults, history: history)
+        history.append("older")
+        history.append("newer")
+
+        vm.copyHistoryEntry(history.entries[1])
+
+        XCTAssertEqual(history.entries.map(\.value), ["newer", "older"])
+        XCTAssertEqual(NSPasteboard.general.string(forType: .string), "older")
+    }
+
+    /// Without a history the view model still works — that is what keeps previews, and every test
+    /// above, constructible without one.
+    func testWithoutAHistory_copyAndAcceptStillWork() {
+        let vm = PasswordGeneratorViewModel(provider: provider, defaults: defaults)
+
+        vm.copyToClipboard()
+        vm.accept()
+
+        XCTAssertTrue(vm.historyEntries.isEmpty)
+        XCTAssertEqual(NSPasteboard.general.string(forType: .string), vm.generatedValue)
+    }
+
+    /// The section renders `historyEntries`, and the list is shared: a second popover opened from
+    /// another field appends to the same history, so this view model has to reflect that.
+    func testHistoryEntries_followTheSharedHistory() {
+        let history = GeneratorHistory()
+        let vm = PasswordGeneratorViewModel(provider: provider, defaults: defaults, history: history)
+
+        history.append("from-elsewhere")
+
+        XCTAssertEqual(vm.historyEntries.map(\.value), ["from-elsewhere"])
+    }
 }
 
 // MARK: - FailingRandomnessProvider
