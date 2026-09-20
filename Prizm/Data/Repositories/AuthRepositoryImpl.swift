@@ -365,6 +365,81 @@ final class AuthRepositoryImpl: AuthRepository, EmbeddedBiometricUnlock {
         return restoredAccount
     }
 
+    // MARK: - Master password verification
+
+    func verifyMasterPassword(_ masterPassword: Data) async throws -> Bool {
+        // The live key is what the answer is compared against, so it is fetched first: a locked
+        // vault is "this could not be checked", not "wrong password". Deferring the failure to
+        // the comparison would make those two answers indistinguishable to the caller, and a
+        // security check that answers "no" when it means "I could not tell" is worse than one
+        // that says so.
+        let liveKeys = try await crypto.currentKeys()
+
+        guard let userId = try? readString(key: KeychainKey.activeUserId) else {
+            logger.error("Verify: no active user ID in Keychain")
+            throw AuthError.noStoredSession
+        }
+
+        let kdfJSON    = try? readString(key: KeychainKey.user(userId, "kdfParams"))
+        let encUserKey = try? readString(key: KeychainKey.user(userId, "encUserKey"))
+        guard let kdfJSON, let encUserKey else {
+            logger.error("Verify: stored session is incomplete — KDF params or user key missing")
+            throw AuthError.noStoredSession
+        }
+
+        guard let kdfData = kdfJSON.data(using: .utf8),
+              let kdfParams = try? JSONDecoder().decode(KdfParams.self, from: kdfData) else {
+            logger.error("Verify: stored KDF params are unreadable")
+            throw AuthError.noStoredSession
+        }
+
+        let email = (try? account(for: userId))?.email.lowercased()
+        guard let email else {
+            logger.error("Verify: stored account is unreadable")
+            throw AuthError.noStoredSession
+        }
+
+        var masterKey = try await crypto.makeMasterKey(
+            password: masterPassword,
+            email:    email,
+            kdf:      kdfParams
+        )
+        var stretched = try await crypto.stretchKey(masterKey: masterKey)
+
+        // A wrong master password fails the MAC check inside the encrypted user key. That is an
+        // answer to a question rather than a fault, and it is the expected outcome for anyone
+        // who mistypes — so it is reported as `false` and never thrown.
+        var candidate: CryptoKeys
+        do {
+            candidate = try await crypto.decryptSymmetricKey(
+                encUserKey:    encUserKey,
+                stretchedKeys: stretched
+            )
+        } catch {
+            discardDerivedKeys(&masterKey, &stretched)
+            logger.info("Verify: master password did not match")
+            return false
+        }
+        discardDerivedKeys(&masterKey, &stretched)
+
+        let matches = constantTimeEqual(candidate.toData(), liveKeys.toData())
+        candidate.encryptionKey.resetBytes(in: 0..<candidate.encryptionKey.count)
+        candidate.macKey.resetBytes(in:       0..<candidate.macKey.count)
+
+        logger.info("Verify: master password \(matches ? "matched" : "did not match", privacy: .public)")
+        return matches
+    }
+
+    /// Zeroes the key material a verification derived, at every exit from that call.
+    ///
+    /// The buffers are intermediates that exist only to answer one question; nothing else in the
+    /// process holds a reference to them, so this is the whole job (Constitution §III).
+    private func discardDerivedKeys(_ masterKey: inout Data, _ stretched: inout CryptoKeys) {
+        masterKey.resetBytes(in: 0..<masterKey.count)
+        stretched.encryptionKey.resetBytes(in: 0..<stretched.encryptionKey.count)
+        stretched.macKey.resetBytes(in:       0..<stretched.macKey.count)
+    }
+
     // MARK: - Session
 
     func storedAccount() -> Account? {

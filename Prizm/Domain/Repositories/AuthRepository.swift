@@ -57,6 +57,25 @@ protocol AuthRepository: AnyObject {
     /// - Throws: `AuthError.invalidCredentials` on wrong password.
     func unlockWithPassword(_ masterPassword: Data) async throws -> Account
 
+    /// Reports whether `masterPassword` is the master password of the current account.
+    ///
+    /// A re-derivation and a comparison, nothing more:
+    ///
+    /// - **No network request.** Everything needed (KDF parameters, the encrypted user key)
+    ///   is already on disk.
+    /// - **No session mutation.** The key cache, the account, the tokens and the vault store
+    ///   are all left exactly as they were. `unlockWithPassword` would answer the same
+    ///   question and would also re-derive into the live cache, refresh the access token and
+    ///   leave the caller to undo none of that — a read-only check should not be built out
+    ///   of a write (design D7).
+    /// - **A wrong password is `false`, not a thrown error.** A wrong password fails the MAC
+    ///   check on the encrypted user key, which is the expected answer to a question, not a
+    ///   fault. Errors are reserved for "this could not be checked at all".
+    ///
+    /// - Throws: only when the check cannot be performed — no stored session, unreadable KDF
+    ///   parameters, or a vault whose live key is not available to compare against.
+    func verifyMasterPassword(_ masterPassword: Data) async throws -> Bool
+
     // MARK: - Session
 
     /// Returns the stored `Account` from Keychain, or nil if no session exists.
@@ -124,6 +143,12 @@ nonisolated enum TwoFactorMethod {
 nonisolated enum AuthError: Error, LocalizedError, Equatable {
     case invalidCredentials
     case invalidTwoFactorCode
+    /// A check that needed the stored session could not be performed because the session is
+    /// missing or unreadable.
+    ///
+    /// Distinct from `invalidCredentials` on purpose: that case's message tells the user their
+    /// password was wrong, which would be a lie here — nothing was compared.
+    case noStoredSession
     case invalidURL
     case serverUnreachable
     case unrecognizedServer
@@ -149,6 +174,8 @@ nonisolated enum AuthError: Error, LocalizedError, Equatable {
             return L("Invalid email or master password. Check your email and master password.")
         case .invalidTwoFactorCode:
             return L("Invalid two-factor code. Please try again.")
+        case .noStoredSession:
+            return L("No stored session was found. Sign in again to continue.")
         case .invalidURL:
             return L("Invalid server URL. Make sure to include https://.")
         case .serverUnreachable:
