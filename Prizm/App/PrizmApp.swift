@@ -218,8 +218,8 @@ struct PrizmApp: App {
             ProgressView("Signing in…")
                 .frame(minWidth: 480, minHeight: 360)
 
-        case .totpPrompt:
-            TOTPPromptView(viewModel: rootVM.loginVM)
+        case .twoFactorPrompt(let provider):
+            TwoFactorPromptView(viewModel: rootVM.loginVM, provider: provider)
 
         case .unlock:
             if let unlockVM = rootVM.unlockVM {
@@ -353,7 +353,7 @@ final class RootViewModel: ObservableObject, RepromptGating {
     enum Screen {
         case login
         case loading
-        case totpPrompt
+        case twoFactorPrompt(TwoFactorProvider)
         case unlock
         case syncing(message: String)
         case vault
@@ -608,7 +608,7 @@ final class RootViewModel: ObservableObject, RepromptGating {
         switch state {
         case .login:       screen = .login
         case .loading:     screen = .loading
-        case .totpPrompt:  screen = .totpPrompt
+        case .twoFactorPrompt(let provider):  screen = .twoFactorPrompt(provider)
         case .syncing(let msg): screen = .syncing(message: msg)
         case .vault:       transitionToVault(caller: "handleLoginFlow")
         }
@@ -713,7 +713,7 @@ final class RootViewModel: ObservableObject, RepromptGating {
     private func updateIdleMonitoring(for screen: Screen) {
         switch screen {
         case .vault, .syncing: idleMonitor.start()
-        case .login, .loading, .totpPrompt, .unlock: idleMonitor.stop()
+        case .login, .loading, .twoFactorPrompt(_), .unlock: idleMonitor.stop()
         }
     }
 

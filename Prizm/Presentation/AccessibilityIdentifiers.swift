@@ -17,15 +17,20 @@ nonisolated enum AccessibilityID {
         static let headerTitle       = "login.headerTitle"
     }
 
-    // MARK: - TOTP (US1)
+    // MARK: - Two-factor (US1)
 
-    enum TOTP {
-        static let codeField         = "totp.code"
-        static let rememberToggle    = "totp.remember"
-        static let continueButton    = "totp.continue"
-        static let cancelButton      = "totp.cancel"
-        static let errorMessage      = "totp.error"
-        static let headerTitle       = "totp.headerTitle"
+    /// The prompt is one screen for every method, so these names say "twoFactor" rather than
+    /// "totp" — an emailed code is not a TOTP code. `Prizm/UITests/LoginJourneyTests.swift`
+    /// queries them by string and was updated with them.
+    enum TwoFactor {
+        static let codeField         = "twoFactor.code"
+        static let rememberToggle    = "twoFactor.remember"
+        static let continueButton    = "twoFactor.continue"
+        static let cancelButton      = "twoFactor.cancel"
+        static let errorMessage      = "twoFactor.error"
+        static let headerTitle       = "twoFactor.headerTitle"
+        static let methodName        = "twoFactor.method"
+        static let resendButton      = "twoFactor.resend"
     }
 
     // MARK: - Sync Progress

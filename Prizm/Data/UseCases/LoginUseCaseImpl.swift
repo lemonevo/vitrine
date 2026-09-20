@@ -7,7 +7,7 @@ import os.log
 ///   1. Validate + set server URL.
 ///   2. Call `AuthRepository.loginWithPassword`.
 ///   3. If `.success`: call `SyncRepository.sync` to populate the vault.
-///   4. If `.requiresTwoFactor`: return immediately — sync is deferred to after TOTP.
+///   4. If `.requiresTwoFactor`: return immediately — sync is deferred to after the challenge.
 ///
 /// `SyncRepository.sync` is called here (not inside `AuthRepository`) to keep the
 /// Domain layer orchestration visible and testable at the use-case level.
@@ -53,27 +53,32 @@ final class LoginUseCaseImpl: LoginUseCase {
             return result
 
         case .requiresTwoFactor:
-            // Sync is deferred until TOTP is accepted. At this point we have derived the
+            // Sync is deferred until the challenge is answered. At this point we have derived the
             // master key but do not yet have an access token, so a sync request would be
-            // rejected with 401. The vault populates after completeTOTP succeeds below.
+            // rejected with 401. The vault populates after completeTwoFactor succeeds below.
             logger.info("Login requires 2FA")
             return result
         }
     }
 
-    func completeTOTP(code: String, rememberDevice: Bool) async throws -> Account {
-        logger.info("Completing TOTP")
-        let account = try await auth.loginWithTOTP(code: code, rememberDevice: rememberDevice)
+    func completeTwoFactor(code: String, rememberDevice: Bool) async throws -> Account {
+        logger.info("Completing two-factor")
+        let account = try await auth.loginWithTwoFactorCode(code, rememberDevice: rememberDevice)
         // Sync failure is non-fatal — show vault with whatever was synced (FR-049).
         do {
             _ = try await sync.sync(progress: { _ in })
         } catch {
-            logger.error("Post-TOTP sync failed (non-fatal): \(error.localizedDescription, privacy: .public)")
+            logger.error("Post-2FA sync failed (non-fatal): \(error.localizedDescription, privacy: .public)")
         }
         return account
     }
 
-    func cancelTOTP() {
+    func sendEmailTwoFactorCode() async throws {
+        logger.info("Requesting another email code")
+        try await auth.sendEmailTwoFactorCode()
+    }
+
+    func cancelTwoFactor() {
         auth.cancelTwoFactor()
     }
 }

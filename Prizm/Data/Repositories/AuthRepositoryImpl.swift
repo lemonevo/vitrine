@@ -15,7 +15,7 @@ import os.log
 ///   6. Persist tokens + metadata in Keychain
 ///
 /// Two-factor flow: `loginWithPassword` returns `.requiresTwoFactor` and stores
-/// pending state in-memory; `loginWithTOTP` completes the challenge.
+/// pending state in-memory; `loginWithTwoFactorCode` completes the challenge.
 ///
 /// Thread safety: all mutable state is read/written on the calling actor.
 /// `@MainActor` annotation ensures single-threaded access during tests and UI.
@@ -36,7 +36,7 @@ final class AuthRepositoryImpl: AuthRepository, EmbeddedBiometricUnlock {
     private(set) var serverEnvironment: ServerEnvironment?
 
     // MARK: - Pending 2FA state
-    // Set by loginWithPassword when the server requests 2FA; consumed by loginWithTOTP.
+    // Set by loginWithPassword when the server requests 2FA; consumed by loginWithTwoFactorCode.
 
     private struct PendingTwoFactor {
         let email:         String
@@ -46,6 +46,9 @@ final class AuthRepositoryImpl: AuthRepository, EmbeddedBiometricUnlock {
         // (Constitution §III). Swift ARC does not guarantee immediate deallocation on nil.
         var stretchedKeys: CryptoKeys
         let deviceId:      String
+        /// The method the server offered and Prizm chose. Held here rather than passed back into
+        /// the submit call so the answer is always for the question the user was shown.
+        let provider:      TwoFactorProvider
     }
     private var pendingTwoFactor: PendingTwoFactor?
 
@@ -148,15 +151,15 @@ final class AuthRepositoryImpl: AuthRepository, EmbeddedBiometricUnlock {
         } catch let err as IdentityTokenError {
             switch err {
             case .twoFactorRequired(let providers):
-                pendingTwoFactor = PendingTwoFactor(
+                logger.info("2FA required")
+                return pendingChallenge(
                     email:         email,
                     passwordHash:  serverHash,
                     kdfParams:     kdfParams,
-                    stretchedKeys: stretched,
-                    deviceId:      deviceId
+                    stretched:     stretched,
+                    deviceId:      deviceId,
+                    providers:     providers
                 )
-                logger.info("2FA required")
-                return .requiresTwoFactor(twoFactorMethod(from: providers))
             case .twoFactorCodeInvalid:
                 logger.error("Login failed: \(AuthError.invalidTwoFactorCode.localizedDescription, privacy: .public)")
                 throw AuthError.invalidTwoFactorCode
@@ -168,15 +171,15 @@ final class AuthRepositoryImpl: AuthRepository, EmbeddedBiometricUnlock {
 
         if let providers = tokenResp.twoFactorProviders, !providers.isEmpty {
             // Server returned a 2FA challenge inside a 200 response (test-mock path).
-            pendingTwoFactor = PendingTwoFactor(
+            logger.info("2FA required")
+            return pendingChallenge(
                 email:         email,
                 passwordHash:  serverHash,
                 kdfParams:     kdfParams,
-                stretchedKeys: stretched,
-                deviceId:      deviceId
+                stretched:     stretched,
+                deviceId:      deviceId,
+                providers:     providers
             )
-            logger.info("2FA required")
-            return .requiresTwoFactor(twoFactorMethod(from: providers))
         }
 
         // Step 6: Finalize the session with the token response.
@@ -193,12 +196,12 @@ final class AuthRepositoryImpl: AuthRepository, EmbeddedBiometricUnlock {
         return .success(account)
     }
 
-    func loginWithTOTP(code: String, rememberDevice: Bool) async throws -> Account {
-        logger.info("Submitting TOTP code")
+    func loginWithTwoFactorCode(_ code: String, rememberDevice: Bool) async throws -> Account {
         guard let pending = pendingTwoFactor,
               let env     = serverEnvironment else {
             throw AuthError.invalidCredentials
         }
+        logger.info("Submitting \(pending.provider.displayName, privacy: .public) code")
 
         let tokenResp: TokenResponse
         do {
@@ -207,7 +210,7 @@ final class AuthRepositoryImpl: AuthRepository, EmbeddedBiometricUnlock {
                 passwordHash:      pending.passwordHash,
                 deviceIdentifier:  pending.deviceId,
                 twoFactorToken:    code,
-                twoFactorProvider: 0,   // authenticatorApp
+                twoFactorProvider: pending.provider.rawValue,
                 twoFactorRemember: rememberDevice
             )
         } catch let err as IdentityTokenError {
@@ -217,20 +220,37 @@ final class AuthRepositoryImpl: AuthRepository, EmbeddedBiometricUnlock {
                 throw AuthError.invalidTwoFactorCode
             case .invalidCredentials:
                 logger.error("Login failed: \(AuthError.invalidTwoFactorCode.localizedDescription, privacy: .public)")
-                throw AuthError.invalidTwoFactorCode   // TOTP wrong code maps to same user-visible error
+                throw AuthError.invalidTwoFactorCode   // A rejected code, whatever the server calls it
             case .twoFactorRequired:
                 logger.error("Login failed: \(AuthError.invalidTwoFactorCode.localizedDescription, privacy: .public)")
                 throw AuthError.invalidTwoFactorCode
             }
         }
 
+        // Only reached once the code was accepted. Every rejection above throws, so the pending
+        // key material outlives a wrong code and the user can try again (spec: "the derived key
+        // material SHALL NOT be discarded").
         pendingTwoFactor = nil
-        logger.info("TOTP accepted")
+        logger.info("Two-factor code accepted")
         return try await finalizeSession(
             tokenResp:   tokenResp,
             stretched:   pending.stretchedKeys,
             environment: env
         )
+    }
+
+    func sendEmailTwoFactorCode() async throws {
+        guard let pending = pendingTwoFactor else {
+            throw AuthError.invalidCredentials
+        }
+        // Only ever for the pending challenge's own method. The server sends to the address it
+        // already holds for the account, so there is nothing for a caller to choose or mistype.
+        guard pending.provider == .email else {
+            logger.error("Resend requested for \(pending.provider.displayName, privacy: .public), which has nothing to resend")
+            throw AuthError.invalidCredentials
+        }
+        logger.info("Requesting a fresh email code")
+        try await apiClient.sendEmailTwoFactorCode(email: pending.email, passwordHash: pending.passwordHash)
     }
 
     // MARK: - Unlock
@@ -868,13 +888,37 @@ final class AuthRepositoryImpl: AuthRepository, EmbeddedBiometricUnlock {
         return json
     }
 
-    /// Maps a list of Bitwarden 2FA provider type numbers to a `TwoFactorMethod`.
+    /// Records the pending challenge and reports what the server asked for.
     ///
-    /// Only TOTP (provider 0) is supported in v1.  Any other combination returns `.unsupported`.
-    private func twoFactorMethod(from providers: [Int]) -> TwoFactorMethod {
-        if providers.contains(0) { return .authenticatorApp }
-        let names = providers.map { String($0) }.joined(separator: ", ")
-        return .unsupported(name: names)
+    /// The provider numbers are kept with the challenge they belong to rather than being mapped to
+    /// a method and dropped: the submit call needs the number, and re-deriving it later from a
+    /// method would be a second answer to "which method is this".
+    ///
+    /// When the server offers only methods Prizm cannot complete, the names come back and nothing
+    /// is stored — there is no challenge to answer and no reason to hold the stretched keys.
+    private func pendingChallenge(
+        email:         String,
+        passwordHash:  String,
+        kdfParams:     KdfParams,
+        stretched:     CryptoKeys,
+        deviceId:      String,
+        providers:     [Int]
+    ) -> LoginResult {
+        guard let provider = TwoFactorProvider.select(from: providers) else {
+            logger.error("No supported 2FA method among \(providers.map(String.init).joined(separator: ", "), privacy: .public)")
+            return .requiresTwoFactor(.unsupported(names: TwoFactorProvider.names(from: providers)))
+        }
+
+        pendingTwoFactor = PendingTwoFactor(
+            email:         email,
+            passwordHash:  passwordHash,
+            kdfParams:     kdfParams,
+            stretchedKeys: stretched,
+            deviceId:      deviceId,
+            provider:      provider
+        )
+        logger.info("2FA: \(provider.displayName, privacy: .public)")
+        return .requiresTwoFactor(.challenge(provider))
     }
 }
 

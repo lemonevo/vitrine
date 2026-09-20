@@ -30,13 +30,26 @@ protocol AuthRepository: AnyObject {
     /// - Throws: `AuthError` on network or credential failure.
     func loginWithPassword(email: String, masterPassword: Data) async throws -> LoginResult
 
-    /// Completes a pending TOTP two-factor challenge.
+    /// Completes the pending two-factor challenge with the code the user supplied.
+    ///
+    /// The provider is not a parameter: it is the one the server asked for, remembered from
+    /// `loginWithPassword`. Passing it in would let the caller answer with a different method
+    /// than the one it prompted for, which the server would reject — and which no caller has any
+    /// reason to want.
+    ///
     /// - Parameters:
-    ///   - code: The 6-digit TOTP code from the user's authenticator app.
+    ///   - code: The code, in the form the chosen provider produces it.
     ///   - rememberDevice: When true, the server suppresses future 2FA prompts for this device.
     /// - Returns: The authenticated `Account`.
     /// - Throws: `AuthError.invalidTwoFactorCode` on wrong code.
-    func loginWithTOTP(code: String, rememberDevice: Bool) async throws -> Account
+    func loginWithTwoFactorCode(_ code: String, rememberDevice: Bool) async throws -> Account
+
+    /// Asks the server to send a fresh email code for the pending challenge.
+    ///
+    /// - Throws: `AuthError.invalidCredentials` when there is no pending challenge to resend for.
+    ///   The email code is sent to an address the server already holds; the caller supplies
+    ///   nothing, so a caller cannot redirect it.
+    func sendEmailTwoFactorCode() async throws
 
     /// Cancels a pending TOTP challenge and discards the in-memory `PendingTwoFactor`
     /// state (stretched keys + password hash) held from the initial password login step.
@@ -133,11 +146,21 @@ nonisolated enum LoginResult {
     case requiresTwoFactor(TwoFactorMethod)
 }
 
-/// Two-factor methods supported in v1. Only `authenticatorApp` (TOTP) is handled;
-/// all others surface as `unsupported` with the method name for a clear error message.
+/// What the server asked for, once it has asked.
+///
+/// `challenge` carries a method Prizm can complete — always one of
+/// `TwoFactorProvider.supportedOrder`, because that is the only way this case gets built.
+/// `unsupported` carries the names of everything the server offered, so the error can say which
+/// method it was instead of "unsupported method".
 nonisolated enum TwoFactorMethod {
-    case authenticatorApp
-    case unsupported(name: String)
+    case challenge(TwoFactorProvider)
+    case unsupported(names: [String])
+
+    /// The method to prompt for, when there is one.
+    var provider: TwoFactorProvider? {
+        if case .challenge(let provider) = self { return provider }
+        return nil
+    }
 }
 
 nonisolated enum AuthError: Error, LocalizedError, Equatable {
@@ -185,7 +208,10 @@ nonisolated enum AuthError: Error, LocalizedError, Equatable {
         case .networkUnavailable:
             return L("No internet connection. Check your network connection.")
         case .unsupported2FAMethod(let name):
-            return L("Two-factor method '%@' is not supported. Use an authenticator app.", name)
+            // No advice to "use an authenticator app" any more: a user whose account asks for
+            // Duo cannot switch methods from here, so that sentence is not actionable — and it
+            // reads as if the app had tried and failed rather than declined.
+            return L("Prizm cannot complete the two-factor method “%@”. Sign in from another Bitwarden client, or use one to change the method this account asks for.", name)
         case .biometricInvalidated:
             return L("Your Touch ID settings have changed. Please enter your master password to continue.")
         case .biometricItemNotFound:

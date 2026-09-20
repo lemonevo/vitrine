@@ -108,7 +108,7 @@ final class LoginJourneyTests: XCTestCase {
         app.buttons["login.signIn"].click()
 
         // If TOTP is required, the TOTP prompt appears.
-        let totpField = app.textFields["totp.code"]
+        let totpField = app.textFields["twoFactor.code"]
         if totpField.waitForExistence(timeout: 10) {
             // TOTP required — test cannot proceed without a valid code.
             // Skip with a message; the TOTP-specific test handles this.
@@ -137,15 +137,15 @@ final class LoginJourneyTests: XCTestCase {
         fillLoginForm(serverURL: serverURL, email: email, password: password)
         app.buttons["login.signIn"].click()
 
-        let totpHeader = app.staticTexts["totp.headerTitle"]
+        let totpHeader = app.staticTexts["twoFactor.headerTitle"]
         XCTAssertTrue(
             totpHeader.waitForExistence(timeout: 15),
             "TOTP prompt should appear when 2FA is required"
         )
 
-        let codeField     = app.textFields["totp.code"]
-        let rememberToggle = app.checkBoxes["totp.remember"]
-        let continueBtn   = app.buttons["totp.continue"]
+        let codeField     = app.textFields["twoFactor.code"]
+        let rememberToggle = app.checkBoxes["twoFactor.remember"]
+        let continueBtn   = app.buttons["twoFactor.continue"]
 
         XCTAssertTrue(codeField.exists, "TOTP code field should exist")
         XCTAssertTrue(rememberToggle.exists, "Remember device toggle should exist")

@@ -44,8 +44,8 @@ protocol PrizmAPIClientProtocol: Actor {
     ///   - email:              The user's email address.
     ///   - passwordHash:       Base64-encoded server authentication hash (from `makeServerHash`).
     ///   - deviceIdentifier:   UUID uniquely identifying this installation (persisted in Keychain).
-    ///   - twoFactorToken:     TOTP code from the authenticator app, if completing a 2FA challenge.
-    ///   - twoFactorProvider:  Numeric 2FA provider identifier (0 = authenticatorApp).
+    ///   - twoFactorToken:     The code for the challenge, whichever method produced it.
+    ///   - twoFactorProvider:  Numeric 2FA provider identifier — see `TwoFactorProvider`.
     ///   - twoFactorRemember:  When true, requests a `TwoFactorToken` cookie for future logins.
     func identityToken(
         email:              String,
@@ -55,6 +55,17 @@ protocol PrizmAPIClientProtocol: Actor {
         twoFactorProvider:  Int?,
         twoFactorRemember:  Bool
     ) async throws -> TokenResponse
+
+    /// POST `/api/two-factor/send-email-login` — asks for a fresh email 2FA code.
+    ///
+    /// Not `/api/two-factor/send-email`, which is the name the task for this work used: that one
+    /// is authenticated (it sets up email 2FA on an account you are already signed into) and
+    /// returns 401 during login. The login-flow endpoint was confirmed against Vaultwarden
+    /// `src/api/core/two_factor/email.rs`, where `send_email_login` is the route that takes no
+    /// bearer token and verifies `MasterPasswordHash` itself.
+    ///
+    /// Returns an empty body on success. Rate-limited by the server.
+    func sendEmailTwoFactorCode(email: String, passwordHash: String) async throws
 
     /// GET `/sync?excludeDomains=true` — returns the full encrypted vault.
     ///
@@ -532,6 +543,27 @@ actor PrizmAPIClientImpl: PrizmAPIClientProtocol {
         request.httpBody = formEncoded(params)
 
         return try await performIdentityToken(request: request)
+    }
+
+    func sendEmailTwoFactorCode(email: String, passwordHash: String) async throws {
+        guard let base = baseURL else { throw APIError.baseURLNotSet }
+        let url = base.appendingPathComponent("api/two-factor/send-email-login")
+
+        if DebugConfig.isEnabled {
+            logger.debug("[debug] sendEmailTwoFactorCode → POST \(url.absoluteString, privacy: .public)")
+        }
+
+        var request = baseRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode([
+            "email":              email,
+            "masterPasswordHash": passwordHash,
+        ])
+
+        // The endpoint answers 200 with an empty body, so there is nothing to decode; only the
+        // status decides. `perform` would fail decoding zero bytes into any Decodable.
+        try await performEmpty(request: request)
     }
 
     /// Specialized perform for the identity token endpoint.

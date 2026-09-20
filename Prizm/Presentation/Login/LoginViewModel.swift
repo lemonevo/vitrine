@@ -8,7 +8,10 @@ import os.log
 enum LoginFlowState: Equatable {
     case login
     case loading
-    case totpPrompt
+    /// The method is carried in the state rather than held alongside it: a prompt for an emailed
+    /// code and a prompt for a YubiKey tap are different screens, and the two cannot disagree
+    /// about which one is being shown if there is only one value.
+    case twoFactorPrompt(TwoFactorProvider)
     case syncing(message: String)
     case vault
 }
@@ -28,6 +31,8 @@ final class LoginViewModel: ObservableObject {
     @Published var email:        String = ""
     @Published var password:     String = ""
     @Published var errorMessage: String?
+    /// Set while a resend is in flight, so the button can say so. Only an email challenge has one.
+    @Published private(set) var isResendingCode: Bool = false
     @Published private(set) var flowState: LoginFlowState = .login
 
     // MARK: - Dependencies
@@ -76,14 +81,16 @@ final class LoginViewModel: ObservableObject {
                     flowState = .vault
 
                 case .requiresTwoFactor(let method):
-                    guard case .authenticatorApp = method else {
-                        if case .unsupported(let name) = method {
-                            throw AuthError.unsupported2FAMethod(name)
+                    guard let provider = method.provider else {
+                        if case .unsupported(let names) = method {
+                            // Every name the server offered, so the message says what the account
+                            // actually asks for instead of naming one method at random.
+                            throw AuthError.unsupported2FAMethod(names.joined(separator: ", "))
                         }
                         throw AuthError.invalidCredentials
                     }
                     password  = ""
-                    flowState = .totpPrompt
+                    flowState = .twoFactorPrompt(provider)
                 }
 
             } catch let err as AuthError {
@@ -98,30 +105,58 @@ final class LoginViewModel: ObservableObject {
         }
     }
 
-    /// Cancels the pending TOTP challenge and returns to the login screen.
-    func cancelTOTP() {
-        loginUseCase.cancelTOTP()
+    /// Cancels the pending challenge and returns to the login screen.
+    func cancelTwoFactor() {
+        loginUseCase.cancelTwoFactor()
         flowState = .login
     }
 
-    /// Completes a pending TOTP 2FA challenge.
-    func submitTOTP(code: String, rememberDevice: Bool) {
-        logger.info("TOTP submission started")
+    /// Completes the pending challenge with the code the user entered.
+    ///
+    /// The provider comes from the current state, so a retry after a rejected code is always for
+    /// the method the user was shown — even if the server has, in the meantime, been asked for
+    /// something else.
+    func submitTwoFactorCode(_ code: String, rememberDevice: Bool) {
+        guard case .twoFactorPrompt(let provider) = flowState else { return }
+        logger.info("Submitting \(provider.displayName, privacy: .public) code")
         errorMessage = nil
         flowState    = .loading
 
         Task {
             do {
-                let _ = try await loginUseCase.completeTOTP(code: code, rememberDevice: rememberDevice)
+                let _ = try await loginUseCase.completeTwoFactor(code: code, rememberDevice: rememberDevice)
                 flowState = .vault
             } catch let err as AuthError {
-                logger.error("TOTP submission failed: \(err.localizedDescription, privacy: .public)")
+                logger.error("2FA submission failed: \(err.localizedDescription, privacy: .public)")
                 errorMessage = err.errorDescription
-                flowState    = .totpPrompt
+                flowState    = .twoFactorPrompt(provider)
             } catch {
-                logger.error("TOTP submission failed: \(error.localizedDescription, privacy: .public)")
+                logger.error("2FA submission failed: \(error.localizedDescription, privacy: .public)")
                 errorMessage = error.localizedDescription
-                flowState    = .totpPrompt
+                flowState    = .twoFactorPrompt(provider)
+            }
+        }
+    }
+
+    /// Asks the server for another emailed code.
+    ///
+    /// A failure here is shown on the same screen rather than ending the challenge: the user is
+    /// mid-login with a valid pending challenge, and dropping them back to the password screen to
+    /// read "could not send" would cost them the code they already have.
+    func resendEmailCode() {
+        guard case .twoFactorPrompt(let provider) = flowState, provider.offersResend else { return }
+        isResendingCode = true
+        errorMessage    = nil
+
+        Task {
+            defer { isResendingCode = false }
+            do {
+                try await loginUseCase.sendEmailTwoFactorCode()
+                logger.info("Email code resent")
+            } catch {
+                logger.error("Resend failed: \(error.localizedDescription, privacy: .public)")
+                errorMessage = (error as? AuthError)?.errorDescription ?? error.localizedDescription
+                flowState    = .twoFactorPrompt(provider)
             }
         }
     }
