@@ -56,6 +56,7 @@
 "Attachments" = "Attachments";
 "Attachments and passkeys are not included. Items in Trash are not included." = "Attachments and passkeys are not included. Items in Trash are not included.";
 "Authentication code" = "Authentication code";
+"Authenticator Key (TOTP)" = "Authenticator Key (TOTP)";
 "Authenticator app" = "Authenticator app";
 "Avoid ambiguous characters" = "Avoid ambiguous characters";
 "Azure upload failed" = "Azure upload failed";
@@ -304,6 +305,7 @@
 "Passwords not changed in over two years." = "Passwords not changed in over two years.";
 "Passwords that score weak or lower." = "Passwords that score weak or lower.";
 "Passwords used by more than one item." = "Passwords used by more than one item.";
+"Paste the secret, or the otpauth:// URL the site shows when you cannot scan its QR code." = "Paste the secret, or the otpauth:// URL the site shows when you cannot scan its QR code.";
 "Permanently delete every item in Trash" = "Permanently delete every item in Trash";
 "Personal Info" = "Personal Info";
 "Phone" = "Phone";
@@ -410,6 +412,7 @@
 "This includes %d items that belong to an organisation. The official Bitwarden export leaves those out." = "This includes %d items that belong to an organisation. The official Bitwarden export leaves those out.";
 "This is an encrypted export. Prizm can only import unencrypted exports." = "This is an encrypted export. Prizm can only import unencrypted exports.";
 "This item is in Trash." = "This item is in Trash.";
+"This key will not produce a code. Paste the secret, or the otpauth:// URL the site shows when you cannot scan its QR code." = "This key will not produce a code. Paste the secret, or the otpauth:// URL the site shows when you cannot scan its QR code.";
 "This server doesn't appear to be a Bitwarden instance." = "This server doesn't appear to be a Bitwarden instance.";
 "Title" = "Title";
 "Tools" = "Tools";

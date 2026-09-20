@@ -56,6 +56,7 @@
 "Attachments" = "附件";
 "Attachments and passkeys are not included. Items in Trash are not included." = "不包含附件和通行密钥，也不包含回收站中的项目。";
 "Authentication code" = "验证码";
+"Authenticator Key (TOTP)" = "验证器密钥（TOTP）";
 "Authenticator app" = "验证器 App";
 "Avoid ambiguous characters" = "避免易混淆字符";
 "Azure upload failed" = "Azure 上传失败";
@@ -304,6 +305,7 @@
 "Passwords not changed in over two years." = "超过两年未更改的密码。";
 "Passwords that score weak or lower." = "强度为“弱”或更低的密码。";
 "Passwords used by more than one item." = "被多个条目共用的密码。";
+"Paste the secret, or the otpauth:// URL the site shows when you cannot scan its QR code." = "粘贴密钥，或粘贴网站在无法扫描二维码时显示的 otpauth:// 链接。";
 "Permanently delete every item in Trash" = "永久删除回收站中的每个项目";
 "Personal Info" = "个人信息";
 "Phone" = "电话";
@@ -410,6 +412,7 @@
 "This includes %d items that belong to an organisation. The official Bitwarden export leaves those out." = "其中包含 %d 个属于组织的项目，而 Bitwarden 官方导出会忽略这些项目。";
 "This is an encrypted export. Prizm can only import unencrypted exports." = "这是加密导出文件。Prizm 只能导入未加密的导出文件。";
 "This item is in Trash." = "该项目在废纸篓中。";
+"This key will not produce a code. Paste the secret, or the otpauth:// URL the site shows when you cannot scan its QR code." = "这个密钥无法生成验证码。请粘贴密钥，或粘贴网站在无法扫描二维码时显示的 otpauth:// 链接。";
 "This server doesn't appear to be a Bitwarden instance." = "该服务器似乎不是 Bitwarden 实例。";
 "Title" = "称谓";
 "Tools" = "工具";
