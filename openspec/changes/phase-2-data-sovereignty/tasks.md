@@ -166,15 +166,18 @@ items, one of which is gated on verifying an external algorithm (design D12).
 
 ### B5. Password history
 
-- [ ] `Domain/UseCases/GetPasswordHistoryUseCase.swift` — `PasswordHistoryEntry`
-      (`lastUsedDate: Date`, `password: String`).
-- [ ] `Data/UseCases/GetPasswordHistoryUseCaseImpl.swift` — decrypts on demand with the item's own
-      key resolution; returns newest first; empty when there is none.
-- [ ] `VaultItem.swift` — rewrite the `PreservedCipherFields` doc comment (design D10).
-- [ ] `LoginDetailView` — a collapsed "Password history" section: date, masked password, reveal,
-      copy. Gated by the re-prompt grant (Wave C).
-- [ ] `GetPasswordHistoryUseCaseTests` — a fixture with two history entries; malformed entries are
-      skipped rather than failing the whole list; no `cipherKey` falls back to the vault key.
+- [x] `Domain/UseCases/GetPasswordHistoryUseCase.swift` + Data impl. **`PasswordHistoryEntry`
+      already existed** — wave A added it for the export, so this task was the use case around it,
+      not the type. `lastUsedDate` is `Date?` there, not `Date`: an entry with an unparseable date
+      still has a password worth showing.
+- [x] `VaultItem.swift` — rewrite the `PreservedCipherFields` doc comment (design D10).
+- [x] `LoginDetailView` — a collapsed "Password history" section: date, masked password, copy.
+      **Reveal is deferred to wave C** with the re-prompt gate; see the wave B notes for why the
+      button is not shipped ahead of the gate.
+- [x] `GetPasswordHistoryUseCaseTests` — a fixture with two history entries; malformed entries are
+      skipped rather than failing the whole list; no `cipherKey` falls back to the vault key. The
+      decryption cases live in `VaultRepositoryPasswordHistoryTests`, because a mock repository
+      holds no key material and cannot prove which key was used.
 
 ### B6. Localisation + tests + verify
 
@@ -506,3 +509,29 @@ items, one of which is gated on verifying an external algorithm (design D12).
   Verified: 936 tests / 10 failures against the 909-test baseline taken before this change, with
   the failing set **identical** — the same nine cases — so all 27 new tests pass. Both `.lproj` at
   426 keys, `plutil -lint` clean, **28/0** numstat per file.
+
+- **B5 — the password history.** A collapsed section on login items the server says carry one.
+  Three things worth recording:
+
+  - **The reveal button is deliberately not shipped.** The spec gates it behind the master-password
+    re-prompt, which is wave C. Shipping the button first would mean shipping a control that shows a
+    previous password to anyone at the keyboard, so the section shows masked values and a footnote
+    that says revealing will require confirmation — the same reason the health report names the
+    check it does not run. Copying is *not* deferred: it is exactly as exposed as copying the
+    current password, which the detail view has always allowed without a gate.
+  - **The section is offered only when `preserved.passwordHistory` is non-empty.** That is a check
+    on the encrypted wire form, so an item with no history never triggers a decryption at all —
+    which is what makes "nothing is decrypted until requested" true rather than approximate.
+  - **`PasswordHistoryEntry` already existed**, added in wave A for the export. The task list asked
+    for it here; what was actually missing was the use case. Its `lastUsedDate` is `Date?` because
+    an entry whose date will not parse still has a password worth showing — the date is display
+    metadata, the password is the payload.
+
+  The decryption is tested against the real `VaultRepositoryImpl`, not a double: `MockVaultRepository`
+  holds no key material and returns whatever a test hands it, so it cannot prove which key was used.
+  `withCipherKey_usesTheItemKey` encrypts with the item's own key, so a successful round trip is what
+  proves the wrapped `cipherKey` was unwrapped — and `undecryptableEntryIsSkipped` encrypts one entry
+  for an unrelated key to prove a damaged row is dropped rather than taking the list down with it.
+
+  Verified: 953 tests / 10 failures against the 936-test baseline, failing set identical, so all 17
+  new tests pass. Both `.lproj` at 433 keys, `plutil -lint` clean, **7/0** numstat per file.
