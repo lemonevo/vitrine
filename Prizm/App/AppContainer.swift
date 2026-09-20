@@ -393,6 +393,15 @@ final class AppContainer: ObservableObject {
         AttachmentBatchViewModel(cipherId: cipherId, uploadUseCase: uploadAttachmentUseCase)
     }
 
+    /// Creates a `HealthReportViewModel` backed by the container's health use case.
+    ///
+    /// The use case is injected rather than the repository: the view model should not be able to
+    /// reach past the analysis into the vault.
+    @MainActor
+    func makeHealthReportViewModel() -> HealthReportViewModel {
+        HealthReportViewModel(useCase: generateVaultHealthReportUseCase)
+    }
+
     /// Creates an `AttachmentRowViewModel` for the given cipher + attachment pair.
     @MainActor
     func makeAttachmentRowViewModel(cipherId: String, attachment: Attachment) -> AttachmentRowViewModel {

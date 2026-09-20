@@ -350,6 +350,33 @@ final class VaultBrowserViewModel: ObservableObject {
         }
     }
 
+    /// Selects the item with the given id, moving the list to a scope that contains it.
+    ///
+    /// Used by the health report, which runs over the whole vault and can therefore name an item the
+    /// current sidebar scope excludes. Selecting an item the list does not contain leaves the detail
+    /// pane empty, so the scope has to move first.
+    ///
+    /// The selection is taken from `displayedItems` once the item arrives there rather than from a
+    /// separately-fetched copy: `List`'s selection is compared by value, and two `VaultItem` values
+    /// for the same cipher are not necessarily equal.
+    func selectItem(id: String) {
+        sidebarSelection = .allItems
+
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            // Assigning `sidebarSelection` clears `itemSelection` and refreshes on a later turn, so
+            // this waits for the item to reach the list rather than racing that turn.
+            for _ in 0..<50 {
+                if let match = displayedItems.first(where: { $0.id == id }) {
+                    itemSelection = match
+                    return
+                }
+                try? await Task.sleep(for: .milliseconds(20))
+            }
+            logger.error("Item \(id.prefix(8), privacy: .public) never reached the list after selection")
+        }
+    }
+
     /// Re-reads the currently selected item from the vault store and updates `itemSelection`.
     ///
     /// Called after a successful attachment upload so the detail pane reflects the new
