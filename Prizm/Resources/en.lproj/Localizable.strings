@@ -90,6 +90,7 @@
 "Confirm" = "Confirm";
 "Contact" = "Contact";
 "Continue" = "Continue";
+"Copied" = "Copied";
 "Copies %@ to clipboard" = "Copies %@ to clipboard";
 "Copies to clipboard" = "Copies to clipboard";
 "Copy" = "Copy";
@@ -98,12 +99,12 @@
 "Copy Password" = "Copy Password";
 "Copy Username" = "Copy Username";
 "Copy Website" = "Copy Website";
-"Copied" = "Copied";
 "Copy the fingerprint phrase" = "Copy the fingerprint phrase";
 "Copy this previous password" = "Copy this previous password";
 "Could not delete attachment: %@" = "Could not delete attachment: %@";
 "Could not open file: %@" = "Could not open file: %@";
 "Could not read file: %@" = "Could not read file: %@";
+"Could not read the passkeys: %@" = "Could not read the passkeys: %@";
 "Could not read the password history: %@" = "Could not read the password history: %@";
 "Could not read the vault: %@" = "Could not read the vault: %@";
 "Could not save file: %@" = "Could not save file: %@";
@@ -273,6 +274,7 @@
 "No internet connection. Check your network connection." = "No internet connection. Check your network connection.";
 "No issues found." = "No issues found.";
 "No items in this category." = "No items in this category.";
+"No passkeys recorded." = "No passkeys recorded.";
 "No previous passwords recorded." = "No previous passwords recorded.";
 "No revision date recorded" = "No revision date recorded";
 "No server URL is configured." = "No server URL is configured.";
@@ -302,6 +304,7 @@
 "Organisation membership not imported" = "Organisation membership not imported";
 "Organization" = "Organization";
 "Organizations" = "Organizations";
+"Passkeys" = "Passkeys";
 "Passphrase" = "Passphrase";
 "Passport Number" = "Passport Number";
 "Password" = "Password";
@@ -323,6 +326,7 @@
 "Private Key" = "Private Key";
 "Prizm Is Locked" = "Prizm Is Locked";
 "Prizm cannot complete the two-factor method “%@”. Sign in from another Bitwarden client, or use one to change the method this account asks for." = "Prizm cannot complete the two-factor method “%@”. Sign in from another Bitwarden client, or use one to change the method this account asks for.";
+"Prizm cannot use these passkeys to sign in. Register, use and remove them from another Bitwarden client." = "Prizm cannot use these passkeys to sign in. Register, use and remove them from another Bitwarden client.";
 "Prizm could not read the certificate for %@, so the connection was not made." = "Prizm could not read the certificate for %@, so the connection was not made.";
 "Prizm could not read the stored certificate settings for %@, so the connection was not made. %@" = "Prizm could not read the stored certificate settings for %@, so the connection was not made. %@";
 "Public Key" = "Public Key";

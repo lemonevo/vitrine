@@ -121,6 +121,22 @@ final class MockVaultRepository: VaultRepository {
         return stubbedPasswordHistory[id] ?? []
     }
 
+    // MARK: - passkeys(for:) stubbing
+
+    /// Credentials keyed by item id, supplied directly — same reason as the history above.
+    var stubbedPasskeys: [String: [PasskeyCredential]] = [:]
+    var stubbedPasskeysError: Error?
+    private(set) var passkeysCallCount: Int = 0
+
+    func passkeys(for id: String) async throws -> [PasskeyCredential] {
+        passkeysCallCount += 1
+        if let stubbedPasskeysError { throw stubbedPasskeysError }
+        guard populatedItems.contains(where: { $0.id == id }) else {
+            throw VaultError.itemNotFound(id)
+        }
+        return stubbedPasskeys[id] ?? []
+    }
+
     func update(_ draft: DraftVaultItem) async throws -> VaultItem {
         updateCallCount += 1
         lastUpdatedDraft = draft

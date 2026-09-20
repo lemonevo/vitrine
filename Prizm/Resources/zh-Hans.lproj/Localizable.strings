@@ -90,6 +90,7 @@
 "Confirm" = "确认";
 "Contact" = "联系方式";
 "Continue" = "继续";
+"Copied" = "已复制";
 "Copies %@ to clipboard" = "复制%@到剪贴板";
 "Copies to clipboard" = "复制到剪贴板";
 "Copy" = "复制";
@@ -98,12 +99,12 @@
 "Copy Password" = "复制密码";
 "Copy Username" = "复制用户名";
 "Copy Website" = "复制网站";
-"Copied" = "已复制";
 "Copy the fingerprint phrase" = "复制指纹短语";
 "Copy this previous password" = "复制这个旧密码";
 "Could not delete attachment: %@" = "无法删除附件：%@";
 "Could not open file: %@" = "无法打开文件：%@";
 "Could not read file: %@" = "无法读取文件：%@";
+"Could not read the passkeys: %@" = "无法读取通行密钥：%@";
 "Could not read the password history: %@" = "无法读取密码历史：%@";
 "Could not read the vault: %@" = "无法读取保险库：%@";
 "Could not save file: %@" = "无法保存文件：%@";
@@ -273,6 +274,7 @@
 "No internet connection. Check your network connection." = "无网络连接。请检查网络。";
 "No issues found." = "未发现问题。";
 "No items in this category." = "此分类下暂无项目。";
+"No passkeys recorded." = "没有记录通行密钥。";
 "No previous passwords recorded." = "没有记录旧密码。";
 "No revision date recorded" = "没有记录修改日期";
 "No server URL is configured." = "未配置服务器地址。";
@@ -302,6 +304,7 @@
 "Organisation membership not imported" = "未导入的组织归属";
 "Organization" = "组织";
 "Organizations" = "组织";
+"Passkeys" = "通行密钥";
 "Passphrase" = "密码短语";
 "Passport Number" = "护照号";
 "Password" = "密码";
@@ -323,6 +326,7 @@
 "Private Key" = "私钥";
 "Prizm Is Locked" = "Prizm 已锁定";
 "Prizm cannot complete the two-factor method “%@”. Sign in from another Bitwarden client, or use one to change the method this account asks for." = "Prizm 无法完成“%@”这种两步验证方式。请改用其他 Bitwarden 客户端登录，或用其他客户端修改此账户要求的方式。";
+"Prizm cannot use these passkeys to sign in. Register, use and remove them from another Bitwarden client." = "Prizm 无法使用这些通行密钥登录。请改用其他 Bitwarden 客户端注册、使用或删除它们。";
 "Prizm could not read the certificate for %@, so the connection was not made." = "Prizm 无法读取 %@ 的证书，因此未建立连接。";
 "Prizm could not read the stored certificate settings for %@, so the connection was not made. %@" = "Prizm 无法读取已保存的 %@ 证书设置，因此未建立连接。%@";
 "Public Key" = "公钥";
