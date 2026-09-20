@@ -305,6 +305,22 @@ struct VaultBrowserView: View {
                 )
             )
         }
+        // Export and import. `isPresented` rather than `.sheet(item:)` so that the hand-offs —
+        // consent → done, progress → report — update the content instead of tearing the sheet
+        // down and rebuilding it. See `VaultBackupSheet`.
+        .sheet(isPresented: Binding(
+            get: { viewModel.backupSheet != nil },
+            set: { if !$0 { viewModel.dismissBackupSheet() } }
+        )) {
+            if let sheet = viewModel.backupSheet {
+                VaultBackupSheetView(
+                    sheet: sheet,
+                    itemCount: viewModel.itemCounts[.allItems] ?? 0,
+                    onDismiss: { viewModel.dismissBackupSheet() },
+                    onConfirmExport: { viewModel.confirmExport() }
+                )
+            }
+        }
     }
 
     // MARK: - Sync Error Banner

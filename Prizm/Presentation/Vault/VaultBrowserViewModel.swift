@@ -100,6 +100,11 @@ final class VaultBrowserViewModel: ObservableObject {
         }
     }
 
+    // MARK: - Published state (backup)
+
+    /// The export/import surface currently presented, or nil.
+    @Published var backupSheet: VaultBackupSheet? = nil
+
     // MARK: - Dependencies
 
     private let vault:                  any VaultRepository
@@ -119,6 +124,28 @@ final class VaultBrowserViewModel: ObservableObject {
     private let deleteCollectionUseCase:  any DeleteCollectionUseCase
     private var syncTimestamp:          any SyncTimestampRepository
     private var getLastSyncDate:        any GetLastSyncDateUseCase
+    private let exportUseCase:          any ExportVaultUseCase
+    private let importUseCase:          any ImportVaultUseCase
+
+    /// Writes exported bytes to a user-chosen location.
+    ///
+    /// Returns `nil` when the user cancelled the save panel, and **throws** when the write itself
+    /// failed. The two are kept apart on purpose: cancelling is a decision and must produce no
+    /// error, while a failed write must produce one — a silent failure here would leave the user
+    /// believing they have a backup they do not have.
+    ///
+    /// A closure rather than a call to `NSSavePanel` here, for the reason `AttachmentRowViewModel`
+    /// already uses the same seam: the Presentation layer must not import AppKit (Constitution §II),
+    /// and a view model that pops a modal panel cannot be unit-tested.
+    private let fileSaver:  @MainActor (String, Data) throws -> URL?
+
+    /// Asks the user for a file to import, returning nil if they cancelled. Same reasoning as
+    /// `fileSaver`.
+    private let filePicker: @MainActor () -> URL?
+
+    /// The running import, so dismissing the sheet can stop it.
+    private var importTask: Task<Void, Never>?
+
     private let logger = Logger(subsystem: "com.prizm", category: "VaultBrowserViewModel")
 
     // MARK: - Menu bar action relay
@@ -178,7 +205,11 @@ final class VaultBrowserViewModel: ObservableObject {
         renameCollection:  any RenameCollectionUseCase,
         deleteCollection:  any DeleteCollectionUseCase,
         syncTimestamp:     any SyncTimestampRepository,
-        getLastSyncDate:   any GetLastSyncDateUseCase
+        getLastSyncDate:   any GetLastSyncDateUseCase,
+        export:            any ExportVaultUseCase,
+        importVault:       any ImportVaultUseCase,
+        fileSaver:         @escaping @MainActor (String, Data) throws -> URL?,
+        filePicker:        @escaping @MainActor () -> URL?
     ) {
         self.vault                  = vault
         self.search                 = search
@@ -197,6 +228,10 @@ final class VaultBrowserViewModel: ObservableObject {
         self.deleteCollectionUseCase = deleteCollection
         self.syncTimestamp          = syncTimestamp
         self.getLastSyncDate        = getLastSyncDate
+        self.exportUseCase          = export
+        self.importUseCase          = importVault
+        self.fileSaver              = fileSaver
+        self.filePicker             = filePicker
         self.sortOrder              = ItemSortPreference.load()
         refreshItems()
         refreshCounts()
@@ -210,6 +245,7 @@ final class VaultBrowserViewModel: ObservableObject {
     deinit {
         labelRefreshTimer?.invalidate()
         clipboardClearTask?.cancel()
+        importTask?.cancel()
     }
 
     // MARK: - Timer
@@ -553,6 +589,104 @@ final class VaultBrowserViewModel: ObservableObject {
             let remaining = (try? await vault.items(for: .trash))?.map(\.id) ?? []
             if !remaining.contains(selectedId) { itemSelection = nil }
         }
+    }
+
+    // MARK: - Backup (export / import)
+
+    /// Opens the export consent sheet.
+    ///
+    /// Nothing is written until `confirmExport()` runs, and that only happens from the sheet's own
+    /// confirm button. The consent is mandatory, not decorative — Bitwarden's normative security
+    /// requirements make it a precondition of any vault export.
+    func requestExport() {
+        guard backupSheet == nil else { return }
+        backupSheet = .exportConsent
+    }
+
+    /// Runs the export and writes the file, after the user has confirmed the consent sheet.
+    func confirmExport() {
+        Task {
+            do {
+                let export = try await exportUseCase.execute()
+
+                // A cancelled save panel returns nil. That is a decision, not a failure: the
+                // sheet closes and no error is shown, because the user just said no.
+                guard let url = try fileSaver(export.suggestedFilename, export.data) else {
+                    backupSheet = nil
+                    return
+                }
+
+                logger.info("Export written: \(export.itemCount, privacy: .public) items")
+                backupSheet = .exportDone(
+                    url: url,
+                    itemCount: export.itemCount,
+                    organisationItemCount: export.organisationItemCount
+                )
+            } catch {
+                logger.error("Export failed: \(error.localizedDescription, privacy: .public)")
+                backupSheet = nil
+                actionError = error.localizedDescription
+            }
+        }
+    }
+
+    /// Asks for a file and imports it.
+    ///
+    /// The read happens off the main actor: an export of a large vault is tens of megabytes, and
+    /// blocking the UI on `Data(contentsOf:)` while a progress sheet is supposed to be animating
+    /// would be the one place this feature could look broken.
+    func requestImport() {
+        guard backupSheet == nil else { return }
+        guard let url = filePicker() else { return }
+
+        backupSheet = .importing(done: 0, total: 0)
+        importTask = Task { [weak self] in
+            guard let self else { return }
+            do {
+                let data = try await Task.detached(priority: .userInitiated) {
+                    try Data(contentsOf: url)
+                }.value
+
+                let summary = try await importUseCase.execute(data: data) { done, total in
+                    Task { @MainActor [weak self] in
+                        self?.updateImportProgress(done: done, total: total)
+                    }
+                }
+
+                // The list is refreshed even for a cancelled import: everything created before the
+                // cancellation is really in the vault, and the browser has to show it.
+                refreshItems()
+                refreshCounts()
+                refreshFolders()
+
+                // Only show the report if the sheet is still the one that started this run.
+                //
+                // A cancelled import returns a partial summary rather than throwing — by design, so
+                // the caller learns what landed — so without this guard, dismissing the progress
+                // sheet would immediately re-present it as a report. Closing a window the user just
+                // closed is the one thing a dismissal must never do.
+                guard backupSheet?.isImporting == true else { return }
+                backupSheet = .importReport(summary)
+            } catch {
+                logger.error("Import failed: \(error.localizedDescription, privacy: .public)")
+                backupSheet = nil
+                actionError = error.localizedDescription
+            }
+        }
+    }
+
+    /// Closes the backup sheet. Cancels a running import first, so dismissing the progress sheet
+    /// stops the run rather than leaving it creating items behind a closed window.
+    func dismissBackupSheet() {
+        importTask?.cancel()
+        importTask = nil
+        backupSheet = nil
+    }
+
+    private func updateImportProgress(done: Int, total: Int) {
+        // Guarded so a late callback cannot resurrect the sheet after the user dismissed it.
+        guard case .importing = backupSheet else { return }
+        backupSheet = .importing(done: done, total: total)
     }
 
     // MARK: - Folder CRUD

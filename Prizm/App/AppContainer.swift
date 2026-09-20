@@ -1,6 +1,7 @@
 import AppKit
 import Combine
 import Foundation
+import UniformTypeIdentifiers
 
 /// Dependency injection container — wires together all Data-layer implementations
 /// and exposes the Domain-layer protocols used by the Presentation layer.
@@ -57,6 +58,13 @@ final class AppContainer: ObservableObject {
     let deleteCollectionUseCase:         DeleteCollectionUseCaseImpl
     let syncTimestampRepository:         SyncTimestampRepositoryImpl
     let getLastSyncDateUseCase:          any GetLastSyncDateUseCase
+
+    // MARK: - Backup use cases
+
+    /// Serialises the vault into Bitwarden's unencrypted JSON format. Returns bytes; never writes.
+    let exportVaultUseCase: ExportVaultUseCaseImpl
+    /// Creates items from such a file. Additive only — see `ImportVaultUseCase`.
+    let importVaultUseCase: ImportVaultUseCaseImpl
 
     // MARK: - Attachment use cases
 
@@ -144,6 +152,8 @@ final class AppContainer: ObservableObject {
         self.deleteCollectionUseCase         = DeleteCollectionUseCaseImpl(repository: vault)
         self.syncTimestampRepository         = syncTimestamp
         self.getLastSyncDateUseCase          = GetLastSyncDateUseCaseImpl(repository: syncTimestamp)
+        self.exportVaultUseCase              = ExportVaultUseCaseImpl(vault: vault)
+        self.importVaultUseCase              = ImportVaultUseCaseImpl(vault: vault)
         // Attachment use cases — Upload and Download inject VaultKeyService;
         // Delete does NOT (no key material required, Constitution §VI).
         self.uploadAttachmentUseCase   = UploadAttachmentUseCaseImpl(repository: attachmentRepo, vaultKeyService: vaultKeyService)
@@ -218,7 +228,11 @@ final class AppContainer: ObservableObject {
             renameCollection: renameCollectionUseCase,
             deleteCollection: deleteCollectionUseCase,
             syncTimestamp:    syncTimestampRepository,
-            getLastSyncDate:  getLastSyncDateUseCase
+            getLastSyncDate:  getLastSyncDateUseCase,
+            export:           exportVaultUseCase,
+            importVault:      importVaultUseCase,
+            fileSaver:        Self.defaultExportSaver,
+            filePicker:       Self.defaultImportPicker
         )
     }
 
@@ -302,6 +316,48 @@ final class AppContainer: ObservableObject {
     @MainActor
     private static func defaultFileOpener(url: URL) {
         NSWorkspace.shared.open(url)
+    }
+
+    /// Save panel for a vault export, writing the bytes with owner-only permissions.
+    ///
+    /// **The permission fix-up is not optional.** `Data.write(options: .atomic)` writes to a
+    /// temporary file and renames it into place, so the destination ends up with whatever mode the
+    /// temporary got — which honours the process umask and is commonly `0644`, i.e. readable by
+    /// every account on the machine. The file contains every password in the vault in plaintext,
+    /// so `0600` is the minimum. Setting it after the write closes that window; it cannot be set
+    /// before, because the file does not exist yet.
+    ///
+    /// The write is *not* the security boundary — the consent sheet is. This only keeps the file
+    /// from being readable by other local accounts while it exists.
+    ///
+    /// - Returns: the written URL, or nil if the user cancelled the panel.
+    /// - Throws: the underlying file-system error, so the caller can tell the user the export
+    ///   failed rather than showing a completion message for a file that was never written.
+    @MainActor
+    private static func defaultExportSaver(suggestedName: String, data: Data) throws -> URL? {
+        let panel = NSSavePanel()
+        panel.nameFieldStringValue = suggestedName
+        panel.canCreateDirectories  = true
+        panel.allowedContentTypes   = [.json]
+        panel.message = L("The exported file is not encrypted. Store it somewhere safe.")
+        guard panel.runModal() == .OK, let url = panel.url else { return nil }
+
+        try data.write(to: url, options: .atomic)
+        try FileManager.default.setAttributes([.posixPermissions: 0o600],
+                                              ofItemAtPath: url.path)
+        return url
+    }
+
+    /// Open panel for choosing a vault export to import.
+    @MainActor
+    private static func defaultImportPicker() -> URL? {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles          = true
+        panel.canChooseDirectories    = false
+        panel.allowsMultipleSelection = false
+        panel.allowedContentTypes     = [.json]
+        panel.message = L("Choose an unencrypted Bitwarden JSON export")
+        return panel.runModal() == .OK ? panel.url : nil
     }
 
     /// Creates an `AttachmentAddViewModel` for the given cipher ID.
