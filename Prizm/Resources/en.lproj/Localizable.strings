@@ -9,6 +9,7 @@
 "%@ is unavailable — %@ (LAError %lld)" = "%@ is unavailable — %@ (LAError %lld)";
 "%@ or enter the password for %@ to unlock." = "%@ or enter the password for %@ to unlock.";
 "%@ unlock" = "%@ unlock";
+"%d entries" = "%d entries";
 "%d findings" = "%d findings";
 "%d items were written." = "%d items were written.";
 "%d items will be permanently deleted and cannot be recovered." = "%d items will be permanently deleted and cannot be recovered.";
@@ -90,9 +91,11 @@
 "Copy Password" = "Copy Password";
 "Copy Username" = "Copy Username";
 "Copy Website" = "Copy Website";
+"Copy this previous password" = "Copy this previous password";
 "Could not delete attachment: %@" = "Could not delete attachment: %@";
 "Could not open file: %@" = "Could not open file: %@";
 "Could not read file: %@" = "Could not read file: %@";
+"Could not read the password history: %@" = "Could not read the password history: %@";
 "Could not read the vault: %@" = "Could not read the vault: %@";
 "Could not save file: %@" = "Could not save file: %@";
 "Country" = "Country";
@@ -255,6 +258,7 @@
 "No internet connection. Check your network connection." = "No internet connection. Check your network connection.";
 "No issues found." = "No issues found.";
 "No items in this category." = "No items in this category.";
+"No previous passwords recorded." = "No previous passwords recorded.";
 "No revision date recorded" = "No revision date recorded";
 "No server URL is configured." = "No server URL is configured.";
 "None" = "None";
@@ -282,6 +286,7 @@
 "Passphrase" = "Passphrase";
 "Passport Number" = "Passport Number";
 "Password" = "Password";
+"Password history" = "Password history";
 "Passwords not changed in over two years." = "Passwords not changed in over two years.";
 "Passwords that score weak or lower." = "Passwords that score weak or lower.";
 "Passwords used by more than one item." = "Passwords used by more than one item.";
@@ -290,6 +295,7 @@
 "Phone" = "Phone";
 "Postal Code" = "Postal Code";
 "Preparing…" = "Preparing…";
+"Previous passwords stay masked. Revealing one will require confirming your master password." = "Previous passwords stay masked. Revealing one will require confirming your master password.";
 "Privacy" = "Privacy";
 "Private Key" = "Private Key";
 "Prizm Is Locked" = "Prizm Is Locked";
@@ -383,6 +389,7 @@
 "Types" = "Types";
 "Unfavorite" = "Unfavorite";
 "Unknown Field" = "Unknown Field";
+"Unknown date" = "Unknown date";
 "Unlock your vault to change this setting" = "Unlock your vault to change this setting";
 "Unsecured websites" = "Unsecured websites";
 "Unsupported item." = "Unsupported item.";

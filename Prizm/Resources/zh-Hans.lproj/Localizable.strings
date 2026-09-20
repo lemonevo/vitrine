@@ -9,6 +9,7 @@
 "%@ is unavailable — %@ (LAError %lld)" = "此版本中%@不可用 —— %@ (LAError %lld)";
 "%@ or enter the password for %@ to unlock." = "%@，或输入 %@ 的密码以解锁。";
 "%@ unlock" = "%@ 解锁";
+"%d entries" = "%d 条";
 "%d findings" = "%d 项发现";
 "%d items were written." = "已写入 %d 个项目。";
 "%d items will be permanently deleted and cannot be recovered." = "%d 个项目将被永久删除，且无法恢复。";
@@ -90,9 +91,11 @@
 "Copy Password" = "复制密码";
 "Copy Username" = "复制用户名";
 "Copy Website" = "复制网站";
+"Copy this previous password" = "复制这个旧密码";
 "Could not delete attachment: %@" = "无法删除附件：%@";
 "Could not open file: %@" = "无法打开文件：%@";
 "Could not read file: %@" = "无法读取文件：%@";
+"Could not read the password history: %@" = "无法读取密码历史：%@";
 "Could not read the vault: %@" = "无法读取保险库：%@";
 "Could not save file: %@" = "无法保存文件：%@";
 "Country" = "国家/地区";
@@ -255,6 +258,7 @@
 "No internet connection. Check your network connection." = "无网络连接。请检查网络。";
 "No issues found." = "未发现问题。";
 "No items in this category." = "此分类下暂无项目。";
+"No previous passwords recorded." = "没有记录旧密码。";
 "No revision date recorded" = "没有记录修改日期";
 "No server URL is configured." = "未配置服务器地址。";
 "None" = "无";
@@ -282,6 +286,7 @@
 "Passphrase" = "密码短语";
 "Passport Number" = "护照号";
 "Password" = "密码";
+"Password history" = "密码历史";
 "Passwords not changed in over two years." = "超过两年未更改的密码。";
 "Passwords that score weak or lower." = "强度为“弱”或更低的密码。";
 "Passwords used by more than one item." = "被多个条目共用的密码。";
@@ -290,6 +295,7 @@
 "Phone" = "电话";
 "Postal Code" = "邮政编码";
 "Preparing…" = "准备中…";
+"Previous passwords stay masked. Revealing one will require confirming your master password." = "旧密码保持遮罩状态。显示其中一个需要确认主密码。";
 "Privacy" = "隐私";
 "Private Key" = "私钥";
 "Prizm Is Locked" = "Prizm 已锁定";
@@ -383,6 +389,7 @@
 "Types" = "类型";
 "Unfavorite" = "取消收藏";
 "Unknown Field" = "未知字段";
+"Unknown date" = "日期未知";
 "Unlock your vault to change this setting" = "解锁保险库后才能修改此设置";
 "Unsecured websites" = "不安全的网站";
 "Unsupported item." = "不支持的项目。";
