@@ -293,23 +293,34 @@ items, one of which is gated on verifying an external algorithm (design D12).
   it did not reproduce across four subsequent runs and is recorded rather than explained.
 
 - **The suite cannot be run from the command line without a temporary `Package.swift` test
-  target, and that target must be `.swiftLanguageMode(.v5)`.** This is not a preference — every
-  Swift 6 configuration fails to compile. Measured on a pristine `git worktree` of `HEAD` with
-  none of the wave A changes present, so the numbers are the suite's own property and not a
-  regression this wave introduced:
+  target, and that target has to carry *two* settings: `.swiftLanguageMode(.v5)` **and**
+  `.unsafeFlags(["-default-isolation", "MainActor"])`.** The second one was missed on the first
+  pass; the cost of missing it is recorded at the end of this entry.
 
   | configuration | result |
   | --- | --- |
-  | `-swift-version 6` | 576 errors across 9 test files |
-  | v6 + the three upcoming-feature flags | 22 errors across 3 test files |
-  | v6 + `-default-isolation MainActor` | 4969 errors (every `XCTestCase` subclass) |
-  | `-swift-version 5` | compiles |
+  | `-swift-version 5` | 3 errors across 4 test files |
+  | v5 + the two upcoming-feature flags | 3 errors across 4 test files |
+  | v5 + `-default-isolation MainActor` | compiles |
+  | v5 + `-default-isolation MainActor` + the two upcoming-feature flags | compiles |
 
-  The residual three files under v6 are `FaviconLoaderTests`, `VaultRepositoryImplDuplicateTests`
-  and `DuplicateVaultItemTests`; all three call the nonisolated `XCTAssertThrowsErrorAsync` helper
-  from a `@MainActor` class, which v6 rejects. `Package.swift` is reverted before committing — the
-  Xcode project remains the source of truth — so this recipe is recorded here to save the next
-  person the four-way experiment.
+  The failing files call `VaultItem.init(_ draft:)` from a nonisolated test method. That
+  initialiser sits in an `extension VaultItem`, so it inherits the app target's
+  `-default-isolation MainActor`; a test target that defaults to `nonisolated` cannot call it.
+  Under v6 the same mismatch surfaces as 22 errors, and `v6 + -default-isolation MainActor`
+  produces 4969 because `XCTestCase`'s nonisolated initialiser then conflicts with every
+  subclass — which is why the language mode is v5 and not v6.
+
+  **An earlier version of this note claimed `-swift-version 5` alone compiles. That was wrong.**
+  The table had been measured with plain `swift build`, which never compiles the test target at
+  all — so every row was really measuring the app target, and the "compiles" row was vacuous.
+  `swift build --build-tests` (or `swift test`) is the only honest check, and the settings above
+  are the ones that survive it. The same trap bit twice: a first attempt to verify a test-only
+  commit with `swift build --build-tests` also passed vacuously, because the manifest it ran
+  against had been saved before the test target was appended.
+
+  `Package.swift` is reverted before committing — the Xcode project remains the source of truth —
+  so this recipe is recorded here to save the next person the experiment.
 
 - **A6 — the first localisation pass was incomplete, and the audit was the reason.** Auditing only
   `L("…")` calls found 26 missing keys and looked finished. It was not: SwiftUI's
@@ -386,3 +397,29 @@ items, one of which is gated on verifying an external algorithm (design D12).
   re-import the file into the same account, confirm the item count and a sampled item's fields")
   and the launch check ("the File menu entries appear and are enabled") both need a real account
   and a pair of eyes, so they were not performed here.
+
+### Wave B
+
+- **B1 — the strength estimator.** 609 common passwords ordered by popularity, plus an estimator
+  that tokenises into runs, matches the dictionary longest-first without overlap, and multiplies
+  the cost of whatever is left over. Two of the design decisions were forced by the tests rather
+  than chosen up front:
+
+  - the per-run costs are summed in **log space**. Adding them would price a four-word passphrase
+    as four draws from 7,776 words taken once, which puts `correct-horse-battery-staple` below a
+    six-character password; and `Double` overflows to `inf` past roughly 300 mixed characters,
+    where `inf` reads as `veryStrong` — the wrong direction to fail in.
+  - **diacritics fold before the lookup**, so `pässwörd` is recognised as `password`. Without
+    that it was priced as ten unrelated characters and scored `veryStrong`.
+
+  Verified: `swift test --filter PasswordStrengthEstimatorTests` is 40/40, and the full suite is
+  **882 tests / 10 failures** against the pre-wave baseline of **842 / 10**, with the failing test
+  set identical after normalisation. The baseline was re-run in a worktree of `4197523` under the
+  same temporary manifest, so the comparison is like-for-like rather than remembered.
+
+- **A correction to the wave A notes, found while verifying B1.** The claim that the suite
+  compiles under `-swift-version 5` alone was an artefact of measuring with plain `swift build`;
+  the corrected table and the reasoning are in the entry above. The 14 keychain failures that the
+  wave A verification attributed to the sandbox were a symptom of that same broken
+  configuration — with the right test target they do not occur at all, and the failure count is
+  back to the documented 10.
