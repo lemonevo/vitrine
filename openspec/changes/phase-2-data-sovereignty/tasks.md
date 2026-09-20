@@ -390,18 +390,51 @@ items, one of which is gated on verifying an external algorithm (design D12).
   account asks for Duo cannot switch from here, so that sentence was not actionable. It names the
   method and says to use another client.
 
-### D2. Account fingerprint phrase
+### D2. Account fingerprint phrase — **done**
 
-- [ ] **Verify the algorithm first** against the Bitwarden client source: the hash, the chunk size
-      and byte order, the modulo, and the word list. If it cannot be confirmed, stop here and
-      record why in `FEATURE-GAP-ANALYSIS.md` (design D12).
-- [ ] `Domain/Utilities/AccountFingerprintPhrase.swift` — `[UInt8]` → five words, from an injected
-      word list.
-- [ ] `Domain/UseCases/GetAccountFingerprintPhraseUseCase.swift` + Data impl — decrypt the private
-      key, derive the public key, hash, map.
-- [ ] Surface it in Settings ▸ Security with the explanation that it must match the other client's.
-- [ ] `AccountFingerprintPhraseTests` — a known-answer vector taken from the reference
-      implementation, not from Prizm's own output.
+- [x] **Verify the algorithm first** against the Bitwarden client source: the hash, the chunk size
+      and byte order, the modulo, and the word list. **Confirmed**, against
+      `bitwarden/sdk-internal` → `crates/bitwarden-crypto/src/fingerprint.rs` (the Rust SDK, not a
+      client) and cross-checked against the TypeScript
+      `libs/legacy-crypto/src/services/legacy-compat-key.service.ts`. What the check established:
+
+      - `material` is the **user id**, not the email. `profile.component.ts` sets
+        `fingerprintMaterial` from the user id; the TypeScript spec's `test@example.com` is a mock
+        value, and believing it would produce a well-formed phrase that matches no other client.
+      - the key is hashed as **SPKI DER**. `PublicKey::to_der()` says SubjectPublicKeyInfo, and
+        `SecKeyCopyExternalRepresentation` returns PKCS#1 on Apple platforms — hence `SPKIEncoder`,
+        tested against `openssl`, not against itself.
+      - HKDF-Expand-SHA256, 32 bytes. Rust passes the key as prk, TypeScript `SHA256(key)`; they
+        coincide because HMAC hashes a key longer than its 64-byte block first. Both were run and
+        both hit the same vector.
+      - the integer is **big-endian**, five words (`ceil(64 / log2(7776))`), least-significant
+        first. Little-endian was computed as a control and gives a different, equally plausible
+        phrase.
+      - two vectors, both published by the reference: 294-byte SPKI +
+        `a09726a0-9590-49d1-a5f5-afe300b6a515` → `turban-deftly-anime-chatroom-unselfish`; and the
+        word-selection step `V5AQSk83YXd6kZqCncC6d9J72R7UZ60Xl1eIoDoWgTc=` →
+        `predefine-hunting-pastime-enrich-unhearing`.
+      - `Prizm/Resources/eff-large-wordlist.txt` is **identical** to Bitwarden's
+        `EFF_LONG_WORD_LIST`, 7776 words in the same order, so it is reused. The coupling is
+        commented at the use site: swapping it for the generator's sake would silently change every
+        phrase.
+
+- [x] `Domain/Utilities/AccountFingerprintPhrase.swift` — five words from an injected word list,
+      plus `SPKIEncoder` for the PKCS#1 → SPKI wrap. `phrase(forHash:)` is internal so the
+      word-selection step can be covered against the reference on its own.
+- [x] `Domain/UseCases/GetAccountFingerprintUseCase.swift` + Data impl. **Not** shaped as the task
+      described: the use case does not decrypt anything. The private key is decrypted once during
+      sync — where the encrypted form lives, and the only place it is available — the public half
+      is derived there and cached in `AccountKeyCache`, and the use case is a lookup of two values
+      plus a call to the pure function. A use case that decrypted would have to be handed the
+      encrypted key, which is not retained anywhere after sync.
+- [x] Surfaced in Settings as its own **Account** section, above Security. Not under Security: the
+      phrase is not a control, and burying it there would read as one more thing to switch on. The
+      note says it is not a secret and can be read aloud, because a fingerprint that has to be
+      hidden cannot be compared.
+- [x] `AccountFingerprintPhraseTests` — the two reference vectors above, the five-word and
+      stability properties, the word-list size, and the SPKI encoding checked against `openssl`.
+      Nothing here is derived from Prizm's own output.
 
 ### D2a. TOTP seed editing — **done**
 
