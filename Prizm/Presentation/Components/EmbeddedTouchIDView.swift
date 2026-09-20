@@ -21,7 +21,11 @@ struct EmbeddedTouchIDView: NSViewRepresentable {
     let context: LAContext
 
     func makeNSView(context: Context) -> LAAuthenticationView {
-        LAAuthenticationView(context: self.context, controlSize: .regular)
+        // `.small` rather than `.regular` — the unlock screen already has an 80×80 app icon above
+        // the affordance, and `.regular` produces a fingerprint bigger than the icon. The system
+        // view's intrinsic size ignores SwiftUI `.frame(width:height:)`, so the size has to come
+        // from the controlSize here.
+        LAAuthenticationView(context: self.context, controlSize: .small)
     }
 
     func updateNSView(_ nsView: LAAuthenticationView, context: Context) {}

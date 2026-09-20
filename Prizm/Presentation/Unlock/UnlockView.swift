@@ -20,21 +20,23 @@ struct UnlockView: View {
         VStack(spacing: 0) {
             Spacer()
 
-            // MARK: App icon + biometric badge
-            ZStack(alignment: .bottomTrailing) {
+            // MARK: App icon + biometric affordance
+            //
+            // The biometric view is its own row, not a corner badge over the icon. `LAAuthenticationView`
+            // has an intrinsic size that the SwiftUI `.frame(width:height:)` does not constrain — at
+            // `.regular` it is larger than the icon, so overlaying with a 32×32-plus-offset produced a
+            // fingerprint sticking out past the shield (more right of it than on it). A dedicated row at
+            // its own intrinsic size is both more honest about the affordance and matches what the macOS
+            // Passwords unlock screen does.
+            VStack(spacing: 12) {
                 Image(nsImage: NSApp.applicationIconImage)
                     .resizable()
                     .frame(width: 80, height: 80)
 
-                // Inline Touch ID badge — LAAuthenticationView routes auth through
-                // the app's own view hierarchy so no system modal dialog appears.
-                // Re-armed via .id(biometricContextVersion) after each attempt.
                 if viewModel.biometricUnlockAvailable {
                     EmbeddedTouchIDView(context: viewModel.biometricContext)
-                    .frame(width: 32, height: 32)
-                    .offset(x: 6, y: 6)
-                    .id(viewModel.biometricContextVersion)
-                    .accessibilityIdentifier(AccessibilityID.Unlock.biometricBadge)
+                        .id(viewModel.biometricContextVersion)
+                        .accessibilityIdentifier(AccessibilityID.Unlock.biometricBadge)
                 }
             }
             .padding(.bottom, 16)
