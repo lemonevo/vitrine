@@ -304,6 +304,13 @@ nonisolated enum APIError: Error, Equatable {
     case decodingFailed
     /// `setBaseURL` was never called before making a request.
     case baseURLNotSet
+    /// The connection was refused on trust grounds — a pinned certificate that no longer matches,
+    /// or a chain that does not lead to the authority the user trusted.
+    ///
+    /// Carries the trust error rather than a status code because the message is the point: a
+    /// refused handshake reported as "connection failed" sends the user to inspect their network
+    /// when the answer is that the certificate is not the one it was.
+    case serverTrustRefused(ServerTrustError)
 }
 
 extension APIError: LocalizedError {
@@ -317,6 +324,8 @@ extension APIError: LocalizedError {
             return L("The server response could not be read. Please try again.")
         case .baseURLNotSet:
             return L("No server URL is configured.")
+        case .serverTrustRefused(let trustError):
+            return trustError.errorDescription
         }
     }
 }
@@ -378,6 +387,8 @@ actor PrizmAPIClientImpl: PrizmAPIClientProtocol {
     private var accessToken: String?
 
     private let session:   URLSession
+    /// Consulted when a request fails, so a refused handshake is reported as what it was.
+    private let trustDelegate: ServerTrustDelegate?
     private let logger:    Logger = Logger(
         subsystem: "com.prizm",
         category:  "PrizmAPIClient"
@@ -397,8 +408,37 @@ actor PrizmAPIClientImpl: PrizmAPIClientProtocol {
 
     // MARK: - Init
 
-    init(session: URLSession = .shared) {
-        self.session = session
+    init(session: URLSession = .shared, trustDelegate: ServerTrustDelegate? = nil) {
+        self.session       = session
+        self.trustDelegate = trustDelegate
+    }
+
+    // MARK: - Sending
+
+    /// Performs `request`, or `URLSession`'s error translated into a trust refusal when that is
+    /// what caused it.
+    ///
+    /// `URLSession` reports a cancelled authentication challenge the same way it reports any other
+    /// cancellation, so without this the user sees "the operation couldn't be completed" after
+    /// their pinned certificate changed — which is the generic failure the spec forbids.
+    private func send(_ request: URLRequest) async throws -> (Data, URLResponse) {
+        do {
+            return try await session.data(for: request)
+        } catch {
+            throw Self.translate(error, trustDelegate: trustDelegate)
+        }
+    }
+
+    /// Only a cancellation is re-attributed: a refusal recorded for one request must not become
+    /// the explanation for an unrelated failure on another.
+    private static func translate(_ error: Error,
+                                  trustDelegate: ServerTrustDelegate?) -> Error {
+        let nsError = error as NSError
+        guard nsError.domain == NSURLErrorDomain,
+              nsError.code == NSURLErrorCancelled,
+              let refusal = trustDelegate?.takeRefusal()
+        else { return error }
+        return APIError.serverTrustRefused(refusal)
     }
 
     // MARK: - Configuration
@@ -507,7 +547,7 @@ actor PrizmAPIClientImpl: PrizmAPIClientProtocol {
     /// Cases 2 and 3 use the same fallthrough path because they produce the same
     /// user-facing error: re-enter your password / code.
     private func performIdentityToken(request: URLRequest) async throws -> TokenResponse {
-        let (data, response) = try await session.data(for: request)
+        let (data, response) = try await send(request)
 
         guard let http = response as? HTTPURLResponse else {
             throw APIError.httpError(statusCode: 0, body: "")
@@ -776,7 +816,7 @@ actor PrizmAPIClientImpl: PrizmAPIClientProtocol {
         request.setValue("BlockBlob", forHTTPHeaderField: "x-ms-blob-type")
         request.setValue("application/octet-stream", forHTTPHeaderField: "Content-Type")
         request.httpBody = encryptedBlob
-        let (_, response) = try await session.data(for: request)
+        let (_, response) = try await send(request)
         guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
             let code = (response as? HTTPURLResponse)?.statusCode ?? 0
             throw APIError.httpError(statusCode: code, body: L("Azure upload failed"))
@@ -1039,7 +1079,7 @@ actor PrizmAPIClientImpl: PrizmAPIClientProtocol {
     ///
     /// - Throws: `APIError.httpError` on non-2xx status codes; `APIError.decodingFailed` on JSON errors.
     private func perform<T: Decodable>(request: URLRequest) async throws -> T {
-        let (data, response) = try await session.data(for: request)
+        let (data, response) = try await send(request)
 
         guard let http = response as? HTTPURLResponse else {
             throw APIError.httpError(statusCode: 0, body: "")
@@ -1093,7 +1133,7 @@ actor PrizmAPIClientImpl: PrizmAPIClientProtocol {
     /// Used for endpoints that return 200/204 with no meaningful response body
     /// (soft-delete, restore, purge). Throws `APIError.httpError` on non-2xx responses.
     private func performEmpty(request: URLRequest) async throws {
-        let (data, response) = try await session.data(for: request)
+        let (data, response) = try await send(request)
 
         guard let http = response as? HTTPURLResponse else {
             throw APIError.httpError(statusCode: 0, body: "")

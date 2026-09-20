@@ -75,6 +75,14 @@ final class AppContainer: ObservableObject {
     let getPasswordHistoryUseCase:        GetPasswordHistoryUseCaseImpl
     let verifyMasterPasswordUseCase:      VerifyMasterPasswordUseCaseImpl
 
+    // MARK: - Server trust
+
+    /// Where the trusted authority and the recorded fingerprint are kept, per host (design D8).
+    let serverTrustStore:    KeychainServerTrustStore
+    /// Evaluates the TLS handshake for the configured server. Owned here as well as by the
+    /// `URLSession` so the API client can turn a refusal into the error the user reads.
+    let serverTrustDelegate: ServerTrustDelegate
+
     // MARK: - Attachment use cases
 
     let uploadAttachmentUseCase:   UploadAttachmentUseCaseImpl
@@ -104,9 +112,20 @@ final class AppContainer: ObservableObject {
     // MARK: - Init
 
     init() {
-        let api           = PrizmAPIClientImpl()
         let crypto        = PrizmCryptoServiceImpl()
         let keychain      = KeychainServiceImpl()
+
+        // The trust delegate has to exist before the session that owns it, and the session before
+        // the client — so the host it asks about is supplied once the client exists, below.
+        let trustStore    = KeychainServerTrustStore(keychain: keychain)
+        let trustDelegate = ServerTrustDelegate(store: trustStore)
+        let session       = URLSession(configuration: .default,
+                                       delegate: trustDelegate,
+                                       delegateQueue: nil)
+
+        let api           = PrizmAPIClientImpl(session: session, trustDelegate: trustDelegate)
+        trustDelegate.setConfiguredHost { await api.baseURL?.host }
+
         let biometricKeychain = BiometricKeychainServiceImpl.preferred()
         let keyCache      = VaultKeyCache()
         let orgKeyCache   = OrgKeyCache()
@@ -140,6 +159,8 @@ final class AppContainer: ObservableObject {
         let syncTimestamp = SyncTimestampRepositoryImpl(email: accountEmail)
 
         self.apiClient       = api
+        self.serverTrustStore    = trustStore
+        self.serverTrustDelegate = trustDelegate
         self.crypto          = crypto
         self.keychain        = keychain
         self.biometricKeychain = biometricKeychain

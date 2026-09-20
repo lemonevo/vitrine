@@ -26,7 +26,11 @@ nonisolated enum KeychainError: Error, Equatable {
 /// map keys to Keychain items one-to-one — see `KeychainServiceImpl`.
 ///
 /// All operations are synchronous and throw `KeychainError` on failure.
-protocol KeychainService {
+///
+/// `Sendable` because a TLS challenge is evaluated off the main actor and reads trust material
+/// through this protocol. `KeychainServiceImpl` earns it: every stored property is immutable and
+/// it serialises its own read-modify-write cycle behind an `NSLock`.
+protocol KeychainService: Sendable {
     /// Write `data` for `key`, replacing any existing value.
     func write(data: Data, key: String) throws
     /// Read and return the data stored for `key`.
