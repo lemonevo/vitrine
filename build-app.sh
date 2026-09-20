@@ -27,16 +27,25 @@ BIN="$ROOT/.build/$CONFIG/Prizm"
 [[ -f "$BIN" ]] || { echo "error: binary not found at $BIN"; exit 1; }
 
 echo "==> Assembling $APP"
-rm -rf "$APP"
+# Overwritten in place, not deleted and rebuilt. A recursive delete of the bundle is refused by
+# the workspace's bulk-delete guard, and it does not have to happen: every entry under Contents
+# is rewritten below, so overwriting produces the same bundle.
+#
+# One difference is real and is stated rather than hidden: a `.lproj` (or any other resource)
+# removed from `Prizm/Resources` would linger in an existing bundle until it is deleted by hand.
+# Nothing else survives a run.
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/Prizm"
 cp "$ROOT/Prizm/Resources/eff-large-wordlist.txt" "$APP/Contents/Resources/"
 
 # Localizations. `Bundle.main` looks for `Localizable.strings` inside
 # Contents/Resources/<lang>.lproj, which is exactly where Xcode would put them.
+# `cp -R src dst/` nests src inside dst when dst already exists, so copy the contents.
 for lproj in "$ROOT"/Prizm/Resources/*.lproj; do
   [[ -d "$lproj" ]] || continue
-  cp -R "$lproj" "$APP/Contents/Resources/"
+  dest="$APP/Contents/Resources/$(basename "$lproj")"
+  mkdir -p "$dest"
+  cp "$lproj"/*.strings "$dest/"
 done
 
 printf 'APPL????' > "$APP/Contents/PkgInfo"
