@@ -43,6 +43,14 @@ struct AccountFingerprintSection: View {
                 .accessibilityLabel(L("Copy the fingerprint phrase"))
                 .accessibilityIdentifier(AccessibilityID.Fingerprint.copy)
             }
+            // The button's icon becomes a tick, which says "done" to a sighted user and says
+            // nothing at all to VoiceOver. Without this the copy has no non-visual confirmation,
+            // and a user who cannot see the tick has no way to know it worked.
+            .onChange(of: didCopy) { _, did in
+                if did {
+                    AccessibilityNotification.Announcement(L("Copied")).post()
+                }
+            }
 
             Text(L("This is not a secret — read it aloud to compare. If it differs from the phrase another Bitwarden client shows for this account, you may not be talking to the same server."))
                 .font(.caption)
