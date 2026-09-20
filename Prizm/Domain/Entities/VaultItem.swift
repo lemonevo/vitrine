@@ -16,13 +16,24 @@ import Foundation
 /// key (`cipherKey`) are never decrypted: no screen displays them, and decrypting secrets you do
 /// not show only widens the attack surface (Constitution §III).
 ///
-/// **The one exception, and it was added later.** `passwordHistory` *is* decrypted, by
-/// `VaultRepository.passwordHistory(for:)` and by nothing else. Two features need it: the export,
-/// because the Bitwarden interchange format carries previous passwords in plaintext, and the
-/// detail view, which shows them behind the master-password re-prompt gate. The original comment
-/// here claimed nothing in this type is ever decrypted — that is no longer true, and leaving the
-/// sentence in place would make the file lie about itself. The rule is now: **history is decrypted
-/// on demand, never cached, never logged**; the other two fields remain opaque.
+/// **The one exception, and it was added later.** `passwordHistory` *is* decrypted — on demand,
+/// never cached, never logged — and the only entry point is `GetPasswordHistoryUseCase`, which
+/// reads it through `VaultRepository.passwordHistory(for:)`. Two features need it: the export,
+/// because the Bitwarden interchange format carries previous passwords in plaintext, and the detail
+/// view's password-history section. The original comment here claimed nothing in this type is ever
+/// decrypted — that is no longer true, and leaving the sentence in place would make the file lie
+/// about itself (design D10).
+///
+/// **Reading it is one thing, showing it is another.** The section is collapsed by default and
+/// expands into masked values; unmasking one requires the master-password re-prompt gate, which
+/// lands in wave C along with the `reprompt` model behind it. A previous password is frequently the
+/// current password of the account next door, so displaying one is held to the same standard as
+/// displaying a re-prompted item's current password.
+///
+/// **The key is the item's own.** `cipherKey` when the cipher carries one, otherwise the vault or
+/// organisation key — the same resolution `CipherMapper` performs for the current password. A
+/// history entry has to decrypt with the same key its item's current password does (design D10).
+/// `fido2Credentials` and `cipherKey` themselves remain never-decrypted.
 ///
 /// Reference: Bitwarden server `CipherModel` / `CipherLoginModel`, Vaultwarden `CipherData`.
 nonisolated struct PreservedCipherFields: Sendable, Equatable, Hashable {
