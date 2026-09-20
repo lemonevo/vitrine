@@ -356,17 +356,39 @@ items, one of which is gated on verifying an external algorithm (design D12).
 
 ### D1. Two-factor methods
 
-- [ ] `Domain/Utilities/TwoFactorProvider.swift` — the provider map (0, 1, 2, 3, 4, 5, 6, 7), the
-      three supported cases, `displayName`, `promptText`, and `unsupportedName` for the rest.
-- [ ] `AuthRepositoryImpl` — pick the first supported provider in preference order
-      (TOTP → YubiKey OTP → Email); store it in `PendingTwoFactor`; send it as
-      `twoFactorProvider` on the second request.
-- [ ] `AuthRepository.sendEmailTwoFactorCode()` — `POST /api/two-factor/send-email`, with the
-      exact path confirmed against Vaultwarden before writing it.
-- [ ] `TOTPPromptView` → `TwoFactorPromptView` — the method-specific label, a "Resend code" button
-      only for Email, and a correct name for an unsupported method.
-- [ ] `TwoFactorProviderTests` — selection order; an unsupported-only list names the method;
-      `twoFactorProvider` matches the code that was entered.
+- [x] `Domain/Utilities/TwoFactorProvider.swift` — the provider map, the three supported cases,
+      `displayName`, `promptText`, and a name for the rest. **The map is 0…8, not 0…7**: the
+      numbers were read out of Vaultwarden's `TwoFactorType`
+      (`src/db/models/two_factor.rs`, main branch), where `RecoveryCode = 8` and
+      `is_twofactor_provider_usable` returns true for it, so the server can offer it. Prizm does
+      not complete it — Vaultwarden's token endpoint deletes every 2FA method on the account when a
+      recovery code is accepted (`src/api/identity.rs`), and a generic "enter your code" prompt must
+      not carry that side effect — but it is named rather than reported as an unrecognised number.
+      The same source is why an existing test's `[3] // Duo` was wrong: 3 is YubiKey, 2 is Duo.
+- [x] `AuthRepositoryImpl` — picks the first supported provider in preference order
+      (authenticator → YubiKey OTP → email); stores it in `PendingTwoFactor`; sends it as
+      `twoFactorProvider`. It is not a parameter of the submit call, so no caller can answer a
+      different question than the one the user was shown.
+- [x] `AuthRepository.sendEmailTwoFactorCode()`. **The path in the task was wrong.**
+      `POST /api/two-factor/send-email` requires a bearer token and is for setting email 2FA up on
+      an account you are already signed into; during login it answers 401. The login-flow route is
+      `POST /api/two-factor/send-email-login` (`src/api/core/two_factor/email.rs`:
+      `send_email_login`, "Does not require Bearer token", verifies `MasterPasswordHash` itself).
+      Body `{ email, masterPasswordHash }`; empty 200 on success; rate-limited.
+- [x] `TOTPPromptView` → `TwoFactorPromptView` — the method name, the method's instruction, a
+      "Resend code" button only for email, and per-method input rules.
+- [x] `TwoFactorProviderTests` — the numbers, selection order (including that the server's list
+      order does not decide), an unsupported-only list naming the method, an unrecognised number
+      reported as a number, and — against the real repository — that the provider on the wire is
+      the one the server asked for.
+- [x] **Not in the task, and needed anyway:** the code field. It filtered to digits and capped at
+      6. A Yubico OTP is 44 modhex *letters*, so a tap produced an empty field with no
+      explanation; and Vaultwarden's `EMAIL_TOKEN_SIZE` defaults to 6 but is configurable upwards,
+      so a hard 6 would break a server set to 8. Rules now come from the provider.
+
+  The "unsupported method" error no longer advises switching to an authenticator app: a user whose
+  account asks for Duo cannot switch from here, so that sentence was not actionable. It names the
+  method and says to use another client.
 
 ### D2. Account fingerprint phrase
 
