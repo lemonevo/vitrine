@@ -125,6 +125,8 @@ nonisolated enum AccessibilityID {
         static let deleteButton  = "edit.button.delete"
         /// The inline error banner shown on save failure.
         static let errorBanner   = "edit.errorBanner"
+        /// The strength readout under the Login password field.
+        static let passwordStrength = "edit.passwordStrength"
         /// The "Add Field" button in the custom-fields section.
         static let addCustomFieldButton = "edit.button.addCustomField"
         /// A custom-field row; `id` is the draft field's stable UUID.
@@ -201,5 +203,7 @@ nonisolated enum AccessibilityID {
         static let copyButton          = "generator.button.copy"
         static let useButton           = "generator.button.use"
         static let triggerButton       = "generator.button.trigger"
+        /// The strength readout under the generated value.
+        static let strengthReadout     = "generator.strengthReadout"
     }
 }

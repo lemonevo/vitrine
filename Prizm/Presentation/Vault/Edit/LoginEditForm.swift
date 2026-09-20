@@ -11,6 +11,12 @@ struct LoginEditForm: View {
 
     @Binding var draft: DraftLoginContent
 
+    /// The estimate for `draft.password`, supplied by `ItemEditViewModel`.
+    ///
+    /// Passed in rather than computed here so there is exactly one estimator in the app and the
+    /// form stays a form. `nil` draws nothing.
+    var passwordStrength: StrengthEstimate? = nil
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
@@ -19,6 +25,14 @@ struct LoginEditForm: View {
                     OptionalEditFieldRow(label: L("Username"), value: $draft.username)
                     Divider()
                     MaskedEditFieldRow(label: L("Password"), value: $draft.password, generatorBinding: $draft.password)
+                    if passwordStrength != nil {
+                        PasswordStrengthReadout(
+                            estimate: passwordStrength,
+                            identifier: AccessibilityID.Edit.passwordStrength
+                        )
+                        .padding(.horizontal, Spacing.rowHorizontal)
+                        .padding(.bottom, Spacing.rowVertical)
+                    }
                 }
 
                 DetailSectionCard(L("Websites")) {

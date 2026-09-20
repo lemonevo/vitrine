@@ -106,30 +106,36 @@ struct PasswordGeneratorView: View {
 
     @ViewBuilder
     private var previewArea: some View {
-        HStack {
-            if let error = viewModel.errorMessage {
-                Text(error)
-                    .font(Typography.fieldValue)
-                    .foregroundStyle(.red)
-            } else {
-                Text(viewModel.generatedValue)
-                    .font(Typography.fieldValue.monospaced())
-                    .lineLimit(3)
-                    .textSelection(.enabled)
-                    .accessibilityIdentifier(AccessibilityID.Generator.preview)
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                if let error = viewModel.errorMessage {
+                    Text(error)
+                        .font(Typography.fieldValue)
+                        .foregroundStyle(.red)
+                } else {
+                    Text(viewModel.generatedValue)
+                        .font(Typography.fieldValue.monospaced())
+                        .lineLimit(3)
+                        .textSelection(.enabled)
+                        .accessibilityIdentifier(AccessibilityID.Generator.preview)
+                }
+                Spacer()
+                Button {
+                    viewModel.generate()
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                }
+                .buttonStyle(.plain)
+                .help("Generate new")
+                .accessibilityLabel("Generate new password")
+                .accessibilityIdentifier(AccessibilityID.Generator.refreshButton)
             }
-            Spacer()
-            Button {
-                viewModel.generate()
-            } label: {
-                Image(systemName: "arrow.clockwise")
-            }
-            .buttonStyle(.plain)
-            .help("Generate new")
-            .accessibilityLabel("Generate new password")
-            .accessibilityIdentifier(AccessibilityID.Generator.refreshButton)
+            .frame(minHeight: 40)
+
+            // The score for the value above it. Not shown while a generation error is on screen —
+            // the error is the message, and a strength bar beside it would be about nothing.
+            PasswordStrengthReadout(estimate: viewModel.strength)
         }
-        .frame(minHeight: 40)
     }
 
     // MARK: - Actions

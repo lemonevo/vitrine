@@ -73,6 +73,19 @@ final class ItemEditViewModel: ObservableObject {
     /// Used to conditionally show the Delete button in the edit sheet.
     var isEditing: Bool { editUseCase != nil }
 
+    /// The strength estimate for the login password, or `nil` when the item is not a login or the
+    /// field is empty.
+    ///
+    /// Computed rather than stored: `draft` is `@Published`, so every keystroke already re-renders
+    /// the form and this is re-read on the way past. A stored copy would be one more thing that can
+    /// fall out of step with the field it describes.
+    var passwordStrength: StrengthEstimate? {
+        guard case .login(let content) = draft.content,
+              let password = content.password,
+              !password.isEmpty else { return nil }
+        return strengthEstimator.estimate(password)
+    }
+
     // MARK: - Private state
 
     /// Snapshot of the item as it was when the sheet opened — used for `hasChanges`.
@@ -81,6 +94,7 @@ final class ItemEditViewModel: ObservableObject {
 
     private let editUseCase: (any EditVaultItemUseCase)?
     private let createUseCase: (any CreateVaultItemUseCase)?
+    private let strengthEstimator: PasswordStrengthEstimator
     private let logger  = Logger(subsystem: "com.prizm", category: "ItemEditViewModel")
 
     /// Called on save success with the server-confirmed `VaultItem` so the caller
@@ -103,7 +117,8 @@ final class ItemEditViewModel: ObservableObject {
 
     /// Edit mode: initialised with an existing item.
     init(item: VaultItem, useCase: any EditVaultItemUseCase, folders: [Folder] = [],
-         organizations: [Organization] = [], collections: [OrgCollection] = []) {
+         organizations: [Organization] = [], collections: [OrgCollection] = [],
+         strengthEstimator: PasswordStrengthEstimator = .application) {
         self.draft         = DraftVaultItem(item)
         self.original      = DraftVaultItem(item)
         self.editUseCase   = useCase
@@ -111,13 +126,15 @@ final class ItemEditViewModel: ObservableObject {
         self.folders       = folders
         self.organizations = organizations
         self.collections   = collections
+        self.strengthEstimator = strengthEstimator
         subscribeToVaultLock()
     }
 
     /// Create mode: initialised with a blank draft for the given type.
     init(type: ItemType, useCase: any CreateVaultItemUseCase, folders: [Folder] = [],
          folderId: String? = nil, organizationId: String? = nil, collectionIds: [String] = [],
-         organizations: [Organization] = [], collections: [OrgCollection] = []) {
+         organizations: [Organization] = [], collections: [OrgCollection] = [],
+         strengthEstimator: PasswordStrengthEstimator = .application) {
         var blank = DraftVaultItem.blank(type: type)
         blank.folderId       = folderId
         blank.organizationId = organizationId
@@ -129,6 +146,7 @@ final class ItemEditViewModel: ObservableObject {
         self.folders       = folders
         self.organizations = organizations
         self.collections   = collections
+        self.strengthEstimator = strengthEstimator
         subscribeToVaultLock()
     }
 

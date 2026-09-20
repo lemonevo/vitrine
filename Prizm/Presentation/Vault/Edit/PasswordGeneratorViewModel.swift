@@ -27,19 +27,30 @@ final class PasswordGeneratorViewModel: ObservableObject {
     @Published private(set) var generatedValue: String = ""
     @Published private(set) var errorMessage: String?
 
+    /// The estimate for `generatedValue`, recomputed on every generation.
+    ///
+    /// The generator already knows what it produced and why, so scoring it costs nothing extra and
+    /// lets the popover show the consequence of the length slider before the password is used.
+    /// `nil` when there is nothing to score.
+    @Published private(set) var strength: StrengthEstimate?
+
     // MARK: - Dependencies
 
     private let provider: RandomnessProvider
     private let generator = PasswordGenerator()
+    private let estimator: PasswordStrengthEstimator
     private let defaults: UserDefaults
     private var clipboardClearTask: Task<Void, Never>?
     private var isInitializing = true
 
     // MARK: - Init
 
-    init(provider: RandomnessProvider, defaults: UserDefaults = .standard) {
+    init(provider: RandomnessProvider,
+         defaults: UserDefaults = .standard,
+         estimator: PasswordStrengthEstimator = .application) {
         self.provider = provider
         self.defaults = defaults
+        self.estimator = estimator
         let config = PasswordGeneratorConfig.load(from: defaults)
         self.mode = config.mode
         self.length = config.length
@@ -73,10 +84,12 @@ final class PasswordGeneratorViewModel: ObservableObject {
                 generatedValue = try generator.generatePassphrase(config: config, provider: provider)
             }
             errorMessage = nil
+            strength = estimator.estimate(generatedValue)
             config.save(to: defaults)
         } catch {
             errorMessage = L("Generation failed: %@", error.localizedDescription)
             generatedValue = ""
+            strength = nil
         }
     }
 

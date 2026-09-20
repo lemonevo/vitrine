@@ -197,13 +197,16 @@ struct ItemEditView: View {
         switch viewModel.draft.content {
         case .login(let content):
             // Use a local binding projected from the draft's associated value.
-            LoginEditForm(draft: Binding(
-                get:  {
-                    guard case .login(let c) = viewModel.draft.content else { return content }
-                    return c
-                },
-                set:  { newContent in viewModel.draft.content = .login(newContent) }
-            ))
+            LoginEditForm(
+                draft: Binding(
+                    get:  {
+                        guard case .login(let c) = viewModel.draft.content else { return content }
+                        return c
+                    },
+                    set:  { newContent in viewModel.draft.content = .login(newContent) }
+                ),
+                passwordStrength: viewModel.passwordStrength
+            )
 
         case .card(let content):
             CardEditForm(draft: Binding(
