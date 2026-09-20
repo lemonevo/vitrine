@@ -17,10 +17,27 @@ final class MockRootDependencies: RootViewModelDependencies {
     let vaultKeyCache = VaultKeyCache()
     let orgKeyCache   = OrgKeyCache()
     let totpGenerator: any TOTPGenerator
+    /// Records start/stop and lets a suite fire the idle timeout on demand.
+    ///
+    /// Held at the concrete type, with the protocol requirement satisfied by an explicitly typed
+    /// accessor below. A stored `let` infers the concrete type, which the compiler refuses to accept
+    /// as a witness for an `any VaultIdleMonitoring` requirement; and the concrete type is the whole
+    /// point here, because `fire(_:)` is a test-only affordance that the protocol does not declare.
+    let mockIdleMonitor = MockVaultIdleMonitor()
+    var idleMonitor: any VaultIdleMonitoring { mockIdleMonitor }
 
     private let mockLoginUseCase = MockLoginUseCase()
-    private let mockSyncUseCase = MockSyncUseCase()
+    /// Not private: a suite can set `stubbedDelay` to hold a sync in flight.
+    let mockSyncUseCase = MockSyncUseCase()
     private let mockVault: MockVaultRepository
+
+    /// Handed to the browser view model and exposed so a suite can assert *which* id was duplicated.
+    /// Created once rather than inline in `makeVaultBrowserViewModel()` for that reason.
+    let duplicateUseCase = NoopDuplicateUseCase()
+
+    /// Same reasoning as `duplicateUseCase`: a suite needs to set the stubbed outcome and read back
+    /// whether it was invoked.
+    let emptyTrashUseCase = StubEmptyTrashUseCase()
 
     init(auth: MockAuthRepository,
          vault: MockVaultRepository,
@@ -47,6 +64,9 @@ final class MockRootDependencies: RootViewModelDependencies {
             delete:          StubDeleteUseCase(),
             permanentDelete: StubPermanentDeleteUseCase(),
             restore:         StubRestoreUseCase(),
+            duplicate:       duplicateUseCase,
+            emptyTrash:      emptyTrashUseCase,
+            sync:            mockSyncUseCase,
             createFolder:     StubCreateFolder(),
             renameFolder:     StubRenameFolder(),
             deleteFolder:     StubDeleteFolder(),

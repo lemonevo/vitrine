@@ -55,7 +55,12 @@ final class MockVaultRepository: VaultRepository {
         populatedItems.filter { $0.collectionIds.contains(collection) }
     }
 
+    /// When set, `items(for:)` throws instead of returning. Used to exercise the "could not list
+    /// Trash" path, which is distinct from "a delete failed".
+    var stubbedItemsError: Error?
+
     func items(for selection: SidebarSelection) async throws -> [VaultItem] {
+        if let stubbedItemsError { throw stubbedItemsError }
         switch selection {
         case .allItems:
             return populatedItems
@@ -121,6 +126,30 @@ final class MockVaultRepository: VaultRepository {
         return result
     }
 
+    // MARK: - duplicate(id:) stubbing
+
+    var stubbedDuplicateResult: VaultItem?
+    var stubbedDuplicateError: Error?
+    private(set) var duplicateCallCount: Int = 0
+    private(set) var lastDuplicatedId: String?
+
+    /// Mirrors the real repository: builds a duplicate draft through the shared helper and returns
+    /// a `VaultItem` derived from it, so tests exercise the same exclusion rules.
+    func duplicate(id: String) async throws -> VaultItem {
+        duplicateCallCount += 1
+        lastDuplicatedId = id
+        if let error = stubbedDuplicateError { throw error }
+        if let result = stubbedDuplicateResult { return result }
+        guard let source = populatedItems.first(where: { $0.id == id }) else {
+            throw VaultError.itemNotFound(id)
+        }
+        let draft = DraftVaultItem.duplicate(of: source)
+        lastCreatedDraft = draft
+        let created = VaultItem(draft)
+        populatedItems.append(created)
+        return created
+    }
+
     // MARK: - deleteItem stubbing
 
     var stubbedDeleteError: Error?
@@ -137,13 +166,19 @@ final class MockVaultRepository: VaultRepository {
     // MARK: - permanentDeleteItem stubbing
 
     var stubbedPermanentDeleteError: Error?
+    /// Ids whose permanent delete should fail. Lets a test produce the partial-failure outcome that
+    /// emptying Trash has to report honestly, which a blanket error cannot express.
+    var permanentDeleteErrorIds: Set<String> = []
     private(set) var permanentDeleteCallCount: Int = 0
     private(set) var lastPermanentDeletedId: String?
+    private(set) var permanentDeletedIds: [String] = []
 
     func permanentDeleteItem(id: String) async throws {
         permanentDeleteCallCount += 1
         lastPermanentDeletedId = id
         if let error = stubbedPermanentDeleteError { throw error }
+        if permanentDeleteErrorIds.contains(id) { throw VaultError.itemNotFound(id) }
+        permanentDeletedIds.append(id)
         populatedItems.removeAll { $0.id == id }
     }
 
