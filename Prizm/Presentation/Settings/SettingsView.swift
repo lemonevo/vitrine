@@ -32,12 +32,25 @@ struct SettingsView: View {
     /// keeps working when this window is closed, which a callback would not.
     @State private var showWebsiteIcons: Bool
 
+    /// How long a copied value stays on the clipboard. Read at copy time by
+    /// `VaultBrowserViewModel`, so no notification is needed when it changes.
+    @State private var clipboardInterval: ClipboardClearInterval
+
+    /// Idle timeout interval and action. `VaultIdleMonitor` reads these on every poll, so a change
+    /// applies to the running timer without restarting it.
+    @State private var timeoutInterval: VaultTimeoutInterval
+    @State private var timeoutAction: VaultTimeoutAction
+
     init(authRepository: any AuthRepository) {
         self.authRepository = authRepository
         _biometry = State(
             initialValue: .probe(systemEnforced: authRepository.biometricGateIsSystemEnforced)
         )
-        _showWebsiteIcons = State(initialValue: WebsiteIconsPreference.isEnabled())
+        _showWebsiteIcons  = State(initialValue: WebsiteIconsPreference.isEnabled())
+        _clipboardInterval = State(initialValue: ClipboardClearInterval.load())
+        let timeout = VaultTimeoutSettings.load()
+        _timeoutInterval = State(initialValue: timeout.interval)
+        _timeoutAction   = State(initialValue: timeout.action)
     }
 
     var body: some View {
@@ -62,15 +75,25 @@ struct SettingsView: View {
                     .onChange(of: showWebsiteIcons) { _, enabled in
                         WebsiteIconsPreference.setEnabled(enabled)
                     }
+
+                Picker("Clear clipboard after", selection: $clipboardInterval) {
+                    ForEach(ClipboardClearInterval.allCases) { interval in
+                        Text(interval.displayName).tag(interval)
+                    }
+                }
+                .pickerStyle(.menu)
+                .onChange(of: clipboardInterval) { _, interval in
+                    ClipboardClearInterval.save(interval)
+                }
             } header: {
                 Text("Privacy")
             } footer: {
-                Text("Icons are loaded from your own server, never from a third party. Turn this off to skip the request entirely — items then show a generic symbol.")
+                Text("Icons are loaded from your own server, never from a third party. Turn this off to skip the request entirely — items then show a generic symbol.\n\nThe clipboard is cleared only if Prizm's own value is still on it.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
 
-            Section("Security") {
+            Section {
                 switch biometry {
                 case .available(let name, let systemEnforced):
                     BiometricUnlockToggle(authRepository: authRepository, biometryName: name)
@@ -84,12 +107,44 @@ struct SettingsView: View {
                 case .unavailable(let reason):
                     unavailableRow(reason)
                 }
+
+                Picker("Lock after", selection: $timeoutInterval) {
+                    ForEach(VaultTimeoutInterval.allCases) { interval in
+                        Text(interval.displayName).tag(interval)
+                    }
+                }
+                .pickerStyle(.menu)
+                .onChange(of: timeoutInterval) { _, interval in
+                    saveTimeout(interval: interval, action: timeoutAction)
+                }
+
+                Picker("On timeout", selection: $timeoutAction) {
+                    ForEach(VaultTimeoutAction.allCases) { action in
+                        Text(action.displayName).tag(action)
+                    }
+                }
+                .pickerStyle(.menu)
+                .disabled(timeoutInterval == .never)
+                .onChange(of: timeoutAction) { _, action in
+                    saveTimeout(interval: timeoutInterval, action: action)
+                }
+            } header: {
+                Text("Security")
+            } footer: {
+                Text("The timeout applies while the vault is unlocked and is measured from your last input in Prizm. Input in other applications does not count, so an untouched vault locks even if you are working elsewhere.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)
         .frame(width: 440)
         .padding()
         .onAppear { biometry = .probe(systemEnforced: authRepository.biometricGateIsSystemEnforced) }
+    }
+
+    /// Writes both timeout values together, so the stored pair is never half-updated.
+    private func saveTimeout(interval: VaultTimeoutInterval, action: VaultTimeoutAction) {
+        VaultTimeoutSettings(interval: interval, action: action).save()
     }
 
     /// Bridges the manager's non-optional selection to `Picker`'s binding.
