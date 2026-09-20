@@ -505,18 +505,32 @@ Two features the user asked for and agreed to schedule rather than do now. They 
 the decision is not lost, and they are **not started until every item above them is closed** — the
 order below is the order they will be attempted.
 
-### E1. Passkey viewer (FIDO2, read-only)
+### E1. Passkey viewer (FIDO2, read-only) — **done**
 
 Show the passkeys already stored on a login item. Does **not** register or use them: real WebAuthn
 support is a separate, much larger piece of work and is not in scope here.
 
-- [ ] Decode `PreservedCipherFields.fido2Credentials` — the entries are today carried through
-      untouched but never interpreted.
-- [ ] Parse the COSE public key and surface rpId, user name and creation date.
-- [ ] A read-only section on `LoginDetailView`, shown only when there is something to show.
-- [ ] State in the UI that Prizm cannot *use* these yet — a list of passkeys with no such note
-      reads as a feature that does not work.
-- [ ] Tests with a fixture credential; malformed entries are skipped, not fatal.
+- [x] Decode `PreservedCipherFields.fido2Credentials`, which was carried through untouched but never
+      interpreted.
+- [x] Surface rpId, user name and creation date. **Not the "COSE public key" the task asked for —
+      there is no COSE key in a stored credential.** COSE is assembled from the raw key bytes at
+      assertion time; what is stored, as `keyValue`, is
+      `crypto.subtle.exportKey("pkcs8", keyPair.privateKey)` — the **private** key, imported again
+      later to sign. It is the most sensitive value on the item and a listing has no use for it, so
+      `PasskeyCredential` has no field for it and nothing decrypts it. Sources:
+      `libs/common/src/platform/services/fido2/fido2-authenticator.service.ts` and
+      `libs/common/src/vault/models/domain/fido2-credential.ts`.
+- [x] A read-only section on `LoginDetailView`, shown only when there is something to show.
+- [x] The UI states that Prizm cannot *use* these, and names where they can be managed — a list of
+      passkeys with no such note reads as a feature that does not work.
+- [x] Tests with fixture credentials; malformed entries are skipped, not fatal. 14 cases, including
+      one that makes "the private key is never decrypted" observable rather than merely asserted:
+      the fixture carries a `keyValue` that cannot be decrypted, so an implementation that touched it
+      would drop the credential or throw — and it does neither.
+
+Also amended: the doc comment on `PreservedCipherFields.fido2Credentials` said "never read". That was
+true when written and became false here; a comment that understates what the code does is the one
+kind someone acts on.
 
 ### E2. SSH agent
 
