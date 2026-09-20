@@ -181,9 +181,14 @@ items, one of which is gated on verifying an external algorithm (design D12).
 
 ### B6. Localisation + tests + verify
 
-- [ ] Both `.strings` files, sorted, identical key sets.
-- [ ] `swift build` clean; `swift test` at the baseline failure count.
+- [x] Both `.strings` files, sorted, identical key sets. **433/433**, no duplicates, no
+      out-of-order lines, no Chinese value still carrying English.
+- [x] `swift build` clean; `swift test` at the baseline failure count — **953 / 10**, and the 131
+      wave-B tests run **122 pass / 9 fail** where all 9 are the pre-existing `PasswordGenerator`
+      passphrase cases.
 - [ ] Rebuild and launch; run the health report against the real vault and sanity-check the counts.
+      **Needs the account holder** — the report reads a decrypted vault, so it cannot be exercised
+      headlessly. Rebuilt; the launch is on the human.
 
 ---
 
