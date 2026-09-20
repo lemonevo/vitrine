@@ -262,31 +262,87 @@ items, one of which is gated on verifying an external algorithm (design D12).
 
 ### C3. Server trust
 
-- [ ] `Domain/Utilities/ServerTrustConfiguration.swift` — `trustedCACertificates: [Data]`,
-      `pinnedLeafSHA256: String?`, `pinningEnabled: Bool`; `ServerTrustDecision` enum.
-- [ ] `Domain/Repositories/ServerTrustStore.swift` — protocol.
-- [ ] `Data/Network/KeychainServerTrustStore.swift` — Keychain-backed, per server host,
-      `kSecAttrAccessibleWhenUnlockedThisDeviceOnly`, never synchronisable.
-- [ ] `Data/Network/ServerTrustPolicy.swift` — the pure `decide(...)` function (design D8).
-- [ ] `Data/Network/ServerTrustDelegate.swift` — `URLSessionDelegate` + `URLSessionTaskDelegate`,
-      a thin adapter over `decide`.
-- [ ] `PrizmAPIClientImpl` — accept a `URLSession` built with the delegate; `AppContainer` builds
+- [x] `Domain/Utilities/ServerTrustConfiguration.swift` — `trustedCACertificates: [Data]`,
+      `pinnedLeafSHA256: String?`, `pinningEnabled: Bool`; `ServerTrustDecision` /
+      `ServerTrustPinCheck` enums. `pinningEnabled` is separate from the pin being non-nil, so
+      turning the setting off does not destroy a recorded pin and does not leave one enforced.
+- [x] `Domain/Repositories/ServerTrustStore.swift` — protocol.
+- [x] `Data/Network/KeychainServerTrustStore.swift` — Keychain-backed, per server host. Writes
+      through `KeychainService` rather than opening its own `SecItem` calls, so the
+      `WhenUnlockedThisDeviceOnly` + never-synchronisable rules have one implementation instead of
+      two, and the store stays one Keychain item.
+- [x] `Data/Network/ServerTrustPolicy.swift` — the pure `decide(...)` function (design D8).
+- [x] `Data/Network/ServerTrustDelegate.swift` — `URLSessionDelegate`, a thin adapter over
+      `decide`. Not a `URLSessionTaskDelegate`: the task-level challenge callback is for
+      per-task credentials, and a trust decision is per host.
+- [x] `PrizmAPIClientImpl` — accepts a `URLSession` built with the delegate; `AppContainer` builds
       it and keeps the delegate alive.
-- [ ] `SettingsView` — a Security subsection: a pinning toggle, the current pin fingerprint, a
-      **Trust a certificate…** button (`NSOpenPanel` for `.cer`/`.crt`/`.pem`), and a
-      **Forget pinned certificate** button.
-- [ ] `ServerTrustPolicyTests` — the full decision table: different host → default; no config →
+      Its requests now go through one `send(_:)`, which re-attributes a cancelled challenge to
+      `APIError.serverTrustRefused`. Without it a changed certificate surfaces as a generic
+      cancellation, which is the failure the spec forbids. Only a cancellation is re-attributed,
+      so one request's refusal cannot become another request's explanation.
+- [x] `SettingsView` — a Security subsection: a pinning toggle, the current pin fingerprint, a
+      **Trust Certificate…** button (`NSOpenPanel`, `.cer`/`.crt`/`.pem`), a
+      **Forget Pinned Certificate** button, and **Stop Trusting** for a private authority.
+      The panel and the file parsing are injected from the App layer, so the view imports neither
+      AppKit nor Security (Constitution §II).
+- [x] `ServerTrustPolicyTests` — the full decision table: different host → default; no config →
       default; pin match; pin mismatch; TOFU records the first leaf; a custom CA is the only
-      anchor.
-- [ ] `KeychainServerTrustStoreTests` — round trip, per-host scoping, removal.
-- [ ] State in the test file that the TLS handshake itself is not covered and why.
+      anchor; plus host normalisation (case, port, IPv6) and the two "could not read the
+      fingerprint" refusals.
+- [x] `KeychainServerTrustStoreTests` — round trip, per-host scoping, removal, and an
+      undecodable value being reported rather than downgraded to `.empty`.
+- [x] `CertificateImporterTests` — not in the original list, and needed because "an unreadable
+      file is rejected and nothing is stored" is a requirement. Runs against a real self-signed
+      certificate.
+- [x] State in the test file that the TLS handshake itself is not covered and why — done in
+      `ServerTrustPolicyTests` and again in `SECURITY.md`, which is where someone would look for
+      the coverage gap.
+
+  **Four failures this section refuses to have.** An unreadable stored configuration fails closed
+  rather than reading as `.empty`, because `.empty` means "use the system's own anchors" — the one
+  direction that hands a protected connection to whatever answers. A pin that could not be
+  recorded refuses the connection, because an accepted connection with no pin leaves the user
+  believing they are pinned when they are not. A PEM file with headers but no certificate is an
+  error, not an empty anchor set, for the same reason. And a save that fails re-reads, so a toggle
+  cannot stay on claiming a protection that was never stored.
+
+  **Two corrections to the literal task text.** `ServerTrustDelegate` is a `URLSessionDelegate`
+  only; there is no per-task trust decision to implement. And the settings subsection needs a way
+  to *un*trust a certificate, not only to forget a pin — otherwise trusting the wrong file leaves
+  no way back.
+
+  Verified: 30 new tests pass. `ServerTrustPolicyTests` (16), `KeychainServerTrustStoreTests` (8),
+  `CertificateImporterTests` (6). See C4 for the state of the whole-suite run.
 
 ### C4. Localisation + verify
 
-- [ ] Both `.strings` files.
-- [ ] `swift build` clean; `swift test` at the baseline failure count.
+- [x] Both `.strings` files — 456 keys each, identical sets, `plutil -lint` clean, 15/0 per file
+      for C3. `verify_keys.py` reports PASS: 0 missing `L()` keys, 0 missing SwiftUI literals,
+      0 `String`-typed parameters left unwrapped.
+- [ ] `swift build` clean; `swift test` at the baseline failure count. **Not reached — see below.**
 - [ ] Manual: set a re-prompt item, lock, unlock, confirm the prompt appears once; trust a
       self-signed certificate against a local server if one is available.
+
+  **The whole-suite run currently aborts part-way through, and C4 is the first item it blocks.**
+  `swift test` dies with signal 5; under lldb the stop reason is `EXC_BREAKPOINT` inside
+  `libsystem_malloc.dylib _xzm_xzone_malloc_freelist_outlined` — malloc's own heap-integrity trap,
+  not an assertion in Prizm's code. Established so far:
+
+  - The pre-C3 commit (`23a9bec`) runs clean: 983 tests, the same 9 baseline failures, twice.
+  - With C3 and its 30 new tests, the run dies at the same place every time (4/4).
+  - With C3 but **without** the two real-Keychain suites (`KeychainServiceTests`,
+    `BiometricKeychainServiceTests`), the run completes: 993 tests, exactly the 9 baseline
+    failures, no crash.
+  - The 30 new tests pass on their own, and together with those two suites.
+
+  No C3 code path is exercised by any test — `AppContainer` is never constructed in tests, so the
+  delegate, the store and the policy never run. What C3 does is shift the heap, and a corruption
+  that was previously silent lands on a live allocation. The two real-Keychain suites are the
+  suspects: they are the only tests that call `SecItem*` against the user's actual login keychain,
+  and whether they are granted access flips from build to build (the same suites report 9 failures
+  when granted and 23 when denied). Pinning it down means running those two under
+  `MallocStackLogging` / the malloc debug environment variables, which is the next step.
 
 ---
 
