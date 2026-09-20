@@ -17,6 +17,11 @@ struct LoginEditForm: View {
     /// form stays a form. `nil` draws nothing.
     var passwordStrength: StrengthEstimate? = nil
 
+    /// Whether the seed currently in the field will produce a code, or `nil` when the field is
+    /// empty. `false` is the only interesting case and draws a warning; see
+    /// `ItemEditViewModel.totpSeedProducesCode`.
+    var seedProducesCode: Bool? = nil
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
@@ -32,6 +37,30 @@ struct LoginEditForm: View {
                         )
                         .padding(.horizontal, Spacing.rowHorizontal)
                         .padding(.bottom, Spacing.rowVertical)
+                    }
+                }
+
+                DetailSectionCard(L("Authenticator Key (TOTP)")) {
+                    MaskedEditFieldRow(label: L("Key"), value: $draft.totp)
+                    Divider()
+                    if seedProducesCode == false {
+                        Label {
+                            Text(L("This key will not produce a code. Paste the secret, or the otpauth:// URL the site shows when you cannot scan its QR code."))
+                        } icon: {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundStyle(.yellow)
+                        }
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, Spacing.rowHorizontal)
+                        .padding(.vertical, Spacing.rowVertical)
+                        .accessibilityIdentifier(AccessibilityID.Edit.totpSeedWarning)
+                    } else {
+                        Text(L("Paste the secret, or the otpauth:// URL the site shows when you cannot scan its QR code."))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, Spacing.rowHorizontal)
+                            .padding(.vertical, Spacing.rowVertical)
                     }
                 }
 

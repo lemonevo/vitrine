@@ -86,6 +86,22 @@ final class ItemEditViewModel: ObservableObject {
         return strengthEstimator.estimate(password)
     }
 
+    /// Whether the TOTP seed the form currently holds will produce a code, or `nil` when the
+    /// field is empty — there is nothing to report about an absent seed.
+    ///
+    /// The generator is asked rather than a format check written here, because "will this produce
+    /// a code" is the question the user will be asking later, when the item silently shows none.
+    ///
+    /// A seed that does not parse is **not** rejected. Bitwarden stores whatever is pasted and
+    /// refusing to save would strand anyone whose service hands out an unusual shape. It is
+    /// surfaced instead of swallowed, which is the difference the edit form can actually make.
+    var totpSeedProducesCode: Bool? {
+        guard case .login(let content) = draft.content,
+              let seed = content.totp,
+              !seed.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
+        return totpGenerator.code(for: seed, at: Date()) != nil
+    }
+
     /// The master-password re-prompt setting, as a Bool for the edit form's toggle.
     ///
     /// The domain model and the wire carry an `Int` (0 or 1) because that is what the server
@@ -106,6 +122,7 @@ final class ItemEditViewModel: ObservableObject {
     private let editUseCase: (any EditVaultItemUseCase)?
     private let createUseCase: (any CreateVaultItemUseCase)?
     private let strengthEstimator: PasswordStrengthEstimator
+    private let totpGenerator: any TOTPGenerator
     private let logger  = Logger(subsystem: "com.prizm", category: "ItemEditViewModel")
 
     /// Called on save success with the server-confirmed `VaultItem` so the caller
@@ -129,7 +146,8 @@ final class ItemEditViewModel: ObservableObject {
     /// Edit mode: initialised with an existing item.
     init(item: VaultItem, useCase: any EditVaultItemUseCase, folders: [Folder] = [],
          organizations: [Organization] = [], collections: [OrgCollection] = [],
-         strengthEstimator: PasswordStrengthEstimator = .application) {
+         strengthEstimator: PasswordStrengthEstimator = .application,
+         totpGenerator: any TOTPGenerator = TOTPGeneratorImpl()) {
         self.draft         = DraftVaultItem(item)
         self.original      = DraftVaultItem(item)
         self.editUseCase   = useCase
@@ -138,6 +156,7 @@ final class ItemEditViewModel: ObservableObject {
         self.organizations = organizations
         self.collections   = collections
         self.strengthEstimator = strengthEstimator
+        self.totpGenerator      = totpGenerator
         subscribeToVaultLock()
     }
 
@@ -145,7 +164,8 @@ final class ItemEditViewModel: ObservableObject {
     init(type: ItemType, useCase: any CreateVaultItemUseCase, folders: [Folder] = [],
          folderId: String? = nil, organizationId: String? = nil, collectionIds: [String] = [],
          organizations: [Organization] = [], collections: [OrgCollection] = [],
-         strengthEstimator: PasswordStrengthEstimator = .application) {
+         strengthEstimator: PasswordStrengthEstimator = .application,
+         totpGenerator: any TOTPGenerator = TOTPGeneratorImpl()) {
         var blank = DraftVaultItem.blank(type: type)
         blank.folderId       = folderId
         blank.organizationId = organizationId
@@ -158,6 +178,7 @@ final class ItemEditViewModel: ObservableObject {
         self.organizations = organizations
         self.collections   = collections
         self.strengthEstimator = strengthEstimator
+        self.totpGenerator      = totpGenerator
         subscribeToVaultLock()
     }
 

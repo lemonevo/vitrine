@@ -93,8 +93,14 @@ nonisolated struct DraftLoginContent: Equatable {
     var username: String?
     var password: String?
     var uris: [DraftLoginURI]
-    /// TOTP seed is not editable in v1.
-    let totp: String?
+    /// The TOTP seed — `var` because the edit form writes it, which is the point of the mirror.
+    ///
+    /// It is the one field here whose value is both a secret and something the user has to be able
+    /// to *enter*: a seed can only be obtained from the issuing service's own "can't scan the QR
+    /// code" page, so an item imported without one could never be finished inside Prizm. Leaving
+    /// it `let` did not protect anything — the value was already decrypted and on screen — it just
+    /// made the one place a seed can be recorded unreachable.
+    var totp: String?
     var notes: String?
     /// Custom field values are editable; adding/removing/reordering is out of scope.
     var customFields: [DraftCustomField]

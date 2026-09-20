@@ -222,7 +222,8 @@ struct ItemEditView: View {
                     },
                     set:  { newContent in viewModel.draft.content = .login(newContent) }
                 ),
-                passwordStrength: viewModel.passwordStrength
+                passwordStrength: viewModel.passwordStrength,
+                seedProducesCode: viewModel.totpSeedProducesCode
             )
 
         case .card(let content):
