@@ -34,6 +34,7 @@
 "A stored certificate could not be read." = "A stored certificate could not be read.";
 "A year or date" = "A year or date";
 "About Prizm" = "About Prizm";
+"Account" = "Account";
 "Acknowledgements" = "Acknowledgements";
 "Action Failed" = "Action Failed";
 "Add Attachment" = "Add Attachment";
@@ -97,6 +98,7 @@
 "Copy Password" = "Copy Password";
 "Copy Username" = "Copy Username";
 "Copy Website" = "Copy Website";
+"Copy the fingerprint phrase" = "Copy the fingerprint phrase";
 "Copy this previous password" = "Copy this previous password";
 "Could not delete attachment: %@" = "Could not delete attachment: %@";
 "Could not open file: %@" = "Could not open file: %@";
@@ -275,6 +277,7 @@
 "No server URL is configured." = "No server URL is configured.";
 "No stored session was found. Sign in again to continue." = "No stored session was found. Sign in again to continue.";
 "None" = "None";
+"Not available yet" = "Not available yet";
 "Not changed in over two years" = "Not changed in over two years";
 "Not favorited" = "Not favorited";
 "Not now" = "Not now";
@@ -396,6 +399,7 @@
 "Text" = "Text";
 "That file does not contain a certificate. Choose a .pem, .crt or .cer file exported from your server." = "That file does not contain a certificate. Choose a .pem, .crt or .cer file exported from your server.";
 "That is not the master password for this account." = "That is not the master password for this account.";
+"The account fingerprint could not be derived." = "The account fingerprint could not be derived.";
 "The certificate for %@ is not the one this app recorded. It was replaced, or something is intercepting the connection." = "The certificate for %@ is not the one this app recorded. It was replaced, or something is intercepting the connection.";
 "The certificate for %@ was not issued by the authority you trusted. %@" = "The certificate for %@ was not issued by the authority you trusted. %@";
 "The export file could not be read." = "The export file could not be read.";
@@ -411,6 +415,7 @@
 "This file is not encrypted. Delete it when you no longer need it." = "This file is not encrypted. Delete it when you no longer need it.";
 "This includes %d items that belong to an organisation. The official Bitwarden export leaves those out." = "This includes %d items that belong to an organisation. The official Bitwarden export leaves those out.";
 "This is an encrypted export. Prizm can only import unencrypted exports." = "This is an encrypted export. Prizm can only import unencrypted exports.";
+"This is not a secret — read it aloud to compare. If it differs from the phrase another Bitwarden client shows for this account, you may not be talking to the same server." = "This is not a secret — read it aloud to compare. If it differs from the phrase another Bitwarden client shows for this account, you may not be talking to the same server.";
 "This item is in Trash." = "This item is in Trash.";
 "This key will not produce a code. Paste the secret, or the otpauth:// URL the site shows when you cannot scan its QR code." = "This key will not produce a code. Paste the secret, or the otpauth:// URL the site shows when you cannot scan its QR code.";
 "This server doesn't appear to be a Bitwarden instance." = "This server doesn't appear to be a Bitwarden instance.";

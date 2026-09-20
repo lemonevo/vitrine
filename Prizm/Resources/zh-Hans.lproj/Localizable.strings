@@ -34,6 +34,7 @@
 "A stored certificate could not be read." = "无法读取已保存的证书。";
 "A year or date" = "年份或日期";
 "About Prizm" = "关于 Prizm";
+"Account" = "账户";
 "Acknowledgements" = "致谢";
 "Action Failed" = "操作失败";
 "Add Attachment" = "添加附件";
@@ -97,6 +98,7 @@
 "Copy Password" = "复制密码";
 "Copy Username" = "复制用户名";
 "Copy Website" = "复制网站";
+"Copy the fingerprint phrase" = "复制指纹短语";
 "Copy this previous password" = "复制这个旧密码";
 "Could not delete attachment: %@" = "无法删除附件：%@";
 "Could not open file: %@" = "无法打开文件：%@";
@@ -275,6 +277,7 @@
 "No server URL is configured." = "未配置服务器地址。";
 "No stored session was found. Sign in again to continue." = "找不到已保存的会话。请重新登录以继续。";
 "None" = "无";
+"Not available yet" = "暂不可用";
 "Not changed in over two years" = "超过两年未更改";
 "Not favorited" = "未收藏";
 "Not now" = "暂不";
@@ -396,6 +399,7 @@
 "Text" = "文本";
 "That file does not contain a certificate. Choose a .pem, .crt or .cer file exported from your server." = "该文件不含证书。请选择从服务器导出的 .pem、.crt 或 .cer 文件。";
 "That is not the master password for this account." = "这不是此账户的主密码。";
+"The account fingerprint could not be derived." = "无法生成账户指纹。";
 "The certificate for %@ is not the one this app recorded. It was replaced, or something is intercepting the connection." = "%@ 的证书与本机记录的不一致。它已被更换，或者连接正被拦截。";
 "The certificate for %@ was not issued by the authority you trusted. %@" = "%@ 的证书并非由你信任的机构签发。%@";
 "The export file could not be read." = "无法读取导出文件。";
@@ -411,6 +415,7 @@
 "This file is not encrypted. Delete it when you no longer need it." = "该文件未加密，不再需要时请将其删除。";
 "This includes %d items that belong to an organisation. The official Bitwarden export leaves those out." = "其中包含 %d 个属于组织的项目，而 Bitwarden 官方导出会忽略这些项目。";
 "This is an encrypted export. Prizm can only import unencrypted exports." = "这是加密导出文件。Prizm 只能导入未加密的导出文件。";
+"This is not a secret — read it aloud to compare. If it differs from the phrase another Bitwarden client shows for this account, you may not be talking to the same server." = "这不是秘密 —— 可以念出来比对。如果它与另一个 Bitwarden 客户端显示的短语不一致，你连接的可能不是同一个服务器。";
 "This item is in Trash." = "该项目在废纸篓中。";
 "This key will not produce a code. Paste the secret, or the otpauth:// URL the site shows when you cannot scan its QR code." = "这个密钥无法生成验证码。请粘贴密钥，或粘贴网站在无法扫描二维码时显示的 otpauth:// 链接。";
 "This server doesn't appear to be a Bitwarden instance." = "该服务器似乎不是 Bitwarden 实例。";

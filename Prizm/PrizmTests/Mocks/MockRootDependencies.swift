@@ -16,6 +16,7 @@ final class MockRootDependencies: RootViewModelDependencies {
     let vaultRepo: any VaultRepository
     let vaultKeyCache = VaultKeyCache()
     let orgKeyCache   = OrgKeyCache()
+    let accountKeyCache = AccountKeyCache()
     /// Real, not a double: the ring buffer has no I/O and no dependencies, so a suite can assert
     /// against the actual implementation and the lock path is exercised end to end.
     let generatorHistory = GeneratorHistory()

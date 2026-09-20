@@ -97,6 +97,17 @@ actor MockPrizmCryptoService: PrizmCryptoService {
         stubbedRSAPrivateKey
     }
 
+    /// The stubbed public key, or `stubbedRSAPrivateKey` unchanged when nothing is set — so a test
+    /// that does not care about the fingerprint still gets a value rather than a crash.
+    var stubbedAccountPublicKeySPKI: Data?
+    var accountPublicKeySPKIError:   Error?
+
+    func accountPublicKeySPKI(pkcs8PrivateKey: Data) throws -> Data {
+        if let err = accountPublicKeySPKIError { throw err }
+        return stubbedAccountPublicKeySPKI ?? pkcs8PrivateKey
+    }
+
+
     func unwrapOrgKey(encOrgKey: String, rsaPrivateKey: Data) throws -> CryptoKeys {
         // Return a deterministic stub org key for tests.
         CryptoKeys(encryptionKey: Data(count: 32), macKey: Data(count: 32))
