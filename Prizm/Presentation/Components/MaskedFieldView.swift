@@ -58,19 +58,45 @@ struct MaskedFieldView: View {
     /// A stable identifier for the current item; changing this resets the reveal state.
     let itemId: String
 
+    /// Whether revealing this value has to be granted by the master-password gate.
+    ///
+    /// When `true` the local toggle stops deciding and hands off to `onRequestReveal`, **and the
+    /// Option-key peek is suppressed**. The peek is the important half: it exists to show a
+    /// password without touching the eye button, so a gate that left it working would be one
+    /// modifier key away from being decoration.
+    var isGated: Bool = false
+    /// The gate's decision, consulted only when `isGated`.
+    var isSecretRevealed: Bool = false
+    /// Called instead of toggling when `isGated`.
+    var onRequestReveal: (() -> Void)? = nil
+
     @State private var state: MaskedFieldState
     @Environment(OptionKeyMonitor.self) private var optionKeyMonitor
 
-    init(label: String, value: String?, itemId: String) {
-        self.label  = label
-        self.value  = value
-        self.itemId = itemId
+    init(label: String, value: String?, itemId: String,
+         isGated: Bool = false, isSecretRevealed: Bool = false,
+         onRequestReveal: (() -> Void)? = nil) {
+        self.label            = label
+        self.value            = value
+        self.itemId           = itemId
+        self.isGated          = isGated
+        self.isSecretRevealed = isSecretRevealed
+        self.onRequestReveal  = onRequestReveal
         _state = State(initialValue: MaskedFieldState(value: value ?? ""))
     }
 
-    /// Plaintext when revealed via toggle OR Option-key peek.
+    /// Plaintext when revealed via toggle OR Option-key peek — and, for a gated field, only when
+    /// the gate has said so.
     private var effectiveDisplayValue: String {
-        state.displayValue(peeking: optionKeyMonitor.isOptionHeld)
+        if isGated {
+            return isSecretRevealed ? (value ?? "") : MaskedFieldState.maskedPlaceholder
+        }
+        return state.displayValue(peeking: optionKeyMonitor.isOptionHeld)
+    }
+
+    /// Whether the value is currently shown. Drives the button's icon and label.
+    private var showingValue: Bool {
+        isGated ? isSecretRevealed : state.isRevealed
     }
 
     var body: some View {
@@ -80,15 +106,21 @@ struct MaskedFieldView: View {
                 .textSelection(.enabled)
                 .accessibilityIdentifier(AccessibilityID.Masked.value(label))
             Button {
-                state = state.toggled()
+                if isGated {
+                    // The gate decides, and it toggles: hiding again is always allowed, and
+                    // re-revealing does not re-prompt because the grant outlives the reveal.
+                    onRequestReveal?()
+                } else {
+                    state = state.toggled()
+                }
             } label: {
-                Image(systemName: state.isRevealed ? "eye.slash" : "eye")
+                Image(systemName: showingValue ? "eye.slash" : "eye")
                     .imageScale(.medium)
                     .foregroundStyle(Color.accentColor)
             }
             .buttonStyle(.plain)
-            .help(state.isRevealed ? L("Hide") : L("Reveal"))
-            .accessibilityLabel(state.isRevealed ? L("Hide %@", label) : L("Reveal %@", label))
+            .help(showingValue ? L("Hide") : L("Reveal"))
+            .accessibilityLabel(showingValue ? L("Hide %@", label) : L("Reveal %@", label))
             .accessibilityIdentifier(AccessibilityID.Masked.toggle(label))
         }
         // Reset to masked whenever the parent item changes (FR-027).

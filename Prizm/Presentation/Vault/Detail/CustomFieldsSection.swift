@@ -14,6 +14,10 @@ struct CustomFieldsSection: View {
     let itemId: String
     let onCopy: (String) -> Void
 
+    /// The gate for hidden custom fields. Revealing one is among the disclosures the spec gates,
+    /// so this applies to every item type that carries such a field — not only to logins.
+    var gate: RevealGateBinding = .none
+
     var body: some View {
         if fields.isEmpty { EmptyView() } else {
             ForEach(fields.indices, id: \.self) { index in
@@ -39,11 +43,12 @@ struct CustomFieldsSection: View {
 
         case .hidden:
             FieldRowView(
-                label:    field.name,
-                value:    field.value,
-                itemId:   itemId,
-                isMasked: true,
-                onCopy:   onCopy
+                label:            field.name,
+                value:            field.value,
+                itemId:           itemId,
+                isMasked:         true,
+                onCopy:           onCopy,
+                gate:             gate
             )
 
         case .boolean:

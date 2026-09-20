@@ -19,6 +19,13 @@ struct LoginDetailView: View {
     /// when the selection changes.
     var makePasswordHistoryViewModel: ((String) -> PasswordHistoryViewModel)? = nil
 
+    /// The master-password gate for this item's password, its hidden custom fields and its previous
+    /// passwords.
+    ///
+    /// The username, the URIs and the notes are deliberately not given it: gating the username
+    /// would remove the reason the copy-username command exists (design D7).
+    var gate: RevealGateBinding = .none
+
     /// Held so the section keeps its state across renders, and re-created when the item changes.
     @State private var passwordHistoryVM: PasswordHistoryViewModel?
 
@@ -49,7 +56,8 @@ struct LoginDetailView: View {
                                 value:    password,
                                 itemId:   item.id,
                                 isMasked: true,
-                                onCopy:   onCopy
+                                onCopy:   onCopy,
+                                gate:     gate
                             )
                         }
                     }
@@ -82,13 +90,18 @@ struct LoginDetailView: View {
                         CustomFieldsSection(
                             fields: login.customFields,
                             itemId: item.id,
-                            onCopy: onCopy
+                            onCopy: onCopy,
+                            gate:   gate
                         )
                     }
                 }
 
                 if let passwordHistoryVM {
-                    PasswordHistorySection(viewModel: passwordHistoryVM, onCopy: onCopy)
+                    PasswordHistorySection(
+                        viewModel: passwordHistoryVM,
+                        onCopy:    onCopy,
+                        gate:      gate
+                    )
                 }
             }
         .task(id: item.id) {

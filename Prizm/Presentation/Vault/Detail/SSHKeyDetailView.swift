@@ -15,6 +15,8 @@ struct SSHKeyDetailView: View {
     let item:   VaultItem
     let sshKey: SSHKeyContent
     let onCopy: (String) -> Void
+    /// The gate for hidden custom fields. The private key itself is not gated (design D7).
+    var gate: RevealGateBinding = .none
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -65,7 +67,8 @@ struct SSHKeyDetailView: View {
 
                 if !sshKey.customFields.isEmpty {
                     DetailSectionCard(L("Custom Fields")) {
-                        CustomFieldsSection(fields: sshKey.customFields, itemId: item.id, onCopy: onCopy)
+                        CustomFieldsSection(fields: sshKey.customFields, itemId: item.id,
+                                            onCopy: onCopy, gate: gate)
                     }
                 }
             }

@@ -12,6 +12,8 @@ struct IdentityDetailView: View {
     let item:     VaultItem
     let identity: IdentityContent
     let onCopy:   (String) -> Void
+    /// The gate for hidden custom fields. Identity values themselves are not gated (design D7).
+    var gate: RevealGateBinding = .none
 
     // MARK: - Section presence helpers
 
@@ -91,7 +93,8 @@ struct IdentityDetailView: View {
 
                 if !identity.customFields.isEmpty {
                     DetailSectionCard(L("Custom Fields")) {
-                        CustomFieldsSection(fields: identity.customFields, itemId: item.id, onCopy: onCopy)
+                        CustomFieldsSection(fields: identity.customFields, itemId: item.id,
+                                            onCopy: onCopy, gate: gate)
                     }
                 }
             }

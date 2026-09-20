@@ -28,6 +28,21 @@ struct VaultBrowserView: View {
     @State private var showDeleteFolderAlert = false
     @State private var folderToDelete: Folder?
     @State private var isSearchFieldFocused = false
+
+    /// The master-password gate for the selected item.
+    ///
+    /// Rebuilt on each render from the view model's current answer rather than cached, so a reveal
+    /// granted a moment ago is reflected immediately and there is no second source of truth about
+    /// whether a password may be shown.
+    private var revealGate: RevealGateBinding {
+        guard let item = viewModel.itemSelection else { return .none }
+        return .gated(
+            isRevealed:     viewModel.isRevealed(item.id),
+            request:        { viewModel.toggleReveal(itemId: item.id) },
+            requiresPrompt: viewModel.needsPrompt(for: item),
+            copyGated:      { viewModel.copyGated(itemId: item.id, $0) }
+        )
+    }
     @Environment(\.colorSchemeContrast) private var contrast
 
     private let logger = Logger(subsystem: "com.prizm", category: "UI.VaultBrowser")
@@ -186,8 +201,17 @@ struct VaultBrowserView: View {
                     onRestore:                      { id in await viewModel.performRestore(id: id) },
                     onPermanentDelete:              { id in await viewModel.performPermanentDelete(id: id) },
                     editTrigger:                    viewModel.editTrigger,
-                    saveTrigger:                    viewModel.saveTrigger
+                    saveTrigger:                    viewModel.saveTrigger,
+                    gate:                           revealGate
                 )
+                // The gate's own prompt. Driven by the view model rather than by local state so
+                // there is exactly one place that decides a master password is owed.
+                .sheet(isPresented: Binding(
+                    get: { viewModel.pendingReprompt != nil },
+                    set: { presented in if !presented { viewModel.cancelReprompt() } }
+                )) {
+                    RepromptSheet(viewModel: viewModel)
+                }
                 .toolbar {
                     if let item = viewModel.itemSelection {
                         if item.isDeleted {

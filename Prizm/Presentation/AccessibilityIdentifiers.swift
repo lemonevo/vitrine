@@ -114,6 +114,19 @@ nonisolated enum AccessibilityID {
 
     // MARK: - Item Edit (edit-vault-items)
 
+    enum Reprompt {
+        /// The item name shown in the master-password re-prompt sheet.
+        static let itemName       = "reprompt.itemName"
+        /// The master-password field in the re-prompt sheet.
+        static let passwordField  = "reprompt.passwordField"
+        /// The inline error shown after a wrong master password.
+        static let error          = "reprompt.error"
+        /// The Cancel button — the only way out of the sheet that grants nothing.
+        static let cancelButton   = "reprompt.button.cancel"
+        /// The Confirm button.
+        static let confirmButton  = "reprompt.button.confirm"
+    }
+
     enum Edit {
         /// The "Edit" toolbar button in ItemDetailView.
         static let editButton    = "edit.button.edit"
@@ -228,6 +241,9 @@ nonisolated enum AccessibilityID {
         /// The masked value of one entry; `index` is its position, newest first.
         static func value(_ index: Int) -> String { "passwordHistory.value.\(index)" }
         static func copyButton(_ index: Int) -> String { "passwordHistory.copy.\(index)" }
+        /// The reveal toggle for one entry — the one disclosure here that the gate stands in
+        /// front of. Absent until wave C; the wave B build only ever masked these values.
+        static func revealButton(_ index: Int) -> String { "passwordHistory.reveal.\(index)" }
     }
 
     // MARK: - Vault Health Report (vault-health-report)

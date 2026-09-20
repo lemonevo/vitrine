@@ -26,6 +26,10 @@ struct FieldRowView: View {
     var url:      URL?  = nil
     var onCopy:   ((String) -> Void)? = nil
 
+    /// The master-password gate for this field, for the fields it covers — see `RepromptGating`.
+    /// `.none` for everything else, which is the default and is correct for most rows.
+    var gate: RevealGateBinding = .none
+
     @State private var isHovered = false
     @State private var showCopied = false
 
@@ -37,7 +41,14 @@ struct FieldRowView: View {
                     .font(Typography.fieldValue)
                 Spacer()
                 hoverActions
-                MaskedFieldView(label: label, value: value, itemId: itemId)
+                MaskedFieldView(
+                    label:            label,
+                    value:            value,
+                    itemId:           itemId,
+                    isGated:          gate.isGated,
+                    isSecretRevealed: gate.isRevealed,
+                    onRequestReveal:  gate.request
+                )
             } else if isMultiLine {
                 VStack(alignment: .leading, spacing: 2) {
                     if !label.isEmpty {
@@ -77,6 +88,13 @@ struct FieldRowView: View {
 
     private func copyValue() {
         guard let copyValue = value, !copyValue.isEmpty else { return }
+        // Tapping a row copies it (FR-023), so a protected row's tap has to take the same route as
+        // the Copy Password command. Routing only the menu item would leave the gate walkable in
+        // one click.
+        if gate.isGated {
+            gate.copyGated?(copyValue)
+            return
+        }
         onCopy?(copyValue)
         optionalAnimation(.easeInOut(duration: 0.1)) { showCopied = true }
         Task {

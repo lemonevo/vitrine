@@ -11,6 +11,8 @@ struct CardDetailView: View {
     let item:   VaultItem
     let card:   CardContent
     let onCopy: (String) -> Void
+    /// The gate for hidden custom fields. The card number itself is not gated (design D7).
+    var gate: RevealGateBinding = .none
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -58,7 +60,8 @@ struct CardDetailView: View {
 
                 if !card.customFields.isEmpty {
                     DetailSectionCard(L("Custom Fields")) {
-                        CustomFieldsSection(fields: card.customFields, itemId: item.id, onCopy: onCopy)
+                        CustomFieldsSection(fields: card.customFields, itemId: item.id,
+                                            onCopy: onCopy, gate: gate)
                     }
                 }
             }

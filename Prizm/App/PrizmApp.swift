@@ -342,7 +342,7 @@ extension AppContainer: RootViewModelDependencies {
 /// - Session found → `UnlockView` (User Story 2)
 /// - No session    → `LoginView`  (User Story 1)
 @MainActor
-final class RootViewModel: ObservableObject {
+final class RootViewModel: ObservableObject, RepromptGating {
 
     enum Screen {
         case login
@@ -385,6 +385,33 @@ final class RootViewModel: ObservableObject {
     /// generator history (Constitution §III).
     @Published private(set) var healthReportVM: HealthReportViewModel?
 
+    // MARK: - Re-prompt grants
+
+    /// Item ids whose master password has been entered since this unlock.
+    ///
+    /// Cleared by `lockVault()` and `signOut()` in the same teardown that clears the vault store
+    /// and every key cache. A grant is permission to show material those caches protect, so it must
+    /// not be able to outlive them (design D7, Constitution §III).
+    ///
+    /// Scoped per item and for the rest of the unlock session, rather than per disclosure or for a
+    /// short window: "this item was unlocked at this point in the session" is something the user
+    /// can reason about, where a thirty-second timer is not.
+    @Published private(set) var repromptGrants: Set<String> = []
+
+    /// Whether showing or copying a secret of `item` requires the master password first.
+    ///
+    /// An item that does not carry the flag never asks, and an item whose password has already been
+    /// given this session does not ask again — both halves of that are in one expression so there
+    /// is no second place where a grant could be forgotten.
+    func needsReprompt(for item: VaultItem) -> Bool {
+        item.reprompt != 0 && !repromptGrants.contains(item.id)
+    }
+
+    /// Records that the master password was entered correctly for `itemId`.
+    func grantReprompt(for itemId: String) {
+        repromptGrants.insert(itemId)
+    }
+
     private let logger = Logger(subsystem: "com.prizm", category: "RootViewModel")
 
     let loginVM:          LoginViewModel
@@ -423,6 +450,11 @@ final class RootViewModel: ObservableObject {
         idleMonitor.onTimeout = { [weak self] action in
             self?.handleIdleTimeout(action)
         }
+
+        // The browser presents the re-prompt sheet and holds the reveal state, but must not be
+        // able to issue the grant it is asking for. Wiring it here rather than at the call site
+        // means no sheet can be shown without a gate behind it (design D7).
+        vaultBrowserVM.repromptGate = self
 
         subscribeToFlowStates()
     }
@@ -619,6 +651,9 @@ final class RootViewModel: ObservableObject {
             container.generatorHistory.clear()
             // The report lists decrypted item names, so it goes with the rest of the session state.
             healthReportVM = nil
+            // A grant is permission to show what the key caches protect; it goes with them.
+            repromptGrants.removeAll()
+            vaultBrowserVM.discardReveals()
             unlockVM = nil
             screen   = .login
             logger.info("Sign out completed")
@@ -640,6 +675,11 @@ final class RootViewModel: ObservableObject {
             await container.orgKeyCache.clear()
             container.generatorHistory.clear()
             healthReportVM = nil
+            // Both halves of "the user has already entered the master password for this item" go
+            // here: the grant, and the reveals it produced. Leaving the second behind would show a
+            // password on the unlock screen's return with no prompt.
+            repromptGrants.removeAll()
+            vaultBrowserVM.discardReveals()
             if let account = container.authRepo.storedAccount() {
                 unlockVM = container.makeUnlockViewModel(account: account)
                 screen = .unlock
@@ -714,9 +754,38 @@ final class RootViewModel: ObservableObject {
 
     enum CopyableField {
         case username, password, totp, website
+
+        /// Whether copying this field must be confirmed with the master password when the item
+        /// carries re-prompt protection.
+        ///
+        /// The username is the interesting exclusion. The copy-username command exists precisely
+        /// because it is the half that is safe to hand over, so gating it would remove the
+        /// command's reason to exist (design D7). The website is not a secret at all.
+        var isGated: Bool {
+            switch self {
+            case .username, .website: return false
+            case .password, .totp:    return true
+            }
+        }
     }
 
+    /// Copies `field` of the selected item, routing the password and the one-time code through the
+    /// re-prompt gate.
+    ///
+    /// The work is deferred rather than the value: `performGated` re-runs
+    /// `selectedFieldValue` after a successful prompt, so a one-time code is generated at the
+    /// moment it is copied and not when the sheet opened.
     func copySelectedField(_ field: CopyableField) {
+        guard let item = vaultBrowserVM.itemSelection, field.isGated else {
+            copyFieldValue(field)
+            return
+        }
+        vaultBrowserVM.performGated(itemId: item.id) { [weak self] in
+            self?.copyFieldValue(field)
+        }
+    }
+
+    private func copyFieldValue(_ field: CopyableField) {
         guard let value = selectedFieldValue(field) else { return }
         vaultBrowserVM.copy(value)
     }

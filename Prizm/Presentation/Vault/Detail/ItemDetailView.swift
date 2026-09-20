@@ -33,6 +33,10 @@ struct ItemDetailView: View {
     var editTrigger: Int = 0
     var saveTrigger: Int = 0
 
+    /// The master-password gate for the selected item's secrets. Built by `VaultBrowserView` from
+    /// the view model, which owns the grants and the reveal state.
+    var gate: RevealGateBinding = .none
+
     @State private var isEditSheetPresented = false
     @State private var editViewModel: ItemEditViewModel?
 
@@ -252,11 +256,12 @@ struct ItemDetailView: View {
     private func typeDetailView(for item: VaultItem) -> some View {
         switch item.content {
         case .login(let l):      LoginDetailView(item: item, login: l, onCopy: onCopy,
-                                                makePasswordHistoryViewModel: makePasswordHistoryViewModel)
-        case .card(let c):       CardDetailView(item: item, card: c, onCopy: onCopy)
-        case .identity(let i):   IdentityDetailView(item: item, identity: i, onCopy: onCopy)
-        case .secureNote(let n): SecureNoteDetailView(item: item, secureNote: n, onCopy: onCopy)
-        case .sshKey(let k):     SSHKeyDetailView(item: item, sshKey: k, onCopy: onCopy)
+                                                makePasswordHistoryViewModel: makePasswordHistoryViewModel,
+                                                gate: gate)
+        case .card(let c):       CardDetailView(item: item, card: c, onCopy: onCopy, gate: gate)
+        case .identity(let i):   IdentityDetailView(item: item, identity: i, onCopy: onCopy, gate: gate)
+        case .secureNote(let n): SecureNoteDetailView(item: item, secureNote: n, onCopy: onCopy, gate: gate)
+        case .sshKey(let k):     SSHKeyDetailView(item: item, sshKey: k, onCopy: onCopy, gate: gate)
         }
     }
 }

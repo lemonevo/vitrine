@@ -73,6 +73,7 @@ final class AppContainer: ObservableObject {
     let generateVaultHealthReportUseCase: GenerateVaultHealthReportUseCaseImpl
     /// Reads one item's previous passwords, on demand and without keeping them (design D10).
     let getPasswordHistoryUseCase:        GetPasswordHistoryUseCaseImpl
+    let verifyMasterPasswordUseCase:      VerifyMasterPasswordUseCaseImpl
 
     // MARK: - Attachment use cases
 
@@ -173,6 +174,7 @@ final class AppContainer: ObservableObject {
         self.importVaultUseCase              = ImportVaultUseCaseImpl(vault: vault)
         self.generateVaultHealthReportUseCase = GenerateVaultHealthReportUseCaseImpl(vault: vault)
         self.getPasswordHistoryUseCase        = GetPasswordHistoryUseCaseImpl(vault: vault)
+        self.verifyMasterPasswordUseCase      = VerifyMasterPasswordUseCaseImpl(auth: authRepository)
         // Attachment use cases — Upload and Download inject VaultKeyService;
         // Delete does NOT (no key material required, Constitution §VI).
         self.uploadAttachmentUseCase   = UploadAttachmentUseCaseImpl(repository: attachmentRepo, vaultKeyService: vaultKeyService)
@@ -251,6 +253,7 @@ final class AppContainer: ObservableObject {
             getLastSyncDate:  getLastSyncDateUseCase,
             export:           exportVaultUseCase,
             importVault:      importVaultUseCase,
+            verifyMasterPassword: verifyMasterPasswordUseCase,
             fileSaver:        Self.defaultExportSaver,
             filePicker:       Self.defaultImportPicker
         )

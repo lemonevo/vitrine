@@ -11,6 +11,8 @@ struct SecureNoteDetailView: View {
     let item:       VaultItem
     let secureNote: SecureNoteContent
     let onCopy:     (String) -> Void
+    /// The gate for hidden custom fields. The note body is not gated (design D7).
+    var gate: RevealGateBinding = .none
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -26,7 +28,8 @@ struct SecureNoteDetailView: View {
                         CustomFieldsSection(
                             fields: secureNote.customFields,
                             itemId: item.id,
-                            onCopy: onCopy
+                            onCopy: onCopy,
+                            gate:   gate
                         )
                     }
                 }

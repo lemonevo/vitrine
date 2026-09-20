@@ -7,10 +7,10 @@ import SwiftUI
 /// **Collapsed by default, and it clears what it loaded when it closes.** Opening it is what
 /// triggers the decryption — until then nothing has been decrypted at all (design D10).
 ///
-/// **There is no reveal button yet.** The re-prompt gate that has to stand in front of one arrives
-/// in wave C, and shipping the button first would mean shipping a control that shows a previous
-/// password to anyone at the keyboard. The footnote says so rather than leaving the omission to be
-/// guessed at, which is the same reason the health report states the check it does not run.
+/// **Revealing is gated; copying is not.** Revealing a previous password is one of the five
+/// disclosures the spec puts behind the master password, so it goes through `gate`. Copying one is
+/// not on that list, and it is no more exposed than copying the *current* password, which the
+/// detail pane has always allowed — see the wave B note on that decision.
 struct PasswordHistorySection: View {
 
     @ObservedObject var viewModel: PasswordHistoryViewModel
@@ -18,6 +18,11 @@ struct PasswordHistorySection: View {
     /// Copies one value. Cleared on the configured interval by the caller, the same as every other
     /// copy in the app — see `VaultBrowserViewModel.copy`.
     let onCopy: (String) -> Void
+
+    /// Decides whether a previous password may be shown. Wired for every item, protected or not:
+    /// for an unprotected item the gate answers immediately, which keeps this view from having a
+    /// second, local reveal state that ignores the gate.
+    var gate: RevealGateBinding = .none
 
     @State private var isExpanded = false
 
@@ -86,7 +91,12 @@ struct PasswordHistorySection: View {
                     }
                 }
 
-                Text(L("Previous passwords stay masked. Revealing one will require confirming your master password."))
+                // Only promise a prompt when one will actually appear. After the password has been
+                // given once this session the reveal is instant, and a footnote still promising a
+                // prompt would be describing a gate that is already open.
+                Text(gate.requiresPrompt
+                     ? L("Previous passwords stay masked. Revealing one will require confirming your master password.")
+                     : L("Previous passwords stay masked until you reveal them."))
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -104,9 +114,22 @@ struct PasswordHistorySection: View {
 
             Spacer(minLength: 8)
 
-            Text(MaskedFieldState.maskedPlaceholder)
+            Text(gate.isRevealed ? entry.password : MaskedFieldState.maskedPlaceholder)
                 .font(Typography.fieldValue.monospaced())
                 .accessibilityIdentifier(AccessibilityID.PasswordHistory.value(index))
+
+            Button {
+                gate.request()
+            } label: {
+                Image(systemName: gate.isRevealed ? "eye.slash" : "eye")
+                    .imageScale(.medium)
+                    .foregroundStyle(Color.accentColor)
+            }
+            .buttonStyle(.plain)
+            .help(gate.isRevealed ? L("Hide") : L("Reveal"))
+            .accessibilityLabel(gate.isRevealed ? L("Hide this previous password")
+                                                : L("Reveal this previous password"))
+            .accessibilityIdentifier(AccessibilityID.PasswordHistory.revealButton(index))
 
             Button {
                 onCopy(entry.password)

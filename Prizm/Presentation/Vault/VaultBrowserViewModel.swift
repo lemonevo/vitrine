@@ -30,7 +30,16 @@ final class VaultBrowserViewModel: ObservableObject {
         }
     }
 
-    @Published var itemSelection: VaultItem?
+    @Published var itemSelection: VaultItem? {
+        didSet {
+            guard oldValue?.id != itemSelection?.id else { return }
+            // A reveal belongs to the item on screen. Leaving it set would unmask the *next*
+            // item's password because an unrelated one was revealed first — which is the same
+            // bug as a grant that is not scoped per item, one level up.
+            revealedItemIds = []
+        }
+    }
+
     @Published var searchQuery:   String = "" {
         didSet { Task { @MainActor in refreshItems() } }
     }
@@ -105,6 +114,32 @@ final class VaultBrowserViewModel: ObservableObject {
     /// The export/import surface currently presented, or nil.
     @Published var backupSheet: VaultBackupSheet? = nil
 
+    // MARK: - Published state (master-password re-prompt)
+
+    /// Items whose secrets are currently shown in the detail pane.
+    ///
+    /// Held here rather than inside `MaskedFieldView` because the reveal has to survive the view
+    /// being rebuilt, and has to be clearable from outside it when the selection changes. A
+    /// `@State` inside the field view cannot do either.
+    @Published private(set) var revealedItemIds: Set<String> = []
+
+    /// The re-prompt request on screen, or nil when the sheet is closed.
+    @Published var pendingReprompt: PendingReprompt?
+
+    /// Non-nil when the last submitted master password was wrong, or when the check could not be
+    /// made at all. Shown inside the sheet.
+    @Published private(set) var repromptError: String? = nil
+
+    /// `true` while a submitted password is being checked.
+    @Published private(set) var isVerifyingReprompt: Bool = false
+
+    /// Runs once the master password checks out for the pending request.
+    ///
+    /// A closure rather than a stored value: a one-time code generated when the sheet opened is
+    /// stale by the time the password has been typed, so the thing that must be deferred is the
+    /// *action*, not its result.
+    private var repromptContinuation: (@MainActor () -> Void)?
+
     // MARK: - Dependencies
 
     private let vault:                  any VaultRepository
@@ -126,6 +161,13 @@ final class VaultBrowserViewModel: ObservableObject {
     private var getLastSyncDate:        any GetLastSyncDateUseCase
     private let exportUseCase:          any ExportVaultUseCase
     private let importUseCase:          any ImportVaultUseCase
+    private let verifyMasterPassword:   any VerifyMasterPasswordUseCase
+
+    /// The re-prompt gate. Set by `RootViewModel`, which owns the grants; see `RepromptGating`.
+    ///
+    /// Weak because `RootViewModel` owns this object, and a strong reference back would make the
+    /// pair a cycle that neither `deinit` nor a lock could break.
+    weak var repromptGate: (any RepromptGating)?
 
     /// Writes exported bytes to a user-chosen location.
     ///
@@ -208,6 +250,7 @@ final class VaultBrowserViewModel: ObservableObject {
         getLastSyncDate:   any GetLastSyncDateUseCase,
         export:            any ExportVaultUseCase,
         importVault:       any ImportVaultUseCase,
+        verifyMasterPassword: any VerifyMasterPasswordUseCase,
         fileSaver:         @escaping @MainActor (String, Data) throws -> URL?,
         filePicker:        @escaping @MainActor () -> URL?
     ) {
@@ -230,6 +273,7 @@ final class VaultBrowserViewModel: ObservableObject {
         self.getLastSyncDate        = getLastSyncDate
         self.exportUseCase          = export
         self.importUseCase          = importVault
+        self.verifyMasterPassword   = verifyMasterPassword
         self.fileSaver              = fileSaver
         self.filePicker             = filePicker
         self.sortOrder              = ItemSortPreference.load()
@@ -320,6 +364,136 @@ final class VaultBrowserViewModel: ObservableObject {
                 // Task cancelled (e.g. new copy) — do nothing.
             }
         }
+    }
+
+    // MARK: - Master-password re-prompt
+
+    /// Runs `action` now, or after the master password has been entered, depending on whether the
+    /// item carries re-prompt protection and whether it has already been given.
+    ///
+    /// The gate is asked rather than `item.reprompt` read directly: whether a prompt is needed is a
+    /// function of the grant as well as the flag, and the grant is not this object's to read
+    /// (design D7). An item with no gate wired is never gated — a browser view model standing on
+    /// its own has no session to protect.
+    ///
+    /// **The action is deferred, not its result.** A one-time code generated when the sheet opened
+    /// is stale by the time a password has been typed, so what has to wait is the work, not the
+    /// value it produces.
+    func performGated(itemId: String, action: @escaping @MainActor () -> Void) {
+        let item = displayedItems.first { $0.id == itemId } ?? itemSelection
+        guard let item, item.id == itemId, repromptGate?.needsReprompt(for: item) == true else {
+            action()
+            return
+        }
+        repromptContinuation = action
+        repromptError        = nil
+        pendingReprompt      = PendingReprompt(itemId: item.id, itemName: item.name)
+    }
+
+    /// Reveals the secrets of `itemId`, asking for the master password first when the item asks.
+    func requestReveal(itemId: String) {
+        performGated(itemId: itemId) { [weak self] in
+            self?.revealedItemIds.insert(itemId)
+        }
+    }
+
+    /// Whether asking to reveal `item` will actually prompt.
+    ///
+    /// False for an item without the flag and for one whose master password has already been given
+    /// this session. A view uses this to describe the gate honestly rather than promising a prompt
+    /// that will not come.
+    func needsPrompt(for item: VaultItem) -> Bool {
+        repromptGate?.needsReprompt(for: item) == true
+    }
+
+    /// Copies `value` once the gate has been satisfied.
+    ///
+    /// Exists because tapping a field row copies it (FR-023), so a protected row's tap has to take
+    /// the same route as the Copy Password command. Gating only the menu item would leave the gate
+    /// walkable in one click.
+    func copyGated(itemId: String, _ value: String) {
+        performGated(itemId: itemId) { [weak self] in
+            self?.copy(value)
+        }
+    }
+
+    /// Shows or hides `itemId`'s secrets. This is what the eye button on a gated field calls.
+    ///
+    /// Hiding never prompts, and hiding does **not** revoke the grant: the master password has
+    /// already been given for this item this session, so revealing again must not ask again
+    /// (spec: "The grant covers the rest of the session"). The grant dies with the session, in
+    /// the lock and sign-out teardowns, not with the eyeball.
+    func toggleReveal(itemId: String) {
+        guard revealedItemIds.contains(itemId) else {
+            requestReveal(itemId: itemId)
+            return
+        }
+        revealedItemIds.remove(itemId)
+    }
+
+    /// Whether `itemId`'s secrets are currently unmasked.
+    func isRevealed(_ itemId: String) -> Bool {
+        revealedItemIds.contains(itemId)
+    }
+
+    /// Checks `password` and, if it is the master password, runs what the request was for.
+    ///
+    /// A wrong password is not thrown and does not close the sheet: the spec asks for an error and
+    /// for the prompt to remain open, and closing on a wrong answer would be indistinguishable
+    /// from a cancel — the user would not know which happened.
+    func submitReprompt(_ password: Data) {
+        guard let pending = pendingReprompt else { return }
+        isVerifyingReprompt = true
+        repromptError       = nil
+        let useCase = verifyMasterPassword
+
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            // A local copy so these bytes can be zeroed here; the caller zeroes its own. Capturing
+            // the parameter directly would be a mutable capture in concurrently-executing code.
+            var buffer = password
+            defer {
+                buffer.resetBytes(in: 0..<buffer.count)
+                isVerifyingReprompt = false
+            }
+            do {
+                let matched = try await useCase.execute(buffer)
+                guard matched else {
+                    repromptError = L("That is not the master password for this account.")
+                    return
+                }
+                repromptGate?.grantReprompt(for: pending.itemId)
+                let continuation = repromptContinuation
+                pendingReprompt      = nil
+                repromptContinuation = nil
+                repromptError        = nil
+                continuation?()
+            } catch {
+                // "Could not check" is shown, not swallowed. A sheet that stays open with no
+                // message is indistinguishable from one that is broken.
+                repromptError = error.localizedDescription
+            }
+        }
+    }
+
+    /// Drops every reveal and closes any open re-prompt request.
+    ///
+    /// Called from the lock and sign-out teardowns. A reveal is a decision made under a grant, and
+    /// both die with the session — leaving one behind would show a password after the vault has
+    /// been locked, with no prompt to account for it.
+    func discardReveals() {
+        revealedItemIds = []
+        cancelReprompt()
+    }
+
+    /// Closes the sheet having granted nothing.
+    ///
+    /// Dropping the continuation without running it is what makes cancelling safe: nothing is
+    /// revealed and nothing reaches the clipboard (spec: "Cancelling grants nothing").
+    func cancelReprompt() {
+        pendingReprompt      = nil
+        repromptContinuation = nil
+        repromptError        = nil
     }
 
     /// Dismisses the sync error banner (FR-049).
