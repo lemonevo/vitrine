@@ -23,6 +23,7 @@ struct VaultBrowserView: View {
     var makeAttachmentRowViewModel: ((String, Attachment) -> AttachmentRowViewModel)? = nil
     /// Factory for `PasswordHistoryViewModel`, threaded to the login detail view.
     var makePasswordHistoryViewModel: ((String) -> PasswordHistoryViewModel)? = nil
+    var makePasskeysViewModel: ((String) -> PasskeysViewModel)? = nil
 
     @State private var showPermanentDeleteAlert = false
     @State private var showDeleteFolderAlert = false
@@ -195,6 +196,7 @@ struct VaultBrowserView: View {
                     makeBatchAttachmentViewModel:   makeBatchAttachmentViewModel,
                     makeAttachmentRowViewModel:     makeAttachmentRowViewModel,
                     makePasswordHistoryViewModel:   makePasswordHistoryViewModel,
+                    makePasskeysViewModel:          makePasskeysViewModel,
                     onAttachmentsChanged:           { viewModel.refreshItemSelection() },
                     onEditSheetChanged:             { viewModel.handleEditSheetState($0) },
                     onSoftDelete:                   { id in await viewModel.performSoftDelete(id: id) },

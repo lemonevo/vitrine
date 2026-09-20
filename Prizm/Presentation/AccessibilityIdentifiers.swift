@@ -273,6 +273,24 @@ nonisolated enum AccessibilityID {
         static func revealButton(_ index: Int) -> String { "passwordHistory.reveal.\(index)" }
     }
 
+    // MARK: - Passkeys (passkey-viewer)
+
+    enum Passkeys {
+        static let section      = "passkeys.section"
+        /// The credential count in the disclosure label. Absent until the section has been opened.
+        static let countBadge   = "passkeys.count"
+        static let progress     = "passkeys.progress"
+        static let errorMessage = "passkeys.error"
+        static let emptyState   = "passkeys.empty"
+        /// The footnote saying these cannot be used here. Not optional: without it the list reads
+        /// as a feature that failed rather than one that is intentionally read-only.
+        static let limitationNote = "passkeys.limitationNote"
+
+        static func rpId(_ index: Int)     -> String { "passkeys.rpId.\(index)" }
+        static func userName(_ index: Int) -> String { "passkeys.userName.\(index)" }
+        static func date(_ index: Int)     -> String { "passkeys.date.\(index)" }
+    }
+
     // MARK: - Vault Health Report (vault-health-report)
 
     enum Health {

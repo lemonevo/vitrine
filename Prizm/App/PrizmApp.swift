@@ -280,6 +280,9 @@ struct PrizmApp: App {
                 },
                 makePasswordHistoryViewModel: { itemId in
                     container.makePasswordHistoryViewModel(itemId: itemId)
+                },
+                makePasskeysViewModel: { itemId in
+                    container.makePasskeysViewModel(itemId: itemId)
                 }
             )
             // Installed here rather than on the app's root: the generator only exists inside the

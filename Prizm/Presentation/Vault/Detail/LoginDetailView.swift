@@ -19,6 +19,13 @@ struct LoginDetailView: View {
     /// when the selection changes.
     var makePasswordHistoryViewModel: ((String) -> PasswordHistoryViewModel)? = nil
 
+    /// Builds the item's passkeys view model. Nil means the section is not offered.
+    ///
+    /// The same factory shape as the history one, and for a stronger reason here: `fido2Credentials`
+    /// is only non-empty for items that actually carry passkeys, so an item without them never
+    /// builds a view model and never decrypts anything.
+    var makePasskeysViewModel: ((String) -> PasskeysViewModel)? = nil
+
     /// The master-password gate for this item's password, its hidden custom fields and its previous
     /// passwords.
     ///
@@ -28,6 +35,7 @@ struct LoginDetailView: View {
 
     /// Held so the section keeps its state across renders, and re-created when the item changes.
     @State private var passwordHistoryVM: PasswordHistoryViewModel?
+    @State private var passkeysVM: PasskeysViewModel?
 
     // A Credentials card is only meaningful when at least one credential field is present.
     private var hasCredentials: Bool {
@@ -103,6 +111,10 @@ struct LoginDetailView: View {
                         gate:      gate
                     )
                 }
+
+                if let passkeysVM {
+                    PasskeysSection(viewModel: passkeysVM)
+                }
             }
         .task(id: item.id) {
             // Only for an item that actually has history, and only then does anything get
@@ -110,6 +122,11 @@ struct LoginDetailView: View {
             passwordHistoryVM = item.preserved.passwordHistory.isEmpty
                 ? nil
                 : makePasswordHistoryViewModel?(item.id)
+            // The same gate as the history: offered only when the encrypted wire form is non-empty,
+            // so an item with no passkeys triggers no decryption at all.
+            passkeysVM = item.preserved.fido2Credentials.isEmpty
+                ? nil
+                : makePasskeysViewModel?(item.id)
         }
     }
 }
