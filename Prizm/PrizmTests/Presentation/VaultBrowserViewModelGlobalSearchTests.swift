@@ -43,6 +43,7 @@ final class VaultBrowserViewModelGlobalSearchTests: XCTestCase {
             getLastSyncDate:  GetLastSyncDateUseCaseImpl(repository: syncRepo),
             export:           MockExportVaultUseCase(),
             importVault:      MockImportVaultUseCase(),
+            verifyMasterPassword: VerifyMasterPasswordUseCaseImpl(auth: MockAuthRepository()),
             fileSaver:        { _, _ in nil },
             filePicker:       { nil }
         )

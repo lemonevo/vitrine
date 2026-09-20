@@ -72,6 +72,7 @@ final class VaultBrowserViewModelBackupTests: XCTestCase {
             getLastSyncDate:  GetLastSyncDateUseCaseImpl(repository: syncRepo),
             export:           export,
             importVault:      importUseCase,
+            verifyMasterPassword: VerifyMasterPasswordUseCaseImpl(auth: MockAuthRepository()),
             fileSaver:        files.saver,
             filePicker:       files.picker
         )

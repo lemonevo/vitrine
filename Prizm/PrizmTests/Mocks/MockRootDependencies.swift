@@ -42,6 +42,11 @@ final class MockRootDependencies: RootViewModelDependencies {
     /// whether it was invoked.
     let emptyTrashUseCase = StubEmptyTrashUseCase()
 
+    /// Handed to the browser view model so a suite can decide the master-password answer. The
+    /// browser asks the gate through `RootViewModel`, and `RootViewModel` is the thing under test,
+    /// so the answer has to be controllable from outside both of them.
+    let verifyMasterPasswordUseCase = MockVerifyMasterPasswordUseCase()
+
     init(auth: MockAuthRepository,
          vault: MockVaultRepository,
          totpGenerator: any TOTPGenerator = TOTPGeneratorImpl()) {
@@ -81,6 +86,7 @@ final class MockRootDependencies: RootViewModelDependencies {
             getLastSyncDate:  GetLastSyncDateUseCaseImpl(repository: syncRepo),
             export:           MockExportVaultUseCase(),
             importVault:      MockImportVaultUseCase(),
+            verifyMasterPassword: verifyMasterPasswordUseCase,
             fileSaver:        { _, _ in nil },
             filePicker:       { nil }
         )
