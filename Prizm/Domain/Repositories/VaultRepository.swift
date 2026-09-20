@@ -64,6 +64,18 @@ protocol VaultRepository: AnyObject, Sendable {
     /// into the in-memory cache, and returns it.
     func create(_ draft: DraftVaultItem) async throws -> VaultItem
 
+    /// Creates a copy of the item with `id` and returns the server-confirmed new item.
+    ///
+    /// The copy carries everything the user can see — content, notes, custom fields, folder,
+    /// organisation membership — but not attachments, the per-item cipher key, passkeys, password
+    /// history or the archived flag. See `DraftVaultItem.duplicate(of:)` for why each is excluded.
+    ///
+    /// Implemented in terms of `create`, so a duplicate goes through the same encryption, org-key
+    /// resolution and cache-insert path as any other new item.
+    ///
+    /// - Throws: `VaultError.itemNotFound` if `id` is not in the store.
+    func duplicate(id: String) async throws -> VaultItem
+
     /// Replaces the `attachments` array for the vault item identified by `cipherId`,
     /// patching the in-memory cache without a full re-sync.
     func updateAttachments(_ attachments: [Attachment], for cipherId: String) async

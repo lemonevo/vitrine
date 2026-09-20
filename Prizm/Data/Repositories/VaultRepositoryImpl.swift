@@ -209,7 +209,20 @@ actor VaultRepositoryImpl: VaultRepository {
     func searchItems(query: String, in selection: SidebarSelection) async throws -> [VaultItem] {
         let base = _bySelection[selection] ?? []
         guard !query.isEmpty else { return base }
-        return base.filter { $0.matchesSearch(query: query) }
+
+        // Folder names live on the folder, not on the item — the item only carries a `folderId`.
+        // Resolving them here rather than inside `matchesSearch` keeps `VaultItem` from needing to
+        // know about folders, and this actor already holds both halves.
+        let folderNames = Dictionary(folderStore.map { ($0.id, $0.name) },
+                                     uniquingKeysWith: { first, _ in first })
+
+        return base.filter { item in
+            if item.matchesSearch(query: query) { return true }
+            if let folderId = item.folderId,
+               let folderName = folderNames[folderId],
+               folderName.localizedCaseInsensitiveContains(query) { return true }
+            return false
+        }
     }
 
     func itemCounts() async throws -> [SidebarSelection: Int] {
@@ -328,6 +341,20 @@ actor VaultRepositoryImpl: VaultRepository {
         buildIndexes()
         logger.info("Vault item created: \(createdItem.id, privacy: .public)")
         return createdItem
+    }
+
+    /// Creates a copy of the item with `id` by building a duplicate draft and routing it through
+    /// `create`, so the copy is encrypted and cached exactly like any other new item.
+    ///
+    /// Attachments, the per-item cipher key, passkeys, password history and the archived flag are
+    /// deliberately not carried over — see `DraftVaultItem.duplicate(of:)`.
+    func duplicate(id: String) async throws -> VaultItem {
+        guard let source = items.first(where: { $0.id == id }) else {
+            throw VaultError.itemNotFound(id)
+        }
+        let created = try await create(DraftVaultItem.duplicate(of: source))
+        logger.info("Vault item duplicated: \(id, privacy: .public) → \(created.id, privacy: .public)")
+        return created
     }
 
     // MARK: - Delete / Restore / Empty Trash
@@ -568,12 +595,53 @@ nonisolated private extension ItemContent {
         default:                         return false
         }
     }
+
+    /// The free-text notes for this content type. All five carry notes under the same name, but
+    /// they are separate stored properties, so a search that must cover every type needs one place
+    /// to look.
+    var notes: String? {
+        switch self {
+        case .login(let c):      return c.notes
+        case .card(let c):       return c.notes
+        case .identity(let c):   return c.notes
+        case .secureNote(let c): return c.notes
+        case .sshKey(let c):     return c.notes
+        }
+    }
+
+    /// The custom fields for this content type, for the same reason.
+    var customFields: [CustomField] {
+        switch self {
+        case .login(let c):      return c.customFields
+        case .card(let c):       return c.customFields
+        case .identity(let c):   return c.customFields
+        case .secureNote(let c): return c.customFields
+        case .sshKey(let c):     return c.customFields
+        }
+    }
 }
 
 nonisolated private extension VaultItem {
-    /// Case-insensitive substring search across type-specific fields (FR-012).
+    /// Case-insensitive substring search.
+    ///
+    /// Searched, for every item type: the name, the notes, and each custom field's name and value.
+    /// Plus, per type: Login = username and URIs; Card = cardholder name; Identity = email and
+    /// company. Folder names are matched by the caller, which holds the folder list.
+    ///
+    /// Notes and custom fields are searched before the per-type switch, so secure notes and SSH
+    /// keys — which have no other searchable field — are covered too. Hidden custom field values
+    /// are searched like any other: this runs locally over already-decrypted values, and matching
+    /// one does not display it.
     func matchesSearch(query: String) -> Bool {
         if name.localizedCaseInsensitiveContains(query) { return true }
+
+        if let notes = content.notes, notes.localizedCaseInsensitiveContains(query) { return true }
+
+        if content.customFields.contains(where: { field in
+            field.name.localizedCaseInsensitiveContains(query)
+                || field.value?.localizedCaseInsensitiveContains(query) == true
+        }) { return true }
+
         switch content {
         case .login(let l):
             return (l.username?.localizedCaseInsensitiveContains(query) == true) ||
