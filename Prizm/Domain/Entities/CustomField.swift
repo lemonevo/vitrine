@@ -10,11 +10,25 @@ nonisolated struct CustomField: Equatable, Hashable {
 }
 
 /// Discriminates how a custom field's value is stored and displayed.
-nonisolated enum CustomFieldType: Int, Equatable, Hashable {
+///
+/// `CaseIterable` drives the type picker in the edit sheet. Not every case is offered for every
+/// item type — `.linked` needs native fields to point at, so it is filtered out for secure notes
+/// and SSH keys via `LinkedFieldId.supportsLinking(_:)`.
+nonisolated enum CustomFieldType: Int, Equatable, Hashable, CaseIterable {
     case text = 0
     case hidden = 1
     case boolean = 2
     case linked = 3
+
+    /// Label shown in the type picker. Resolved through `L(…)` at call time.
+    var displayName: String {
+        switch self {
+        case .text:    return L("Text")
+        case .hidden:  return L("Hidden")
+        case .boolean: return L("Boolean")
+        case .linked:  return L("Linked")
+        }
+    }
 }
 
 /// Identifies a native vault-item field that a linked custom field mirrors.
