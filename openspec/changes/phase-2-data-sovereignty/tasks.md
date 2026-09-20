@@ -120,22 +120,22 @@ items, one of which is gated on verifying an external algorithm (design D12).
 
 ### B1. Password strength
 
-- [ ] `Domain/Utilities/PasswordStrength.swift` — `PasswordStrength` (0–4), `StrengthEstimate`
+- [x] `Domain/Utilities/PasswordStrength.swift` — `PasswordStrength` (0–4), `StrengthEstimate`
       (`score`, `guessesLog10`, `weakness: String?`), `PasswordStrengthEstimator`.
-- [ ] `Domain/Utilities/PasswordStrengthDictionaries.swift` — the embedded common-password list,
+- [x] `Domain/Utilities/PasswordStrengthDictionaries.swift` — the embedded common-password list,
       with a doc comment stating its size and that it is not a breach corpus.
-- [ ] Tokeniser + penalties per design D5. The EFF word list is injected as a `Set<String>?` so
+- [x] Tokeniser + penalties per design D5. The EFF word list is injected as a `Set<String>?` so
       tests do not depend on `Bundle.main`.
-- [ ] `PasswordStrengthEstimatorTests` — a table of known inputs and expected scores, including
+- [x] `PasswordStrengthEstimatorTests` — a table of known inputs and expected scores, including
       `password`, `Password1!`, `aaaaaaa`, `qwerty123`, `correct-horse-battery-staple`, a random
       16-char string, and the empty string.
 
 ### B2. Strength in the UI
 
-- [ ] `PasswordGeneratorViewModel` — `strength` recomputed on every generated value.
-- [ ] `PasswordGeneratorView` — a score bar and the named weakness.
-- [ ] `ItemEditViewModel` — `passwordStrength` for the login form.
-- [ ] `LoginEditForm` — the same readout beside the password field.
+- [x] `PasswordGeneratorViewModel` — `strength` recomputed on every generated value.
+- [x] `PasswordGeneratorView` — a score bar and the named weakness.
+- [x] `ItemEditViewModel` — `passwordStrength` for the login form.
+- [x] `LoginEditForm` — the same readout beside the password field.
 
 ### B3. Generator history
 
@@ -423,3 +423,28 @@ items, one of which is gated on verifying an external algorithm (design D12).
   wave A verification attributed to the sandbox were a symptom of that same broken
   configuration — with the right test target they do not occur at all, and the failure count is
   back to the documented 10.
+
+- **B2 — the readout.** One view, `PasswordStrengthReadout`, draws the score in both places it
+  appears, so the popover and the login form cannot drift apart in wording or in colour. Three
+  decisions worth recording:
+
+  - **It says "estimate" in the label, not only in the tooltip.** The spec requires the score be
+    presented as an estimate wherever it is shown, and a tooltip is not shown. The label reads
+    "Estimated strength: …"; the tooltip carries the longer statement, and the bar is
+    `accessibilityHidden` so VoiceOver gets the same sentence rather than five unlabelled capsules.
+  - **`nil` draws nothing.** An empty field has no weakness to name — the estimator already
+    returns none for an empty password — and a bar reading "very weak" before the user has typed
+    anything reads as an accusation rather than information.
+  - **`ItemEditViewModel.passwordStrength` is computed, not stored.** `draft` is `@Published`, so
+    every keystroke already re-renders the form; a cached copy would be one more thing that can
+    fall out of step with the field it describes.
+
+  `PasswordGenerator.effWordList` became `nonisolated` so the estimator can read it: it is a pure
+  function of the bundle, and the app-level estimator needs it to price passphrase words at their
+  real 7776 instead of as unrelated letters. Under `swift test` the resource is absent and it
+  degrades to the popularity list, which is the same degradation the generator itself has.
+
+  Verified: 889 tests / 10 failures, failing set identical to the 842-test baseline; the bundle
+  rebuilds with both `.lproj` at 394 keys, `plutil -lint` clean and `codesign --verify --strict`
+  passing. The 15 new keys (12 from B1, 3 from B2) are pure additions — the diff against the
+  previous file removes nothing, so the existing sort is preserved rather than rewritten.
