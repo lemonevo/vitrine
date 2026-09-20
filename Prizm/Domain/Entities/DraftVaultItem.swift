@@ -32,23 +32,55 @@ nonisolated struct DraftLoginURI: Equatable, Identifiable {
 
 /// Mutable mirror of `CustomField` used exclusively within the edit flow.
 ///
-/// Field `name` and `type` are intentionally kept as `let` because renaming a custom field or
-/// changing its type is out of scope for v1 editing (structural changes are deferred). Only
-/// `value` can be mutated by the user.
-nonisolated struct DraftCustomField: Equatable {
-    /// Read-only: field names are structural and not editable in v1.
-    let name: String
+/// Every field is mutable, because the edit sheet supports the full lifecycle: adding a field,
+/// renaming it, changing its type, reordering it and deleting it.
+nonisolated struct DraftCustomField: Equatable, Identifiable {
+
+    /// Stable row identity, independent of position.
+    ///
+    /// **Why this is not just `ForEach(indices)`.** The list can be reordered and have rows removed.
+    /// Identifying rows by index makes SwiftUI reuse the view state of the row that used to occupy
+    /// that index — so deleting row 1 would hand row 2's `@State` (such as whether a hidden value is
+    /// revealed) to the wrong field. A stable id keeps each row's transient state with its field.
+    let id: UUID
+
+    var name: String
     var value: String?
-    /// Read-only: field type changes are out of scope for v1 editing.
-    let type: CustomFieldType
+    var type: CustomFieldType
     /// Non-nil only when `type == .linked`.
-    let linkedId: LinkedFieldId?
+    var linkedId: LinkedFieldId?
+
+    init(name: String = "", value: String? = nil,
+         type: CustomFieldType = .text, linkedId: LinkedFieldId? = nil) {
+        self.id = UUID()
+        self.name = name
+        self.value = value
+        self.type = type
+        self.linkedId = linkedId
+    }
 
     init(_ source: CustomField) {
+        self.id = UUID()
         self.name = source.name
         self.value = source.value
         self.type = source.type
         self.linkedId = source.linkedId
+    }
+
+    /// Whether the name is blank once whitespace is trimmed.
+    ///
+    /// The wire format requires a field name and the mapper skips unnamed fields, so such a field
+    /// would be silently discarded on save. The edit sheet blocks saving instead.
+    var hasBlankName: Bool {
+        name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    /// Excludes `id` — two drafts with the same content are equal regardless of identity.
+    static func == (lhs: DraftCustomField, rhs: DraftCustomField) -> Bool {
+        lhs.name == rhs.name
+            && lhs.value == rhs.value
+            && lhs.type == rhs.type
+            && lhs.linkedId == rhs.linkedId
     }
 }
 
@@ -309,6 +341,69 @@ nonisolated struct DraftVaultItem: Equatable {
             case .sshKey(let c):     return .sshKey(DraftSSHKeyContent(c))
             }
         }()
+    }
+
+    // MARK: - Duplicate
+
+    /// Builds a draft that creates a copy of `item`.
+    ///
+    /// **What is copied.** Everything the user can see: name (with a "(copy)" suffix), all
+    /// type-specific content, notes, custom fields, URIs, folder assignment, organisation and
+    /// collection membership, and the re-prompt flag.
+    ///
+    /// **What is deliberately not copied**, each for a reason that would be a defect if reversed:
+    ///
+    /// - `preserved` as a whole. `cipherKey` is what the *original's* attachments are wrapped with —
+    ///   a copy has no attachments, and sharing the key would leave the original's attachments
+    ///   wrapped with a key two ciphers now claim. `fido2Credentials` is a credential for one
+    ///   account; two ciphers holding the same passkey is a state no Bitwarden client expects, and
+    ///   Prizm offers no UI to inspect or remove the copy. `passwordHistory` belongs to the original
+    ///   cipher, and `archivedDate` would make a brand-new item arrive archived.
+    /// - Attachments, matching the official clients.
+    ///
+    /// **The favorite flag is reset.** Favorites is a deliberate shortlist; adding to it is the
+    /// user's decision rather than a side effect of duplicating.
+    ///
+    /// The draft is handed to the ordinary `create` path, so a duplicate is encrypted, org-key
+    /// resolved and cached exactly like any other new item.
+    static func duplicate(of item: VaultItem) -> DraftVaultItem {
+        let source = DraftVaultItem(item)
+        let now    = Date()
+        return DraftVaultItem(
+            id:             UUID().uuidString,
+            folderId:       source.folderId,
+            name:           L("%@ (copy)", source.name),
+            isFavorite:     false,
+            isDeleted:      false,
+            creationDate:   now,
+            revisionDate:   now,
+            content:        source.content,
+            reprompt:       source.reprompt,
+            organizationId: source.organizationId,
+            collectionIds:  source.collectionIds,
+            preserved:      .empty
+        )
+    }
+
+    // MARK: - Custom field access
+
+    /// Every custom field on the draft, whichever content type it holds.
+    ///
+    /// The five content types each carry their own `customFields` array, so validation that must
+    /// apply to all of them needs one place to look.
+    var allCustomFields: [DraftCustomField] {
+        switch content {
+        case .login(let c):      return c.customFields
+        case .card(let c):       return c.customFields
+        case .identity(let c):   return c.customFields
+        case .secureNote(let c): return c.customFields
+        case .sshKey(let c):     return c.customFields
+        }
+    }
+
+    /// Custom fields that cannot be saved because they have no name.
+    var unnamedCustomFields: [DraftCustomField] {
+        allCustomFields.filter(\.hasBlankName)
     }
 }
 
