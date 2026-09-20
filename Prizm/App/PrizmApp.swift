@@ -567,6 +567,11 @@ final class RootViewModel: ObservableObject {
             }
             await container.vaultRepo.clearVault()
             await container.vaultKeyCache.clear()
+            // Both caches, matching `lockVault()`. Clearing only the vault key here left the
+            // unwrapped organisation keys in memory for the rest of the process's life, which is
+            // what Constitution §III forbids -- and `AuthRepositoryImpl` holds no cache of its own,
+            // so nothing else was clearing them.
+            await container.orgKeyCache.clear()
             container.generatorHistory.clear()
             unlockVM = nil
             screen   = .login
