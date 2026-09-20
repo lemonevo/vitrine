@@ -30,6 +30,10 @@ final class AppContainer: ObservableObject {
     /// In-memory cache mapping organization ID → unwrapped 64-byte symmetric key.
     /// Populated at sync time; cleared on vault lock alongside `vaultKeyCache` (Constitution §III).
     let orgKeyCache: OrgKeyCache
+    /// The account's own RSA public key, SPKI DER, for the fingerprint phrase. Unlike the two
+    /// caches above it holds no secret — it is cleared on lock so the phrase disappears with the
+    /// session, not because the bytes are sensitive.
+    let accountKeyCache: AccountKeyCache
 
     // MARK: - Domain repositories (Data implementations)
 
@@ -74,6 +78,7 @@ final class AppContainer: ObservableObject {
     /// Reads one item's previous passwords, on demand and without keeping them (design D10).
     let getPasswordHistoryUseCase:        GetPasswordHistoryUseCaseImpl
     let verifyMasterPasswordUseCase:      VerifyMasterPasswordUseCaseImpl
+    let getAccountFingerprintUseCase:     GetAccountFingerprintUseCaseImpl
 
     // MARK: - Server trust
 
@@ -129,6 +134,7 @@ final class AppContainer: ObservableObject {
         let biometricKeychain = BiometricKeychainServiceImpl.preferred()
         let keyCache      = VaultKeyCache()
         let orgKeyCache   = OrgKeyCache()
+        let accountKeys   = AccountKeyCache()
         let vault         = VaultRepositoryImpl(apiClient: api, crypto: crypto, orgKeyCache: orgKeyCache)
         let vaultKeyService = VaultKeyServiceImpl(cache: keyCache, crypto: crypto)
 
@@ -143,7 +149,8 @@ final class AppContainer: ObservableObject {
             crypto:          crypto,
             vaultRepository: vault,
             vaultKeyCache:   keyCache,
-            orgKeyCache:     orgKeyCache
+            orgKeyCache:     orgKeyCache,
+            accountKeyCache: accountKeys
         )
 
         let attachmentRepo = AttachmentRepositoryImpl(
@@ -169,6 +176,7 @@ final class AppContainer: ObservableObject {
         self.totpGenerator   = TOTPGeneratorImpl()
         self.vaultKeyCache   = keyCache
         self.orgKeyCache     = orgKeyCache
+        self.accountKeyCache = accountKeys
         self.authRepository  = auth
         self.syncRepository  = sync
         self.syncUseCase                     = SyncUseCaseImpl(sync: sync)
@@ -196,6 +204,15 @@ final class AppContainer: ObservableObject {
         self.generateVaultHealthReportUseCase = GenerateVaultHealthReportUseCaseImpl(vault: vault)
         self.getPasswordHistoryUseCase        = GetPasswordHistoryUseCaseImpl(vault: vault)
         self.verifyMasterPasswordUseCase      = VerifyMasterPasswordUseCaseImpl(auth: authRepository)
+        // The same word list the passphrase generator uses. It is Bitwarden's EFF long list, and
+        // the fingerprint only matches another client while it stays that one — if it is ever
+        // swapped for the generator's sake, the phrase changes silently into something that
+        // matches nothing. `AccountFingerprintPhraseTests` pins the published vectors.
+        self.getAccountFingerprintUseCase     = GetAccountFingerprintUseCaseImpl(
+            auth:            authRepository,
+            accountKeyCache: accountKeys,
+            wordList:        PasswordGenerator.effWordList
+        )
         // Attachment use cases — Upload and Download inject VaultKeyService;
         // Delete does NOT (no key material required, Constitution §VI).
         self.uploadAttachmentUseCase   = UploadAttachmentUseCaseImpl(repository: attachmentRepo, vaultKeyService: vaultKeyService)

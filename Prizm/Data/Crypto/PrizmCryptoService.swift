@@ -140,6 +140,18 @@ protocol PrizmCryptoService: Actor {
     /// - Throws: `PrizmCryptoServiceError` on decryption failure.
     func decryptRSAPrivateKey(encPrivateKey: String, vaultKeys: CryptoKeys) async throws -> Data
 
+    /// The account's RSA public key, as the **SPKI DER** bytes the account fingerprint hashes.
+    ///
+    /// Derived rather than fetched: the sync response carries only the encrypted private key, so
+    /// the public half has to come out of it. The encoding is the part worth naming, because
+    /// `SecKeyCopyExternalRepresentation` returns PKCS#1 for RSA and the reference hashes SPKI —
+    /// the two differ by a 24-byte header, and since this feeds a hash, a difference there is
+    /// invisible: the phrase looks entirely plausible and matches no other client.
+    ///
+    /// - Parameter pkcs8PrivateKey: PKCS#8 DER bytes from `decryptRSAPrivateKey`. Not retained.
+    /// - Throws: `PrizmCryptoServiceError` if the key cannot be imported.
+    func accountPublicKeySPKI(pkcs8PrivateKey: Data) throws -> Data
+
     /// Unwraps an organization's symmetric key using the user's RSA private key.
     ///
     /// The org key EncString (Type-4) contains the org's 64-byte symmetric key encrypted
@@ -471,6 +483,37 @@ actor PrizmCryptoServiceImpl: PrizmCryptoService {
     /// - Type-4 EncString: org key EncStrings use type "4." followed by base64-encoded
     ///   RSA ciphertext. There is no IV or MAC — the authentication is provided by the
     ///   RSA-OAEP padding scheme itself.
+    func accountPublicKeySPKI(pkcs8PrivateKey: Data) throws -> Data {
+        let pkcs1Bytes = try stripPKCS8Header(from: pkcs8PrivateKey)
+
+        var importError: Unmanaged<CFError>?
+        let attributes: [String: Any] = [
+            kSecAttrKeyType as String:       kSecAttrKeyTypeRSA,
+            kSecAttrKeyClass as String:      kSecAttrKeyClassPrivate,
+            kSecAttrKeySizeInBits as String: 2048
+        ]
+        guard let privateKey = SecKeyCreateWithData(
+            pkcs1Bytes as CFData, attributes as CFDictionary, &importError
+        ) else {
+            let err = importError?.takeRetainedValue()
+            logger.error("accountPublicKeySPKI: import failed: \(err.debugDescription, privacy: .public)")
+            throw PrizmCryptoServiceError.invalidEncUserKey
+        }
+
+        guard let publicKey = SecKeyCopyPublicKey(privateKey) else {
+            logger.error("accountPublicKeySPKI: SecKeyCopyPublicKey returned nil")
+            throw PrizmCryptoServiceError.invalidEncUserKey
+        }
+
+        // PKCS#1 for RSA — see the protocol comment for why that is not what is returned.
+        guard let pkcs1Public = SecKeyCopyExternalRepresentation(publicKey, nil) as Data? else {
+            logger.error("accountPublicKeySPKI: no external representation for the public key")
+            throw PrizmCryptoServiceError.invalidEncUserKey
+        }
+
+        return SPKIEncoder.encode(pkcs1PublicKey: pkcs1Public)
+    }
+
     func unwrapOrgKey(encOrgKey: String, rsaPrivateKey: Data) throws -> CryptoKeys {
         // Parse Type-4 EncString: "4.<base64-ciphertext>"
         let rsaCiphertext = try parseType4EncString(encOrgKey)

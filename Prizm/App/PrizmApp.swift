@@ -201,7 +201,8 @@ struct PrizmApp: App {
                 serverTrustStore:    container.serverTrustStore,
                 serverHost:          container.authRepository.storedAccount()?.serverEnvironment.base.host,
                 pickCertificateFile: { AppContainer.defaultCertificateOpenPanel() },
-                loadCertificates:    { try CertificateImporter.certificates(at: $0) }
+                loadCertificates:    { try CertificateImporter.certificates(at: $0) },
+                loadFingerprint:     { try? await container.getAccountFingerprintUseCase.execute() }
             )
             .environment(\.locale, locale)
                 .id(localization.language)
@@ -313,6 +314,9 @@ protocol RootViewModelDependencies: AnyObject {
     var vaultKeyCache: VaultKeyCache { get }
     /// The per-organisation symmetric key cache. Cleared on vault lock alongside the vault store.
     var orgKeyCache: OrgKeyCache { get }
+    /// The account's own public key. Cleared on lock and sign-out with the rest, so the fingerprint
+    /// phrase is not still on screen for a vault the user has just closed.
+    var accountKeyCache: AccountKeyCache { get }
     /// Derives the one-time code for `Item ▸ Copy Code`. Injected rather than constructed here so
     /// the crypto stays in the Data layer (Constitution §II) and the generator stays testable.
     var totpGenerator: any TOTPGenerator { get }
@@ -654,6 +658,7 @@ final class RootViewModel: ObservableObject, RepromptGating {
             // what Constitution §III forbids -- and `AuthRepositoryImpl` holds no cache of its own,
             // so nothing else was clearing them.
             await container.orgKeyCache.clear()
+            await container.accountKeyCache.clear()
             container.generatorHistory.clear()
             // The report lists decrypted item names, so it goes with the rest of the session state.
             healthReportVM = nil
@@ -679,6 +684,7 @@ final class RootViewModel: ObservableObject, RepromptGating {
             // Key material must not outlive the vault session (Constitution §III).
             await container.vaultKeyCache.clear()
             await container.orgKeyCache.clear()
+            await container.accountKeyCache.clear()
             container.generatorHistory.clear()
             healthReportVM = nil
             // Both halves of "the user has already entered the master password for this item" go

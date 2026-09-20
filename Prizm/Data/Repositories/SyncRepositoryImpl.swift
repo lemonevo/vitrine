@@ -27,6 +27,7 @@ actor SyncRepositoryImpl: SyncRepository {
     private let vaultRepository: any VaultRepository
     private let vaultKeyCache:   VaultKeyCache
     private let orgKeyCache:     OrgKeyCache
+    private let accountKeyCache: AccountKeyCache
 
     private let logger = Logger(subsystem: "com.prizm", category: "SyncRepository")
 
@@ -41,13 +42,15 @@ actor SyncRepositoryImpl: SyncRepository {
         crypto:          any PrizmCryptoService,
         vaultRepository: any VaultRepository,
         vaultKeyCache:   VaultKeyCache,
-        orgKeyCache:     OrgKeyCache = OrgKeyCache()
+        orgKeyCache:     OrgKeyCache = OrgKeyCache(),
+        accountKeyCache:  AccountKeyCache = AccountKeyCache()
     ) {
         self.apiClient       = apiClient
         self.crypto          = crypto
         self.vaultRepository = vaultRepository
         self.vaultKeyCache   = vaultKeyCache
         self.orgKeyCache     = orgKeyCache
+        self.accountKeyCache  = accountKeyCache
     }
 
     // MARK: - SyncRepository
@@ -117,6 +120,33 @@ actor SyncRepositoryImpl: SyncRepository {
         logger.info("Decrypted \(folders.count, privacy: .public) folder(s); \(folderFailedCount, privacy: .public) failure(s)")
         if folderFailedCount > 0 {
             logger.error("decryptFolders: \(folderFailedCount, privacy: .public) folder(s) failed to decrypt")
+        }
+
+        // Phase 2c-0: the account's own public key, for the fingerprint phrase.
+        //
+        // Deliberately a separate block from the org unwrapping below rather than sharing its
+        // decrypted key: the two have different conditions, and this one must run for accounts
+        // with **no** organizations — which is exactly the case the org block skips, and exactly
+        // the account that has no other reason for its key ever to be decrypted. Restructuring
+        // the org phase around a shared buffer would have saved one AES-CBC decryption of about
+        // 1.2 KB per sync, at the cost of moving a hundred lines.
+        //
+        // A failure is logged and skipped: it costs the user a settings row, whereas failing the
+        // sync would cost them their whole vault over something that only gets displayed.
+        if let encPrivateKey = syncResponse.profile.privateKey {
+            do {
+                let vaultKeys = try await crypto.currentKeys()
+                var rsaPrivateKeyBytes = try await crypto.decryptRSAPrivateKey(
+                    encPrivateKey: encPrivateKey,
+                    vaultKeys: vaultKeys
+                )
+                defer { rsaPrivateKeyBytes.zeroize() }
+
+                let spki = try await crypto.accountPublicKeySPKI(pkcs8PrivateKey: rsaPrivateKeyBytes)
+                await accountKeyCache.store(publicKey: spki)
+            } catch {
+                logger.error("Could not derive the account public key — the fingerprint phrase will be unavailable: \(error, privacy: .public)")
+            }
         }
 
         // Phase 2c: Unwrap org keys and decrypt collection names.
