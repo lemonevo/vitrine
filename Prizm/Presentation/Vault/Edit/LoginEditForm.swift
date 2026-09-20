@@ -62,7 +62,7 @@ struct LoginEditForm: View {
                     OptionalEditFieldRow(label: L("Notes"), value: $draft.notes)
                 }
 
-                CustomFieldsEditSection(fields: $draft.customFields)
+                CustomFieldsEditSection(fields: $draft.customFields, itemType: .login)
             }
         }
     }

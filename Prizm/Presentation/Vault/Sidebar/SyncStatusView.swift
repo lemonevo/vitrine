@@ -9,20 +9,34 @@ import SwiftUI
 /// The view is only rendered when the vault browser is active — the parent screen state
 /// machine (RootViewModel) hides the entire vault browser when locked, satisfying the
 /// "hidden when vault is locked" requirement without additional logic here.
+///
+/// While a manual sync is in flight the timestamp is replaced by a spinner and "Syncing…", so the
+/// progress is visible next to the button that started it as well as in the toolbar.
 struct SyncStatusView: View {
 
     /// Relative label produced by the ViewModel's 60-second timer (e.g. "Synced 2 minutes ago").
     let label: String
 
+    /// Whether a manual sync is in flight.
+    var isSyncing: Bool = false
+
     var body: some View {
-        Text(label)
-            .font(Typography.listSubtitle)
-            .foregroundStyle(.secondary)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, Spacing.sidebarHorizontal)
-            .padding(.top, Spacing.rowVertical)
-            .padding(.bottom, Spacing.sidebarStatusBottom)
-            .accessibilityIdentifier(AccessibilityID.Vault.syncStatusLabel)
+        HStack(spacing: 6) {
+            if isSyncing {
+                ProgressView()
+                    .controlSize(.small)
+                Text(L("Syncing…"))
+            } else {
+                Text(label)
+            }
+        }
+        .font(Typography.listSubtitle)
+        .foregroundStyle(.secondary)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, Spacing.sidebarHorizontal)
+        .padding(.top, Spacing.rowVertical)
+        .padding(.bottom, Spacing.sidebarStatusBottom)
+        .accessibilityIdentifier(AccessibilityID.Vault.syncStatusLabel)
     }
 }
 
@@ -33,5 +47,10 @@ struct SyncStatusView: View {
 
 #Preview("Never synced") {
     SyncStatusView(label: L("Never synced"))
+        .frame(width: 220)
+}
+
+#Preview("Syncing") {
+    SyncStatusView(label: "Synced 2 minutes ago", isSyncing: true)
         .frame(width: 220)
 }

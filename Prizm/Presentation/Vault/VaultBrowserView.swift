@@ -58,7 +58,7 @@ struct VaultBrowserView: View {
                         onRenameCollection: { id, orgId, name in viewModel.renameCollection(id: id, organizationId: orgId, name: name) },
                         onDeleteCollection: { id, orgId in viewModel.deleteCollection(id: id, organizationId: orgId) }
                     )
-                    SyncStatusView(label: viewModel.syncStatusLabel)
+                    SyncStatusView(label: viewModel.syncStatusLabel, isSyncing: viewModel.isSyncing)
                 }
                 .navigationSplitViewColumnWidth(min: 180, ideal: 210)
                 .toolbar {
@@ -80,7 +80,8 @@ struct VaultBrowserView: View {
                             selection:         $viewModel.itemSelection,
                             faviconLoader:     faviconLoader,
                             onRestore:         { id in await viewModel.performRestore(id: id) },
-                            onPermanentDelete: { id in await viewModel.performPermanentDelete(id: id) }
+                            onPermanentDelete: { id in await viewModel.performPermanentDelete(id: id) },
+                            onEmptyTrash:      { await viewModel.performEmptyTrash() }
                         )
                     } else {
                         ItemListView(
@@ -89,12 +90,56 @@ struct VaultBrowserView: View {
                             faviconLoader:  faviconLoader,
                             searchQuery:    viewModel.searchQuery.isEmpty ? nil : viewModel.searchQuery,
                             organizations:  viewModel.organizations,
+                            sortOrder:      viewModel.sortOrder,
                             onDelete:       { id in await viewModel.performSoftDelete(id: id) },
-                            onToggleFavorite: { viewModel.toggleFavorite(item: $0) }
+                            onToggleFavorite: { viewModel.toggleFavorite(item: $0) },
+                            onDuplicate:    { viewModel.duplicateItem(id: $0.id) }
                         )
                     }
                 }
                 .toolbar {
+                    // Sort order. Lives next to `+` so the list's presentation controls sit
+                    // together; the checkmark shows which order is active.
+                    ToolbarItem(placement: .automatic) {
+                        Menu {
+                            ForEach(ItemSortOrder.allCases) { order in
+                                Button {
+                                    viewModel.sortOrder = order
+                                } label: {
+                                    if order == viewModel.sortOrder {
+                                        Label(order.displayName, systemImage: "checkmark")
+                                    } else {
+                                        Text(order.displayName)
+                                    }
+                                }
+                            }
+                        } label: {
+                            Image(systemName: "arrow.up.arrow.down")
+                        }
+                        .help(L("Sort Order"))
+                        .accessibilityLabel(L("Sort Order"))
+                        .accessibilityIdentifier(AccessibilityID.Vault.sortMenu)
+                    }
+
+                    // Manual sync (⌘R). Disabled and replaced by a spinner while a sync is running,
+                    // so the button cannot queue a second one.
+                    ToolbarItem(placement: .automatic) {
+                        Button {
+                            viewModel.performManualSync()
+                        } label: {
+                            if viewModel.isSyncing {
+                                ProgressView()
+                                    .controlSize(.small)
+                            } else {
+                                Image(systemName: "arrow.clockwise")
+                            }
+                        }
+                        .disabled(viewModel.isSyncing)
+                        .help(L("Sync Now (⌘R)"))
+                        .accessibilityLabel(L("Sync Now"))
+                        .accessibilityIdentifier(AccessibilityID.Vault.syncButton)
+                    }
+
                     ToolbarItem(placement: .primaryAction) {
                         Menu {
                             ForEach(ItemType.allCases) { type in

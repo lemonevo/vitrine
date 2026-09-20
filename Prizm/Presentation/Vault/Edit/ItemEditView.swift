@@ -53,9 +53,11 @@ struct ItemEditView: View {
                     .padding(.top, Spacing.pageTop)
                     .padding(.bottom, 4)
 
-                // Live validation: shown immediately when Name field becomes empty (spec §3.2).
-                if let nameError = viewModel.nameValidationError {
-                    Text(nameError)
+                // Live validation: shown immediately when a rule fails (spec §3.2). Covers the
+                // item name and unnamed custom fields — the latter would otherwise be dropped
+                // silently by the mapper.
+                if let validationError = viewModel.validationError {
+                    Text(validationError)
                         .font(Typography.utility)
                         .foregroundStyle(.red)
                         .padding(.horizontal, Spacing.pageMargin)

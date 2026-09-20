@@ -36,14 +36,31 @@ final class ItemEditViewModel: ObservableObject {
 
     // MARK: - Derived state
 
-    /// `true` when the Name field is non-empty and no save is in-flight.
+    /// `true` when the Name field is non-empty, no custom field has a blank name, and no save is
+    /// in-flight.
     var canSave: Bool {
-        !draft.name.trimmingCharacters(in: .whitespaces).isEmpty && !isSaving
+        !draft.name.trimmingCharacters(in: .whitespaces).isEmpty
+            && draft.unnamedCustomFields.isEmpty
+            && !isSaving
     }
 
     /// Non-nil when `draft.name` is blank, triggering inline validation.
     var nameValidationError: String? {
         draft.name.trimmingCharacters(in: .whitespaces).isEmpty ? L("Name is required") : nil
+    }
+
+    /// Non-nil when a custom field has no name.
+    ///
+    /// The wire format requires a field name and `CipherMapper` skips unnamed fields, so saving
+    /// would silently discard the row — leaving the user with a field that appeared to save and did
+    /// not. Blocking the save and saying why is the honest alternative.
+    var customFieldValidationError: String? {
+        draft.unnamedCustomFields.isEmpty ? nil : L("Every custom field needs a name.")
+    }
+
+    /// Non-nil when any validation rule fails. Shown in the edit sheet.
+    var validationError: String? {
+        nameValidationError ?? customFieldValidationError
     }
 
     /// `true` when any field differs from the original item captured at open time.

@@ -57,6 +57,10 @@ nonisolated enum AccessibilityID {
         static let syncErrorBanner   = "vault.syncErrorBanner"
         static let syncErrorDismiss  = "vault.syncErrorDismiss"
         static let settingsButton    = "vault.settings"
+        /// The manual sync button in the content toolbar (⌘R).
+        static let syncButton        = "vault.button.sync"
+        /// The sort-order menu in the content toolbar.
+        static let sortMenu          = "vault.menu.sort"
     }
 
     // MARK: - Sidebar (US3)
@@ -74,6 +78,8 @@ nonisolated enum AccessibilityID {
     enum ItemList {
         static let list              = "itemList.list"
         static let emptyState        = "itemList.empty"
+        /// The "Duplicate" entry in a row's context menu.
+        static let duplicateAction   = "itemList.action.duplicate"
         static func row(_ id: String) -> String { "itemList.row.\(id)" }
     }
 
@@ -119,6 +125,16 @@ nonisolated enum AccessibilityID {
         static let deleteButton  = "edit.button.delete"
         /// The inline error banner shown on save failure.
         static let errorBanner   = "edit.errorBanner"
+        /// The "Add Field" button in the custom-fields section.
+        static let addCustomFieldButton = "edit.button.addCustomField"
+        /// A custom-field row; `id` is the draft field's stable UUID.
+        static func customFieldRow(_ id: String) -> String { "edit.customField.\(id)" }
+        /// The delete button on a custom-field row.
+        static func customFieldDelete(_ id: String) -> String { "edit.customField.\(id).delete" }
+        /// The move-up button on a custom-field row.
+        static func customFieldMoveUp(_ id: String) -> String { "edit.customField.\(id).up" }
+        /// The move-down button on a custom-field row.
+        static func customFieldMoveDown(_ id: String) -> String { "edit.customField.\(id).down" }
     }
 
     // MARK: - Trash (delete-restore-items)
@@ -132,6 +148,8 @@ nonisolated enum AccessibilityID {
         static let restoreButton     = "trash.button.restore"
         /// The "Delete Permanently" toolbar button in ItemDetailView for trashed items.
         static let permanentDeleteButton = "trash.button.permanentDelete"
+        /// The "Empty Trash" button in the Trash view.
+        static let emptyTrashButton      = "trash.button.empty"
     }
 
     // MARK: - Create Item (add-vault-items)
