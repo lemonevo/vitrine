@@ -86,6 +86,14 @@ final class MockRootDependencies: RootViewModelDependencies {
         )
     }
 
+    /// The real use case over the mock vault, rather than a stub: the report then runs against
+    /// whatever items a suite put in the vault, which is what the lock and sign-out tests assert on.
+    /// A stub would only buy a way to force a failure, and `HealthReportViewModelTests` gets that
+    /// from a use case double of its own.
+    func makeHealthReportViewModel() -> HealthReportViewModel {
+        HealthReportViewModel(useCase: GenerateVaultHealthReportUseCaseImpl(vault: mockVault))
+    }
+
     func makeSyncTimestampDependencies(for email: String) -> (repository: any SyncTimestampRepository, useCase: any GetLastSyncDateUseCase) {
         let repo = MockSyncTimestampRepository(storedDate: nil)
         return (repo, GetLastSyncDateUseCaseImpl(repository: repo))

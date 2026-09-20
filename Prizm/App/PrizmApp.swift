@@ -166,6 +166,17 @@ struct PrizmApp: App {
                 .keyboardShortcut("c", modifiers: [.command, .option, .shift])
                 .disabled(!rootVM.selectedFieldAvailable(.website))
             }
+
+            // "Tools" menu — vault-wide analysis. It is not in the Item menu because it reports on
+            // every item, not on the selection, and it is not in File because it writes nothing.
+            // ⌘⇧H reads as "health"; plain ⌘H is Hide, so the modifier keeps them apart.
+            CommandMenu("Tools") {
+                Button("Vault Health Report…") {
+                    rootVM.presentHealthReport()
+                }
+                .keyboardShortcut("h", modifiers: [.command, .shift])
+                .disabled(!rootVM.menuBarCanRunHealthReport)
+            }
         }
 
         // Custom About window — opened via Prizm → About Prizm.
@@ -264,6 +275,20 @@ struct PrizmApp: App {
             // Installed here rather than on the app's root: the generator only exists inside the
             // vault, and a value generated before unlock is not something that can happen.
             .environment(\.generatorHistory, container.generatorHistory)
+            // The report is owned by `rootVM`, not rebuilt here: see `healthReportVM` for why a
+            // view model created in a sheet's content closure would re-run the analysis forever.
+            .sheet(isPresented: Binding(
+                get: { rootVM.healthReportVM != nil },
+                set: { if !$0 { rootVM.dismissHealthReport() } }
+            )) {
+                if let vm = rootVM.healthReportVM {
+                    HealthReportView(
+                        viewModel: vm,
+                        onSelect:  { rootVM.openItemFromHealthReport(id: $0) },
+                        onDismiss: { rootVM.dismissHealthReport() }
+                    )
+                }
+            }
         }
     }
 }
@@ -285,6 +310,10 @@ protocol RootViewModelDependencies: AnyObject {
     func makeLoginViewModel() -> LoginViewModel
     func makeUnlockViewModel(account: Account) -> UnlockViewModel
     func makeVaultBrowserViewModel() -> VaultBrowserViewModel
+    /// Creates the health report view model. A factory rather than a stored instance because the
+    /// report is per-presentation: each time the sheet opens it runs the checks again, and a cached
+    /// report would show the vault as it was the first time.
+    func makeHealthReportViewModel() -> HealthReportViewModel
     /// Returns a fresh sync timestamp repository and use case scoped to the given email.
     /// Called after login/unlock to re-scope to the correct account before the first sync.
     func makeSyncTimestampDependencies(for email: String) -> (repository: any SyncTimestampRepository, useCase: any GetLastSyncDateUseCase)
@@ -340,6 +369,18 @@ final class RootViewModel: ObservableObject {
 
     /// The login content of the currently selected item, or nil. Drives copy command disabled state.
     @Published private(set) var selectedLogin: LoginContent?
+
+    // MARK: - Health report state
+
+    /// The health report sheet, or nil while it is closed.
+    ///
+    /// Held here rather than created inside the sheet's content closure. SwiftUI re-evaluates that
+    /// closure whenever this object publishes, so a view model built inside it would be replaced —
+    /// and reset to `.loading` — on every update, re-running the analysis in a loop.
+    ///
+    /// It also holds decrypted item names, so it is dropped on lock and sign-out alongside the
+    /// generator history (Constitution §III).
+    @Published private(set) var healthReportVM: HealthReportViewModel?
 
     private let logger = Logger(subsystem: "com.prizm", category: "RootViewModel")
 
@@ -573,6 +614,8 @@ final class RootViewModel: ObservableObject {
             // so nothing else was clearing them.
             await container.orgKeyCache.clear()
             container.generatorHistory.clear()
+            // The report lists decrypted item names, so it goes with the rest of the session state.
+            healthReportVM = nil
             unlockVM = nil
             screen   = .login
             logger.info("Sign out completed")
@@ -593,6 +636,7 @@ final class RootViewModel: ObservableObject {
             await container.vaultKeyCache.clear()
             await container.orgKeyCache.clear()
             container.generatorHistory.clear()
+            healthReportVM = nil
             if let account = container.authRepo.storedAccount() {
                 unlockVM = container.makeUnlockViewModel(account: account)
                 screen = .unlock
@@ -691,5 +735,33 @@ final class RootViewModel: ObservableObject {
         case .totp:     return container.totpGenerator.code(for: login.totp)
         case .website:  return login.uris.first?.uri
         }
+    }
+
+    // MARK: - Health report
+
+    /// Whether the Tools ▸ Vault Health Report command should be enabled.
+    ///
+    /// Derived from `isVaultUnlocked` rather than mirrored into its own `@Published` flag: the phase 1
+    /// ⌘R defect was exactly that pattern, and a derived property cannot go stale.
+    var menuBarCanRunHealthReport: Bool { isVaultUnlocked }
+
+    /// Opens the health report. No-op while the vault is locked — there is nothing decrypted to read.
+    func presentHealthReport() {
+        guard isVaultUnlocked else { return }
+        healthReportVM = container.makeHealthReportViewModel()
+    }
+
+    func dismissHealthReport() {
+        healthReportVM = nil
+    }
+
+    /// Closes the report and selects the item it pointed at.
+    ///
+    /// The order matters: the sheet has to be gone before the vault browser is asked to select,
+    /// because `VaultBrowserViewModel.selectItem(id:)` waits for the item to appear in the *filtered*
+    /// list, and the selection is only meaningful once the browser is the visible screen.
+    func openItemFromHealthReport(id: String) {
+        healthReportVM = nil
+        vaultBrowserVM.selectItem(id: id)
     }
 }
