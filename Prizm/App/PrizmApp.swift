@@ -92,6 +92,29 @@ struct PrizmApp: App {
                 .disabled(!rootVM.menuBarCanSync)
             }
 
+            // File menu — vault-wide data operations, in the group macOS puts Save/Save As in.
+            //
+            // The enablement reads `isVaultUnlocked`, a computed property over the @Published
+            // `screen`. That is deliberately *not* a separate `@Published` flag mirroring the
+            // screen: the phase 1 ⌘R defect was a mirrored flag whose only update site never fired
+            // at launch, leaving the command permanently disabled. A property derived from the
+            // source of truth cannot go stale.
+            CommandGroup(after: .saveItem) {
+                Divider()
+
+                Button("Export Vault…") {
+                    rootVM.vaultBrowserVM.requestExport()
+                }
+                .keyboardShortcut("e", modifiers: [.command, .shift])
+                .disabled(!rootVM.isVaultUnlocked)
+
+                Button("Import Vault…") {
+                    rootVM.vaultBrowserVM.requestImport()
+                }
+                .keyboardShortcut("i", modifiers: [.command, .shift])
+                .disabled(!rootVM.isVaultUnlocked)
+            }
+
             // "Item" menu — sits in the standard macOS menu bar next to Edit/View/Window.
             // Edit opens the edit sheet for the selected vault item (⌘E).
             // Save persists in-flight edits (⌘S).
