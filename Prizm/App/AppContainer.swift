@@ -66,6 +66,12 @@ final class AppContainer: ObservableObject {
     /// Creates items from such a file. Additive only — see `ImportVaultUseCase`.
     let importVaultUseCase: ImportVaultUseCaseImpl
 
+    // MARK: - Health report
+
+    /// Runs the five local checks over the decrypted vault. Makes no request of any kind — see
+    /// design D6 for why the sixth check every password manager offers is refused.
+    let generateVaultHealthReportUseCase: GenerateVaultHealthReportUseCaseImpl
+
     // MARK: - Attachment use cases
 
     let uploadAttachmentUseCase:   UploadAttachmentUseCaseImpl
@@ -163,6 +169,7 @@ final class AppContainer: ObservableObject {
         self.getLastSyncDateUseCase          = GetLastSyncDateUseCaseImpl(repository: syncTimestamp)
         self.exportVaultUseCase              = ExportVaultUseCaseImpl(vault: vault)
         self.importVaultUseCase              = ImportVaultUseCaseImpl(vault: vault)
+        self.generateVaultHealthReportUseCase = GenerateVaultHealthReportUseCaseImpl(vault: vault)
         // Attachment use cases — Upload and Download inject VaultKeyService;
         // Delete does NOT (no key material required, Constitution §VI).
         self.uploadAttachmentUseCase   = UploadAttachmentUseCaseImpl(repository: attachmentRepo, vaultKeyService: vaultKeyService)
