@@ -286,6 +286,75 @@ actor VaultRepositoryImpl: VaultRepository {
         }
     }
 
+    /// Decrypts the display fields of the item's passkeys.
+    ///
+    /// ## What is read, and what is not
+    ///
+    /// Every field of a FIDO2 credential is its own EncString, encrypted with the cipher's key —
+    /// except `creationDate`, which is a plaintext ISO-8601 string. The field this method
+    /// deliberately never touches is `keyValue`, which is the credential's **private** key:
+    /// Bitwarden's authenticator writes `crypto.subtle.exportKey("pkcs8", keyPair.privateKey)` and
+    /// imports it later to sign. Nothing about listing a passkey needs it, and a read-only viewer
+    /// that decrypted it would be holding the one value on the item that can impersonate the user.
+    ///
+    /// So the decryption below is a fixed list of display fields. There is no path here that
+    /// decrypts an arbitrary key out of the entry — which is what keeps "never read the private
+    /// key" a property of the code instead of a rule someone has to remember.
+    func passkeys(for id: String) async throws -> [PasskeyCredential] {
+        guard let item = items.first(where: { $0.id == id }) else {
+            throw VaultError.itemNotFound(id)
+        }
+        guard !item.preserved.fido2Credentials.isEmpty else { return [] }
+
+        let keys = try await resolveCipherKeys(for: item)
+
+        return item.preserved.fido2Credentials.compactMap { entry in
+            guard case .object(let fields) = entry else {
+                logger.error("Skipping malformed passkey entry for cipher \(id, privacy: .public)")
+                return nil
+            }
+
+            /// Decrypts one named field. `nil` when it is absent or will not decrypt — an absent
+            /// optional field is normal, so it is not logged as a fault.
+            func plain(_ name: String) -> String? {
+                guard case .string(let value)? = fields[name], !value.isEmpty else { return nil }
+                do {
+                    let data = try EncString(string: value).decrypt(keys: keys)
+                    return String(data: data, encoding: .utf8)
+                } catch {
+                    return nil
+                }
+            }
+
+            // The relying party id is the one field a listing is meaningless without: it is what
+            // tells the user which site this credential belongs to.
+            guard let rpId = plain("rpId") ?? plain("RpId") else {
+                logger.error("Skipping passkey with no readable rpId for cipher \(id, privacy: .public)")
+                return nil
+            }
+
+            return PasskeyCredential(
+                rpId:            rpId,
+                rpName:          plain("rpName") ?? plain("RpName"),
+                userName:        plain("userName") ?? plain("UserName"),
+                userDisplayName: plain("userDisplayName") ?? plain("UserDisplayName"),
+                creationDate:    Self.creationDate(in: fields)
+            )
+        }
+    }
+
+    /// Reads `creationDate`, the one passkey field that is not an EncString.
+    ///
+    /// Two spellings are accepted because the two ends of Bitwarden's own stack disagree: the API
+    /// model reads `CreationDate` while the response the server actually emits uses `creationDate`.
+    /// Their lookup is case-insensitive so they never noticed; a direct dictionary lookup does.
+    nonisolated private static func creationDate(in fields: [String: JSONValue]) -> Date? {
+        for name in ["creationDate", "CreationDate"] {
+            if case .string(let raw)? = fields[name] { return parseISODate(raw) }
+        }
+        return nil
+    }
+
     /// Resolves the 64-byte key that decrypts an item's fields.
     ///
     /// This mirrors `CipherMapper.map`'s key selection exactly: the per-item key when the cipher

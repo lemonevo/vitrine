@@ -77,6 +77,7 @@ final class AppContainer: ObservableObject {
     let generateVaultHealthReportUseCase: GenerateVaultHealthReportUseCaseImpl
     /// Reads one item's previous passwords, on demand and without keeping them (design D10).
     let getPasswordHistoryUseCase:        GetPasswordHistoryUseCaseImpl
+    let getPasskeysUseCase:               GetPasskeysUseCaseImpl
     let verifyMasterPasswordUseCase:      VerifyMasterPasswordUseCaseImpl
     let getAccountFingerprintUseCase:     GetAccountFingerprintUseCaseImpl
 
@@ -203,6 +204,7 @@ final class AppContainer: ObservableObject {
         self.importVaultUseCase              = ImportVaultUseCaseImpl(vault: vault)
         self.generateVaultHealthReportUseCase = GenerateVaultHealthReportUseCaseImpl(vault: vault)
         self.getPasswordHistoryUseCase        = GetPasswordHistoryUseCaseImpl(vault: vault)
+        self.getPasskeysUseCase               = GetPasskeysUseCaseImpl(vault: vault)
         self.verifyMasterPasswordUseCase      = VerifyMasterPasswordUseCaseImpl(auth: authRepository)
         // The same word list the passphrase generator uses. It is Bitwarden's EFF long list, and
         // the fingerprint only matches another client while it stays that one — if it is ever
@@ -473,6 +475,15 @@ final class AppContainer: ObservableObject {
     @MainActor
     func makePasswordHistoryViewModel(itemId: String) -> PasswordHistoryViewModel {
         PasswordHistoryViewModel(itemId: itemId, useCase: getPasswordHistoryUseCase)
+    }
+
+    /// Creates a `PasskeysViewModel` for one item.
+    ///
+    /// Per item for the same reason as the history one, and the values it holds are discarded when
+    /// its section collapses.
+    @MainActor
+    func makePasskeysViewModel(itemId: String) -> PasskeysViewModel {
+        PasskeysViewModel(itemId: itemId, useCase: getPasskeysUseCase)
     }
 
     /// Creates an `AttachmentRowViewModel` for the given cipher + attachment pair.
