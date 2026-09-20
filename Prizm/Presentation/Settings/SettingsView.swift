@@ -19,6 +19,13 @@ struct SettingsView: View {
 
     let authRepository: any AuthRepository
 
+    // The certificate settings for the configured server. Both the panel and the file parsing are
+    // injected from the App layer so this file stays free of AppKit and Security (Constitution §II).
+    let serverTrustStore:    any ServerTrustStore
+    let serverHost:          String?
+    let pickCertificateFile: @MainActor () -> URL?
+    let loadCertificates:    (URL) throws -> [Data]
+
     /// The language is global state owned by the shared manager, so this observes the
     /// singleton directly rather than taking it as a parameter.
     @ObservedObject private var localization = LocalizationManager.shared
@@ -41,8 +48,16 @@ struct SettingsView: View {
     @State private var timeoutInterval: VaultTimeoutInterval
     @State private var timeoutAction: VaultTimeoutAction
 
-    init(authRepository: any AuthRepository) {
-        self.authRepository = authRepository
+    init(authRepository:     any AuthRepository,
+         serverTrustStore:   any ServerTrustStore,
+         serverHost:         String?,
+         pickCertificateFile: @escaping @MainActor () -> URL?,
+         loadCertificates:   @escaping (URL) throws -> [Data]) {
+        self.authRepository     = authRepository
+        self.serverTrustStore   = serverTrustStore
+        self.serverHost         = serverHost
+        self.pickCertificateFile = pickCertificateFile
+        self.loadCertificates   = loadCertificates
         _biometry = State(
             initialValue: .probe(systemEnforced: authRepository.biometricGateIsSystemEnforced)
         )
@@ -128,6 +143,13 @@ struct SettingsView: View {
                 .onChange(of: timeoutAction) { _, action in
                     saveTimeout(interval: timeoutInterval, action: action)
                 }
+                ServerTrustSection(
+                    store:               serverTrustStore,
+                    host:                serverHost,
+                    pickCertificateFile: pickCertificateFile,
+                    loadCertificates:    loadCertificates
+                )
+
             } header: {
                 Text("Security")
             } footer: {

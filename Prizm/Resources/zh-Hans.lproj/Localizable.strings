@@ -16,6 +16,7 @@
 "%d items will be written to a file on this Mac." = "将把 %d 个项目写入这台 Mac 上的一个文件。";
 "%d of %d items" = "%d/%d 个项目";
 "%d of %d items could not be deleted. They are still in Trash." = "%d/%d 个项目无法删除，它们仍在回收站中。";
+"%lld certificate(s)" = "%lld 个证书";
 "(unnamed)" = "（未命名）";
 "1 hour" = "1 小时";
 "1 minute" = "1 分钟";
@@ -29,6 +30,7 @@
 "A commonly used password" = "常见密码";
 "A keyboard or alphabet sequence" = "键盘或字母序列";
 "A single dictionary word" = "单个词典单词";
+"A stored certificate could not be read." = "无法读取已保存的证书。";
 "A year or date" = "年份或日期";
 "About Prizm" = "关于 Prizm";
 "Acknowledgements" = "致谢";
@@ -168,6 +170,7 @@
 "Folders created" = "已创建的文件夹";
 "Folders not created" = "未创建的文件夹";
 "Follow System" = "跟随系统";
+"Forget Pinned Certificate" = "忘记固定证书";
 "Full Name" = "全名";
 "General" = "通用";
 "Generate new" = "重新生成";
@@ -268,6 +271,7 @@
 "Not changed in over two years" = "超过两年未更改";
 "Not favorited" = "未收藏";
 "Not now" = "暂不";
+"Not recorded yet" = "尚未记录";
 "Note" = "备注";
 "Notes" = "备注";
 "Nothing Was Imported" = "没有导入任何内容";
@@ -297,6 +301,8 @@
 "Permanently delete every item in Trash" = "永久删除回收站中的每个项目";
 "Personal Info" = "个人信息";
 "Phone" = "电话";
+"Pin this server's certificate" = "固定此服务器的证书";
+"Pinning is off until you turn it on. The fingerprint of the certificate your server presents is recorded on the next connection and checked from then on, so a changed certificate is refused instead of accepted." = "固定功能默认关闭，需要你手动开启。服务器出示的证书指纹会在下一次连接时记录，之后每次连接都会核对 —— 证书一旦更换就会被拒绝，而不是照常接受。";
 "Postal Code" = "邮政编码";
 "Preparing…" = "准备中…";
 "Previous passwords stay masked until you reveal them." = "旧密码保持遮罩状态，直到你手动显示。";
@@ -304,6 +310,8 @@
 "Privacy" = "隐私";
 "Private Key" = "私钥";
 "Prizm Is Locked" = "Prizm 已锁定";
+"Prizm could not read the certificate for %@, so the connection was not made." = "Prizm 无法读取 %@ 的证书，因此未建立连接。";
+"Prizm could not read the stored certificate settings for %@, so the connection was not made. %@" = "Prizm 无法读取已保存的 %@ 证书设置，因此未建立连接。%@";
 "Public Key" = "公钥";
 "Re-enable %@" = "重新启用%@";
 "Reading the file" = "正在读取文件";
@@ -346,6 +354,7 @@
 "Sign In" = "登录";
 "Sign Out" = "退出登录";
 "Sign Out…" = "退出登录…";
+"Sign in to configure the certificate for your server." = "登录后即可配置服务器的证书。";
 "Sign in with a different account" = "使用其他账号登录";
 "Signing in…" = "正在登录…";
 "Size" = "大小";
@@ -355,6 +364,7 @@
 "Starts With" = "开头为";
 "State" = "省/州";
 "Stop" = "停止";
+"Stop Trusting" = "停止信任";
 "Store it somewhere safe and delete it when you are done." = "请妥善保存，并在用完后删除。";
 "Strong" = "强";
 "Symbols (!@#$…)" = "符号 (!@#$…)";
@@ -371,7 +381,10 @@
 "Syncing vault…" = "正在同步保险库…";
 "Syncing…" = "正在同步…";
 "Text" = "文本";
+"That file does not contain a certificate. Choose a .pem, .crt or .cer file exported from your server." = "该文件不含证书。请选择从服务器导出的 .pem、.crt 或 .cer 文件。";
 "That is not the master password for this account." = "这不是此账户的主密码。";
+"The certificate for %@ is not the one this app recorded. It was replaced, or something is intercepting the connection." = "%@ 的证书与本机记录的不一致。它已被更换，或者连接正被拦截。";
+"The certificate for %@ was not issued by the authority you trusted. %@" = "%@ 的证书并非由你信任的机构签发。%@";
 "The export file could not be read." = "无法读取导出文件。";
 "The exported file is not encrypted. Store it somewhere safe." = "导出的文件未加密，请妥善保存。";
 "The file is not encrypted. It contains every password, note, one-time-code seed and previous password in plain text." = "该文件未加密，其中以明文包含所有密码、备注、一次性验证码种子以及历史密码。";
@@ -390,6 +403,8 @@
 "Title" = "称谓";
 "Tools" = "工具";
 "Trash" = "废纸篓";
+"Trust Certificate…" = "信任证书…";
+"Trusted authority" = "受信任的机构";
 "Try Again" = "重试";
 "Two-factor method '%@' is not supported. Use an authenticator app." = "不支持的两步验证方式「%@」。请使用验证器应用。";
 "Two-step login" = "两步验证登录";

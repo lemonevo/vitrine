@@ -16,6 +16,7 @@
 "%d items will be written to a file on this Mac." = "%d items will be written to a file on this Mac.";
 "%d of %d items" = "%d of %d items";
 "%d of %d items could not be deleted. They are still in Trash." = "%d of %d items could not be deleted. They are still in Trash.";
+"%lld certificate(s)" = "%lld certificate(s)";
 "(unnamed)" = "(unnamed)";
 "1 hour" = "1 hour";
 "1 minute" = "1 minute";
@@ -29,6 +30,7 @@
 "A commonly used password" = "A commonly used password";
 "A keyboard or alphabet sequence" = "A keyboard or alphabet sequence";
 "A single dictionary word" = "A single dictionary word";
+"A stored certificate could not be read." = "A stored certificate could not be read.";
 "A year or date" = "A year or date";
 "About Prizm" = "About Prizm";
 "Acknowledgements" = "Acknowledgements";
@@ -168,6 +170,7 @@
 "Folders created" = "Folders created";
 "Folders not created" = "Folders not created";
 "Follow System" = "Follow System";
+"Forget Pinned Certificate" = "Forget Pinned Certificate";
 "Full Name" = "Full Name";
 "General" = "General";
 "Generate new" = "Generate new";
@@ -268,6 +271,7 @@
 "Not changed in over two years" = "Not changed in over two years";
 "Not favorited" = "Not favorited";
 "Not now" = "Not now";
+"Not recorded yet" = "Not recorded yet";
 "Note" = "Note";
 "Notes" = "Notes";
 "Nothing Was Imported" = "Nothing Was Imported";
@@ -297,6 +301,8 @@
 "Permanently delete every item in Trash" = "Permanently delete every item in Trash";
 "Personal Info" = "Personal Info";
 "Phone" = "Phone";
+"Pin this server's certificate" = "Pin this server's certificate";
+"Pinning is off until you turn it on. The fingerprint of the certificate your server presents is recorded on the next connection and checked from then on, so a changed certificate is refused instead of accepted." = "Pinning is off until you turn it on. The fingerprint of the certificate your server presents is recorded on the next connection and checked from then on, so a changed certificate is refused instead of accepted.";
 "Postal Code" = "Postal Code";
 "Preparing…" = "Preparing…";
 "Previous passwords stay masked until you reveal them." = "Previous passwords stay masked until you reveal them.";
@@ -304,6 +310,8 @@
 "Privacy" = "Privacy";
 "Private Key" = "Private Key";
 "Prizm Is Locked" = "Prizm Is Locked";
+"Prizm could not read the certificate for %@, so the connection was not made." = "Prizm could not read the certificate for %@, so the connection was not made.";
+"Prizm could not read the stored certificate settings for %@, so the connection was not made. %@" = "Prizm could not read the stored certificate settings for %@, so the connection was not made. %@";
 "Public Key" = "Public Key";
 "Re-enable %@" = "Re-enable %@";
 "Reading the file" = "Reading the file";
@@ -346,6 +354,7 @@
 "Sign In" = "Sign In";
 "Sign Out" = "Sign Out";
 "Sign Out…" = "Sign Out…";
+"Sign in to configure the certificate for your server." = "Sign in to configure the certificate for your server.";
 "Sign in with a different account" = "Sign in with a different account";
 "Signing in…" = "Signing in…";
 "Size" = "Size";
@@ -355,6 +364,7 @@
 "Starts With" = "Starts With";
 "State" = "State";
 "Stop" = "Stop";
+"Stop Trusting" = "Stop Trusting";
 "Store it somewhere safe and delete it when you are done." = "Store it somewhere safe and delete it when you are done.";
 "Strong" = "Strong";
 "Symbols (!@#$…)" = "Symbols (!@#$…)";
@@ -371,7 +381,10 @@
 "Syncing vault…" = "Syncing vault…";
 "Syncing…" = "Syncing…";
 "Text" = "Text";
+"That file does not contain a certificate. Choose a .pem, .crt or .cer file exported from your server." = "That file does not contain a certificate. Choose a .pem, .crt or .cer file exported from your server.";
 "That is not the master password for this account." = "That is not the master password for this account.";
+"The certificate for %@ is not the one this app recorded. It was replaced, or something is intercepting the connection." = "The certificate for %@ is not the one this app recorded. It was replaced, or something is intercepting the connection.";
+"The certificate for %@ was not issued by the authority you trusted. %@" = "The certificate for %@ was not issued by the authority you trusted. %@";
 "The export file could not be read." = "The export file could not be read.";
 "The exported file is not encrypted. Store it somewhere safe." = "The exported file is not encrypted. Store it somewhere safe.";
 "The file is not encrypted. It contains every password, note, one-time-code seed and previous password in plain text." = "The file is not encrypted. It contains every password, note, one-time-code seed and previous password in plain text.";
@@ -390,6 +403,8 @@
 "Title" = "Title";
 "Tools" = "Tools";
 "Trash" = "Trash";
+"Trust Certificate…" = "Trust Certificate…";
+"Trusted authority" = "Trusted authority";
 "Try Again" = "Try Again";
 "Two-factor method '%@' is not supported. Use an authenticator app." = "Two-factor method '%@' is not supported. Use an authenticator app.";
 "Two-step login" = "Two-step login";

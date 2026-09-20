@@ -127,6 +127,18 @@ nonisolated enum AccessibilityID {
         static let confirmButton  = "reprompt.button.confirm"
     }
 
+    enum ServerTrust {
+        static let pinningToggle      = "serverTrust.toggle.pinning"
+        static let fingerprint        = "serverTrust.fingerprint"
+        static let authorityCount     = "serverTrust.authorityCount"
+        static let trustButton        = "serverTrust.button.trust"
+        static let forgetPinButton    = "serverTrust.button.forgetPin"
+        static let stopTrustingButton = "serverTrust.button.stopTrusting"
+        static let error              = "serverTrust.error"
+        /// Shown instead of the controls when no server is configured yet.
+        static let noHost             = "serverTrust.noHost"
+    }
+
     enum Edit {
         /// The "Edit" toolbar button in ItemDetailView.
         static let editButton    = "edit.button.edit"

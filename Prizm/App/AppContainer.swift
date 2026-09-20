@@ -356,6 +356,25 @@ final class AppContainer: ObservableObject {
         return panel.runModal() == .OK ? panel.url : nil
     }
 
+    /// Default certificate picker using `NSOpenPanel`.
+    ///
+    /// Restricted to the types a server certificate actually comes in. Leaving it unrestricted
+    /// would let the user pick any file and receive a parsing error for it — which is the same
+    /// outcome as a wrong file, reached with more confidence.
+    @MainActor
+    static func defaultCertificateOpenPanel() -> URL? {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles          = true
+        panel.canChooseDirectories    = false
+        panel.allowsMultipleSelection = false
+        panel.message                 = "Choose the certificate to trust"
+        var types: [UTType]           = [.x509Certificate]
+        // `.pem` has no UTType constant, but it is the form most self-signed guides produce.
+        if let pem = UTType(filenameExtension: "pem") { types.append(pem) }
+        panel.allowedContentTypes     = types
+        return panel.runModal() == .OK ? panel.url : nil
+    }
+
     /// Default file opener using `NSWorkspace`.
     @MainActor
     private static func defaultFileOpener(url: URL) {

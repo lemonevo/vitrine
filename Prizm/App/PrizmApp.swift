@@ -196,8 +196,14 @@ struct PrizmApp: App {
         // The Settings scene does not inherit the WindowGroup environment, so we pass
         // the container explicitly via .environmentObject().
         Settings {
-            SettingsView(authRepository: container.authRepository)
-                .environment(\.locale, locale)
+            SettingsView(
+                authRepository:      container.authRepository,
+                serverTrustStore:    container.serverTrustStore,
+                serverHost:          container.authRepository.storedAccount()?.serverEnvironment.base.host,
+                pickCertificateFile: { AppContainer.defaultCertificateOpenPanel() },
+                loadCertificates:    { try CertificateImporter.certificates(at: $0) }
+            )
+            .environment(\.locale, locale)
                 .id(localization.language)
         }
     }
