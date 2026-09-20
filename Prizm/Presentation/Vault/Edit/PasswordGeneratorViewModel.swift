@@ -40,7 +40,13 @@ final class PasswordGeneratorViewModel: ObservableObject {
     private let generator = PasswordGenerator()
     private let estimator: PasswordStrengthEstimator
     private let defaults: UserDefaults
-    private var clipboardClearTask: Task<Void, Never>?
+    /// The pending clipboard-clear task, or `nil` when nothing is scheduled.
+    ///
+    /// Not `private` only so the test target can assert that a copy honours the *configured*
+    /// interval. The presence of a task is what distinguishes "read the setting" from "hardcoded
+    /// 30 seconds", and the alternative is a test that waits the interval out. Production code
+    /// never reads it.
+    private(set) var clipboardClearTask: Task<Void, Never>?
     private var isInitializing = true
 
     // MARK: - Init
@@ -93,20 +99,43 @@ final class PasswordGeneratorViewModel: ObservableObject {
         }
     }
 
+    /// Copies the current value, applying the configured clipboard-clearing interval.
     func copyToClipboard() {
+        copy(generatedValue)
+    }
+
+    /// Writes `value` to the clipboard and schedules the clear.
+    ///
+    /// The interval comes from Settings (`ClipboardClearInterval`), the same setting the vault
+    /// browser honours. It used to be a hardcoded 30 seconds here, which meant the one screen most
+    /// likely to put a password on the clipboard was the one screen the setting did not reach.
+    private func copy(_ value: String) {
+        guard !value.isEmpty else { return }
+
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
-        pasteboard.setString(generatedValue, forType: .string)
+        pasteboard.setString(value, forType: .string)
 
+        // Cancel any outstanding clear task before scheduling a new one: the newest copy owns the
+        // clipboard, and an older task firing later would clear it early.
         clipboardClearTask?.cancel()
+        clipboardClearTask = nil
+
+        guard let seconds = ClipboardClearInterval.load(from: defaults).seconds else {
+            // `.never` — the user has made a decision, and overriding it would be worse than the
+            // risk it guards against.
+            return
+        }
+
         clipboardClearTask = Task {
             do {
-                try await Task.sleep(for: .seconds(30))
-                if pasteboard.string(forType: .string) == generatedValue {
+                try await Task.sleep(for: .seconds(seconds))
+                // Only clear if our value is still on the clipboard.
+                if pasteboard.string(forType: .string) == value {
                     pasteboard.clearContents()
                 }
             } catch {
-                // Task cancelled — do nothing.
+                // Task cancelled — a newer copy owns the clipboard now.
             }
         }
     }
