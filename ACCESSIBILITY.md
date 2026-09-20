@@ -1,8 +1,8 @@
 # Accessibility Conformance Statement
 
 **Product**: Prizm (macOS)
-**Version**: 1.3.0
-**Date**: 2026-04-10
+**Version**: 1.4.3
+**Date**: 2026-09-20
 **Standard**: EN 301 549 v3.2.1 / WCAG 2.1 Level AA
 **Format**: Based on VPAT 2.4 Rev (Voluntary Product Accessibility Template)
 
@@ -18,7 +18,7 @@ Prizm is a native macOS SwiftUI application. It inherits platform accessibility 
 
 | Criterion | Status | Remarks |
 |---|---|---|
-| 1.1.1 Non-text Content | Supports | All icon-only buttons have `accessibilityLabel`. Decorative images are hidden via `accessibilityHidden(true)`. |
+| 1.1.1 Non-text Content | Supports | All icon-only buttons have `accessibilityLabel`, including the ones added in 1.4 (password-history reveal and copy, fingerprint copy). Decorative images are hidden via `accessibilityHidden(true)`. |
 | 1.2.1 Audio-only and Video-only | Not Applicable | No audio or video content. |
 | 1.2.2 Captions | Not Applicable | No audio or video content. |
 | 1.2.3 Audio Description or Media Alternative | Not Applicable | No audio or video content. |
@@ -44,8 +44,8 @@ Prizm is a native macOS SwiftUI application. It inherits platform accessibility 
 | 3.1.1 Language of Page | Supports | App language is determined by macOS system language settings. |
 | 3.2.1 On Focus | Supports | No context changes on focus. |
 | 3.2.2 On Input | Supports | No unexpected context changes on input. Search filtering is expected behaviour. |
-| 3.3.1 Error Identification | Supports | Errors are identified in text. VoiceOver announcements are posted for error banners. |
-| 3.3.2 Labels or Instructions | Supports | All form fields have visible labels. |
+| 3.3.1 Error Identification | Supports | Errors are identified in text — including a rejected master password in the re-prompt sheet, a certificate the pinned fingerprint does not match, and a TOTP seed that will not produce a code. VoiceOver announcements are posted for error banners. |
+| 3.3.2 Labels or Instructions | Supports | All form fields have visible labels. The two-factor prompt states which method is being asked for — a code field labelled only "Code" would leave a user with three configured methods guessing which one is wanted. |
 | 4.1.1 Parsing | Not Applicable | Not applicable to native applications. |
 | 4.1.2 Name, Role, Value | Supports | All interactive controls expose name, role, and value to the accessibility API. Stateful controls (favorite star) expose current value. |
 
@@ -66,10 +66,28 @@ Prizm is a native macOS SwiftUI application. It inherits platform accessibility 
 | 2.4.6 Headings and Labels | Supports | Section headers have `.isHeader` trait. All form fields have descriptive labels. |
 | 2.4.7 Focus Visible | Supports | macOS provides default focus rings on all focusable controls. |
 | 3.2.3 Consistent Navigation | Supports | Sidebar navigation is consistent across all views. |
-| 3.2.4 Consistent Identification | Supports | Same actions use same labels throughout (e.g. "Copy", "Reveal", "Delete"). |
-| 3.3.3 Error Suggestion | Supports | Error messages include corrective suggestions where an actionable fix is known (e.g. "Check your network connection", "Make sure to include https://"). |
+| 3.2.4 Consistent Identification | Supports | Same actions use same labels throughout (e.g. "Copy", "Reveal", "Delete"). Reveal is consistently an eye icon with "Reveal" / "Hide", including in the password-history list. |
+| 3.3.3 Error Suggestion | Supports | Error messages include corrective suggestions where an actionable fix is known (e.g. "Check your network connection", "Make sure to include https://", "Choose a .pem, .crt or .cer file exported from your server", "Sign in from another Bitwarden client"). Where no fix is available in Prizm, the message says so rather than suggesting something the user cannot do — an account protected by Duo cannot be switched to an authenticator app from here. |
 | 3.3.4 Error Prevention (Legal, Financial, Data) | Supports | Destructive actions (delete, permanent delete) require confirmation dialogs. |
-| 4.1.3 Status Messages | Supports | Error banners and sync status changes are announced to VoiceOver via `AccessibilityNotification.Announcement`. |
+| 4.1.3 Status Messages | Supports | Error banners and sync status changes are announced to VoiceOver via `AccessibilityNotification.Announcement`. Copying the account fingerprint phrase is announced too: its button's icon becomes a tick, which confirms the copy visually and says nothing to a screen reader. |
+
+---
+
+## Controls Added in 1.4
+
+Every control below carries an `accessibilityIdentifier`, so it is addressable by UI tests, and a
+label a screen reader can read.
+
+| Surface | Controls | Notes |
+|---|---|---|
+| Vault Health Report (⌘⇧H) | five sections, per-item rows | Section headers use `.isHeader`. **All five sections are drawn even when a check finds nothing** — an absent section is indistinguishable from a check that never ran. The count badge carries the answer. |
+| Password history | reveal, copy, per-entry rows | Reveal is behind the master-password gate; the label switches between "Reveal this previous password" and "Hide this previous password". |
+| Master-password re-prompt sheet | item name, `SecureField`, Cancel, Confirm | A rejected password leaves the sheet open and announces why, so the difference between "wrong password" and "cancelled" is audible. |
+| Two-factor prompt | method name, code field, Resend (email only), Remember, Continue, Cancel | The field's allowed characters depend on the method — a YubiKey emits letters, so a digits-only field would silently discard the tap. |
+| Settings ▸ Account | fingerprint phrase, copy | Copy is announced (4.1.3). |
+| Settings ▸ Security ▸ certificate trust | pinning toggle, fingerprint row, Trust Certificate…, Stop Trusting, Forget Pinned Certificate | The fingerprint row shows "Not recorded yet" rather than nothing while no pin exists. |
+| Edit form ▸ Options | **Master password re-prompt** toggle | Present on every item type, not only logins. |
+| Edit form ▸ Login | **Authenticator Key (TOTP)** field, plus a warning when the seed will not produce a code | The warning is advisory: the seed still saves. Refusing to save it would strand a user whose service emits an unusual shape. |
 
 ---
 

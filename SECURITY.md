@@ -181,6 +181,57 @@ The server retains the empty metadata record. The client shows a "Retry" action 
 
 ---
 
+## Vault Export and Import
+
+Export writes an **unencrypted Bitwarden JSON** file to wherever the user chooses. That file
+contains, in plaintext:
+
+- every item's name, notes, custom fields and URIs;
+- usernames and passwords;
+- **TOTP seeds** — which generate every future code for the account, not just the current one;
+- **previous passwords**, for any item whose server-side history is present.
+
+It is therefore the single most sensitive artefact the app can produce, and the export sheet says so
+before the file is written rather than afterwards. Password history is included because the
+interchange format carries it and dropping it would make the file unusable as a backup; the
+alternative would be a second "without history" format that no other client reads.
+
+What is **not** supported, and why it matters:
+
+- **No encrypted export.** The password-protected JSON the official clients can write is not
+  produced, and the importer refuses one with an explicit error rather than failing part-way.
+- **No CSV, no ZIP.** Only the one JSON shape.
+
+Import accepts the same unencrypted shape, and nothing else. A file that is encrypted, or is another
+vendor's CSV, is rejected with a message rather than partially imported — a partial import is the
+one outcome that leaves the user unable to tell what they now have.
+
+---
+
+## Password Strength Estimator
+
+The meter and the health report's weak-password check use a local estimator. **It is not `zxcvbn`**,
+and the difference is mostly the dictionaries: 609 common passwords rather than 30,000+, one word
+list rather than several. Concretely it does not model l33t substitutions (`p@ssw0rd` is not
+recognised as `password`), multi-word combinations, names and places, or cross-pattern combinations.
+
+It is biased deliberately: when wrong, it is wrong **low**. A mixed-character password is costed as
+the product of its character runs rather than `pool^length`, which understates it. Understating is
+the safe direction for a meter; overstating is how a user is talked into keeping a password they
+should not have.
+
+Two absences that are refusals, not gaps:
+
+- **No leaked-password check.** It would require sending a hash prefix to a public API. A client
+  whose point is self-hosting should not open a connection the user did not configure, so the health
+  report states the omission on the face of it rather than leaving it to be assumed.
+- **No data-breach check** for the same reason.
+
+A score is an estimate of guessing cost. It is not a statement that a password is safe, and it says
+nothing about whether it has been exposed.
+
+---
+
 ## Threat Model
 
 ### What this app defends against
@@ -247,6 +298,19 @@ Two optional settings, both off by default and both scoped to the one server the
 The trusted certificate and the recorded fingerprint are stored in the Keychain, per host,
 `WhenUnlockedThisDeviceOnly` and never synchronisable — not in `UserDefaults`, which any process
 running as the user can rewrite with one `defaults write`.
+
+**What pinning does not cover**, stated because "the connection is pinned" is otherwise read as more
+than it says:
+
+- **The first connection.** The fingerprint is recorded from the first certificate seen (trust on
+  first use). A pin turned on while something is already intercepting is a pin of the interceptor.
+- **Other hosts.** Trust and pinning are scoped to the configured server host. The icon service is a
+  different host and is not covered by either — it is configurable, and when it is left unset no
+  icon is fetched at all rather than fetched from a default third party.
+- **Anything after the TLS handshake.** Pinning authenticates the server. It says nothing about
+  whether the server is the one the user meant, whether the account's keys are the ones another
+  client would show, or whether the response was tampered with by someone holding the server's key.
+  The account fingerprint phrase in Settings is the check for the second of those.
 
 **Untested: the TLS handshake itself.** `ServerTrustPolicy.decide` — the rule that decides what the
 handshake is asked to do — is a pure function and is fully unit-tested, and the certificate parsing
