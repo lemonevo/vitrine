@@ -101,7 +101,12 @@ struct SidebarView: View {
                     selection = .newFolder
                     isNewFolderFocused = true
                 } label: {
-                    Image(systemName: "plus.circle")
+                    // `folder.badge.plus`, not `plus.circle`: the symbol is pinned by
+                    // `openspec/specs/vault-folder-organization` and described by
+                    // `voiceover-labels`. It was changed to `plus.circle` incidentally, inside the
+                    // organisation-support PR, which never mentioned it — so it went unnoticed for
+                    // months. Do not "tidy" this one.
+                    Image(systemName: "folder.badge.plus")
                         .font(.title3)
                         .symbolRenderingMode(.hierarchical)
                         .foregroundStyle(.primary)
