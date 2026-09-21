@@ -78,9 +78,7 @@ Two lifecycle details the plan did not anticipate, both of which would have been
       (asset catalog and word list absent from the SwiftPM test bundle), 0 unexpected.
 - [x] Both `.lproj` at equal key counts (526), `plutil -lint` clean, `git diff --numstat` showing only
       additions.
-- [ ] Screenshot the detail view in both languages with a real TOTP item: masked, revealed, and one
-      second before the step rolls. **Not done** — needs a running app with a real vault item, which
-      only the user can do. Static checks passing is not the same as the row looking right, and the
-      things most likely to be wrong here are visual: whether the progress bar reads as a countdown
-      rather than a decoration, and whether the grouped code plus the seconds fit on one line at the
-      default window width.
+- [x] Screenshot the detail view in both languages with a real TOTP item: masked, revealed, and one
+      second before the step rolls. **Confirmed by the user on a running build** (2026-09-21) — the
+      row renders, reveals and counts down against a real vault item. Static checks passing is not
+      the same as the row looking right, which is why this step existed.
