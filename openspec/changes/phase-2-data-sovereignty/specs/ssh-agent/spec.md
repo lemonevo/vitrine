@@ -7,7 +7,9 @@ Prizm already stores SSH private keys (`SSHKeyContent.privateKey`) but offers no
 This is the only capability in this change that no other Prizm feature competes with, and it is the
 one that only a desktop client can have.
 
-## Requirement: the agent SHALL listen on a Unix socket it owns
+## ADDED Requirements
+
+### Requirement: the agent SHALL listen on a Unix socket it owns
 
 The socket SHALL be created under a directory whose permissions are `0700`, owned by the user, and
 the socket itself SHALL NOT be world-accessible. Prizm SHALL NOT reuse or overwrite a socket path it
@@ -31,7 +33,7 @@ did not create, and SHALL remove the socket file when it stops.
 > build is sandboxed by default and local builds are not. The failure must be visible, because an
 > agent that silently serves nobody looks, to the user, like an agent that is protecting them.
 
-## Requirement: Prizm SHALL answer identity listing
+### Requirement: Prizm SHALL answer identity listing
 
 Prizm SHALL answer `SSH_AGENTC_REQUEST_IDENTITIES` with the SSH keys in the vault that it can
 actually use, and SHALL omit the ones it cannot.
@@ -53,7 +55,7 @@ actually use, and SHALL omit the ones it cannot.
 > The comment is what `ssh-add -l` prints. The user's own name for the item is the one that tells
 > them which key it is; the key file's comment is whatever the machine that generated it said.
 
-## Requirement: the agent SHALL refuse to sign without a grant from the master-password gate
+### Requirement: the agent SHALL refuse to sign without a grant from the master-password gate
 
 Every `SSH_AGENTC_SIGN_REQUEST` SHALL be routed through the gate before any signature is produced.
 Signing SHALL NOT happen as a side effect of the vault being unlocked.
@@ -101,7 +103,7 @@ same teardown that clears the reprompt grants — `lockVault()` and `signOut()`.
 > Naming the requesting process is what makes the prompt answerable. Without it the user is asked to
 > approve a signature with no idea what asked for it, which trains them to press yes.
 
-## Requirement: Prizm SHALL support the key formats it can, and say which it cannot
+### Requirement: Prizm SHALL support the key formats it can, and say which it cannot
 
 Prizm SHALL use unencrypted OpenSSH-format (`openssh-key-v1`) ed25519 and RSA private keys. Any
 other key SHALL be left out of the identity list with a stated reason, never half-loaded.
@@ -122,7 +124,7 @@ other key SHALL be left out of the identity list with a stated reason, never hal
 - **WHEN** identities are listed
 - **THEN** the key is omitted and Settings names the algorithm as unsupported
 
-## Requirement: Prizm SHALL implement only the protocol it needs
+### Requirement: Prizm SHALL implement only the protocol it needs
 
 Prizm SHALL answer `SSH_AGENTC_REQUEST_IDENTITIES` and `SSH_AGENTC_SIGN_REQUEST`, and SHALL answer
 `SSH_AGENT_FAILURE` to every other message — including the key-management messages, which would let
@@ -138,7 +140,7 @@ a client insert or delete keys.
 > may wait until it times out, and a client that gets `SSH_AGENT_FAILURE` moves on immediately.
 > Neither is an error condition Prizm needs to log as a fault.
 
-## Requirement: Prizm SHALL NOT retain key material between requests
+### Requirement: Prizm SHALL NOT retain key material between requests
 
 The private key SHALL be parsed when a signature is requested and discarded afterwards. Identities
 SHALL be built from public material only.

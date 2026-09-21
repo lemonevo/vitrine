@@ -532,17 +532,47 @@ Also amended: the doc comment on `PreservedCipherFields.fido2Credentials` said "
 true when written and became false here; a comment that understates what the code does is the one
 kind someone acts on.
 
-### E2. SSH agent
+### E2. SSH agent — **code complete; end-to-end verification pending**
 
 A desktop-only capability that no other Prizm feature competes with. Prizm already stores SSH
 private keys (`SSHKeyContent.privateKey`); what is missing is everything that makes them usable.
 
-- [ ] A Unix socket, launched on demand.
-- [ ] The SSH agent protocol subset: identity listing and signing. Not the full message set.
-- [ ] Parse the OpenSSH private key formats Prizm can already hold.
-- [ ] **Every sign request goes through the master-password gate.** Without this the agent is an
-      unattended key-extraction path, which is worse than not having it.
+- [x] A Unix socket, launched on demand. At `~/Library/Application Support/Prizm/ssh-agent/agent.sock`
+      — a stable path, because `SSH_AUTH_SOCK` has to be exported in the user's shell and a
+      per-launch path would have to be re-exported every time. The cost of stability is a stale
+      socket file after a crash, handled by removing only a file that is a socket. The directory is
+      created `0700` and the socket `0600`, and Prizm **refuses** a directory it did not create or
+      one whose permissions were widened — binding there would hand every signature request to
+      anyone who can write to it. "On demand" is `SSHAgentCoordinator`: the agent listens when the
+      user has switched it on **and** the vault is unlocked, and stops on lock and on sign-out. It
+      is driven from `RootViewModel` rather than by observing the screen, because the screen is the
+      only thing that knows when the vault became readable and the coordinator has no business
+      knowing about screens.
+- [x] The SSH agent protocol subset: identity listing and signing. Not the full message set.
+      `REQUEST_IDENTITIES`, `SIGN_REQUEST` and the failure message; everything else is answered with
+      `SSH_AGENT_FAILURE` rather than ignored, so a client gets an answer instead of a hang.
+- [x] Parse the OpenSSH private key formats Prizm can already hold. `openssh-key-v1` only, ed25519
+      and RSA. A passphrase-protected key is reported as **unusable with that reason** — Prizm stores
+      no passphrase for a key and does not prompt for one, so offering it would produce signature
+      requests that can never succeed.
+- [x] **Every sign request goes through the master-password gate.** Without this the agent is an
+      unattended key-extraction path, which is worse than not having it. `SSHAgentAuthorizer` grants
+      **per key per unlock session**: the first request for a key asks, later ones do not, because
+      prompting on every signature makes any `git` operation that signs more than once unusable and
+      an agent the user switches off protects nothing. The grant is consulted on every request and
+      revoked in the same teardown that clears the re-prompt grants.
 - [ ] Verify against `git`, `ssh`, and at least one editor's remote integration.
+
+  **Blocked, and the blocker is not the verification.** The agent refuses to start when the process
+  is sandboxed, and `Prizm/Prizm/Prizm.entitlements` enables `com.apple.security.app-sandbox` — so
+  the Xcode/release configuration will report the agent as unavailable, while the local
+  `build-app.sh` build (which disables the sandbox by default) is the only configuration where it
+  runs. Verifying against `git` and `ssh` therefore has to be done on the unsandboxed local build,
+  and it will prove the protocol and the gate, not that the shipped configuration works.
+  Closing that gap is a change of its own: place the socket inside the app container and *verify*
+  that a non-sandboxed `ssh` can connect to it. The container is a real directory under
+  `~/Library/Containers/`, so this is plausible — but plausible is exactly what this codebase does
+  not act on, and the current refusal is deliberate rather than a stub.
 
   Sizing note: this is the largest item in the change. It is deliberately last.
 
@@ -799,3 +829,49 @@ private keys (`SSHKeyContent.privateKey`); what is missing is everything that ma
 
   Verified: 953 tests / 10 failures against the 936-test baseline, failing set identical, so all 17
   new tests pass. Both `.lproj` at 433 keys, `plutil -lint` clean, **7/0** numstat per file.
+
+### Wave E
+
+- **E2 — the crash that reported nothing.** A `DispatchSource` owns its file descriptor and may
+  only close it from its cancel handler. Closing the descriptor synchronously right after `cancel()`
+  on the queue that created the source kills the process with **SIGTRAP and no diagnostic at all**,
+  and Address Sanitizer has nothing to say about it — so "SIGTRAP plus an empty ASan report" sent
+  the investigation toward heap corruption, which was never the problem. Fixed by dropping the
+  source: connections are served by a blocking thread with `poll` and `shutdown(fd, SHUT_RDWR)`.
+  Worth recording because the failure mode is designed to be uninformative.
+
+- **E2 — the strings nobody looks at.** All **21** `L(…)` keys in `Data/SSHAgent/` were missing from
+  both `.strings` files. `L` resolves with `localizedString(forKey:value:nil)`, so a miss returns the
+  key — which *is* the English sentence. English therefore read correctly and every failure reason
+  would have appeared in English under a Chinese interface. This was found only when the Settings
+  pane that exists to display those reasons was built, which is the lesson: when a pane's whole job
+  is to surface a reason, the reason's strings belong to that pane's work and to that commit.
+  Two further entries from the signature-request commit were sitting out of byte order; they were
+  re-sorted, which is the only reason that diff deletes any line.
+
+- **E2 — the tool of record was not used.** The `swiftui-runtime-localization` skill ships
+  `references/verify_keys.py` and `references/add_strings.py` and says to run them rather than write
+  a scanner. A hand-rolled scanner was written first anyway: it reported 38 missing keys, 17 of them
+  false positives from `\u{201C}` escapes and interpolated literals, where the tool answered the same
+  question in one command with the right list. A hand-rolled insert also sorted on the *escaped*
+  source text rather than the decoded key, filing 21 entries above `"%@" will be moved to Trash.`
+  Two defects in the tools themselves were fixed at the same time: `verify_keys.py` applied its
+  ignore-list to only one of its two reports (so `DispatchQueue(label:)`'s reverse-DNS string was
+  reported as user-visible text), and `add_strings.py` silently dropped any key containing a
+  backslash while rewriting the whole file, which would have deleted those entries.
+
+- **The suite's failure count is not always the suite's fault.** Running the full suite under the
+  tool sandbox intermittently adds **14** records — `KeychainServiceTests` (8) and
+  `BiometricKeychainServiceTests` (6), all `unexpectedStatus(100001)` — because the sandbox refuses
+  to create `login.keychain-db.sb-*`. The stderr names the denied paths. `100001` is not a Security
+  framework code: `SecCopyErrorMessageString` resolves it to `Operation not permitted`, i.e. a
+  sandbox denial. The same numeric value also appeared once from a real defect (a test target missing
+  `-default-isolation MainActor`), so the number alone decides nothing — read the stderr. A run that
+  is not sandboxed reports the true baseline of **10** records: `CardBackgroundTests` (1),
+  `PasswordGeneratorTests` (8), `PasswordGeneratorViewModelTests` (1), all needing `Assets.car` or
+  the EFF wordlist, neither of which exists when `Bundle.main` is the xctest runner.
+
+- **`-default-isolation MainActor` and function types.** Storing a closure type whose parameter is
+  itself a function — `(String, @Sendable (Data) async -> Data) -> T` — requires `@escaping` *inside*
+  the function type. Without it the default argument cannot pass its own parameter on, and the error
+  names the callee rather than the type.

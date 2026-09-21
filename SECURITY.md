@@ -256,6 +256,10 @@ nothing about whether it has been exposed.
 - **Debugger or memory inspector while unlocked** — While the vault is unlocked, key
   material exists in process memory. An attacker with `task_for_pid` or debugger
   access can read it.
+- **Another process running as you, while the vault is unlocked** — Anything on the
+  machine running as your user can reach the SSH agent's socket and can read this
+  process's memory. The agent's master-password gate closes an unattended path to a
+  *signature*; it is a consent boundary, not a cryptographic one. See **SSH Agent**.
 - **Keylogger** — The master password is entered via the keyboard. A keylogger can
   capture it before it reaches the app.
 - **Physical access while the Mac is unlocked** — Keychain items with
@@ -318,6 +322,77 @@ is tested against a real certificate. The `SecTrust` evaluation in `ServerTrustD
 unit test cannot stand up a TLS server with a private authority, and faking `SecTrust` would test
 the fake. That gap is recorded here rather than left to be discovered, and it is the first thing to
 cover if a test host with a private authority ever becomes available.
+
+---
+
+## SSH Agent
+
+Prizm can serve the SSH private keys held in the vault to `ssh` and `git` over a Unix socket, so a
+key that already lives in the vault does not have to be copied out into `~/.ssh`. The feature is
+**off by default**, and the agent runs only while the vault is unlocked.
+
+### What limits it
+
+- **The socket is reachable by anything running as you.** That is what a Unix socket is. The agent
+  cannot tell `git` from a script you were talked into running, and it does not try to. This is the
+  reason for the gate below, not an oversight.
+- **Every key needs the master password, once per unlock.** The first signature request for a key
+  asks; later requests for that key do not. Prompting on every signature would make any `git`
+  operation that signs more than once unusable, and an agent the user switches off protects nothing
+  — which is the outcome this exists to prevent. The grant is still consulted on every request, so
+  no signature skips the gate, and every grant is revoked on lock and on sign-out.
+- **The gate is a consent boundary, not a cryptographic one.** A correct master password changes
+  nothing about the vault: same keys, same session, no unlock. An attacker who can read this
+  process's memory bypasses the gate by reading memory, not by answering it. It is described this
+  way deliberately — a gate presented as stronger than it is gets relied on for the wrong thing.
+- **The request names the process, from the kernel.** The sheet shows the requesting executable's
+  name, resolved from `LOCAL_PEERPID` and `proc_pidpath` rather than sent by the client, so a client
+  cannot claim to be something else. When the kernel declines to say, the sheet reads "an
+  application" instead of guessing.
+- **The socket is private to the user.** The directory is created `0700` and the socket is `0600`.
+  Prizm refuses to bind in a directory it did not create, or one whose permissions were widened:
+  binding there would hand every signature request to anyone who can write to it.
+- **The keys offered are the keys in the vault**, re-read per request rather than snapshotted at
+  start, so deleting a key from the vault stops it being offered immediately.
+
+### What it does not cover
+
+- **A process that can read Prizm's memory while the vault is unlocked** — see the gate above. The
+  gate closes an *unattended* path to a signature; it says nothing about memory access.
+- **The user approving a request they did not mean to.** The sheet names the process, but the
+  decision is the user's. A prompt is only as good as the reading of it.
+- **A sandboxed build — which is the configuration the Xcode project builds.** The agent refuses
+  to start when the process is sandboxed. A sandboxed app cannot write to the real
+  `~/Library/Application Support/`, and a socket inside its own container is not something this
+  code has *verified* `ssh` can reach — so the bind would either fail or succeed while no client
+  could find it, and coming up green in that state is the one outcome this feature must not
+  produce. It is detected before binding and the reason is shown in Settings.
+
+  The consequence, stated plainly: `Prizm/Prizm/Prizm.entitlements` enables
+  `com.apple.security.app-sandbox`, so **a release build reports the agent as unavailable**, while
+  the local `build-app.sh` build disables the sandbox and is the only configuration where the agent
+  runs today. Closing that gap means placing the socket inside the container and verifying that a
+  non-sandboxed `ssh` can connect to it — a change of its own, not a tweak, and not something to
+  assume either way.
+- **Keys Prizm cannot use.** Only `openssh-key-v1` containers, and only ed25519 and RSA. A
+  passphrase-protected key is listed as unusable with that reason: Prizm stores no passphrase for a
+  key and does not prompt for one, so offering it would produce signature requests that can never
+  succeed.
+
+### Untested: the end-to-end path
+
+The protocol framing, the key parsing, the signing primitives, the socket lifecycle and the
+authorization gate are unit-tested — 103 cases across `SSHAgentPrimitivesTests`,
+`SSHAgentSessionTests`, `SSHAgentServerTests`, `SSHAgentAuthorizerTests`, `SSHAgentCoordinatorTests`
+and `SSHAgentSectionTests`. The ed25519 and RSA expectations are compared against values computed
+**outside** Prizm (Python `cryptography`), so they test Prizm's output rather than restate it. No
+private key material is committed: the fixtures are assembled from components, and the one key with
+a secret in it is built from a seed of repeated bytes.
+
+What the suite does **not** cover is an end-to-end run against real clients: `ssh-add -l` listing
+the keys, `ssh -T git@github.com` completing a signature, and a `git` commit that signs. That needs
+a real vault with a real key and a real remote. It is recorded here rather than left to be
+discovered.
 
 ---
 
