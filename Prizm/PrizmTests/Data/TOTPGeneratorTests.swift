@@ -209,6 +209,56 @@ final class TOTPGeneratorTests: XCTestCase {
         )
     }
 
+    // MARK: - The window
+
+    func test_window_expiresAtIsTheNextBoundaryStrictlyAfterTheInstant() {
+        // t=59 sits in the step that began at 30, so it expires at 60 — not at 59, and not at 90.
+        XCTAssertEqual(sut.window(for: Seed.sha1, at: date(59))?.expiresAt, date(60))
+    }
+
+    func test_window_expiresAtIsStrictlyAfterEvenOnABoundary() {
+        // On the boundary the instant belongs to the step that is *starting*, so the window ends one
+        // full step later. Anything else would show a code with a countdown of zero.
+        XCTAssertEqual(sut.window(for: Seed.sha1, at: date(30))?.expiresAt, date(60))
+        XCTAssertEqual(sut.window(for: Seed.sha1, at: date(60))?.expiresAt, date(90))
+    }
+
+    func test_window_periodFollowsTheKeyURI() {
+        XCTAssertEqual(sut.window(for: Seed.sha1, at: date(59))?.period, 30)
+        XCTAssertEqual(sut.window(for: uri(secret: Seed.sha1, period: 60), at: date(59))?.period, 60)
+        XCTAssertEqual(sut.window(for: uri(secret: Seed.sha1, period: 90), at: date(59))?.period, 90)
+    }
+
+    func test_window_expiresAtFollowsThePeriodToo() {
+        // The two have to agree: a 60-second step whose window ended after 30 seconds would show a
+        // countdown that does not match the code.
+        XCTAssertEqual(sut.window(for: uri(secret: Seed.sha1, period: 60), at: date(59))?.expiresAt,
+                       date(60))
+    }
+
+    func test_window_codeChangesAtTheBoundaryItReports() throws {
+        let window    = try XCTUnwrap(sut.window(for: Seed.sha1, at: date(59)))
+        let expiresAt = window.expiresAt
+
+        XCTAssertEqual(sut.code(for: Seed.sha1, at: expiresAt.addingTimeInterval(-1)), window.value,
+                       "the code must still be valid in the second before it expires")
+        XCTAssertNotEqual(sut.code(for: Seed.sha1, at: expiresAt), window.value,
+                          "the code must be different from the moment the window ends")
+    }
+
+    func test_window_valueIsTheSameCodeTheConvenienceReturns() {
+        // One parse, one period: the code and the window can never describe different steps.
+        XCTAssertEqual(sut.window(for: Seed.sha1, at: date(59))?.value,
+                       sut.code(for: Seed.sha1, at: date(59)))
+    }
+
+    func test_window_isNilForAnUnusableSecret() {
+        XCTAssertNil(sut.window(for: nil, at: date(59)))
+        XCTAssertNil(sut.window(for: "", at: date(59)))
+        XCTAssertNil(sut.window(for: "not-base32!", at: date(59)))
+        XCTAssertNil(sut.window(for: uri(secret: Seed.sha1, algorithm: "MD5"), at: date(59)))
+    }
+
     // MARK: - Secret never leaks
 
     func test_generatedCodeIsNeverTheSecret() {

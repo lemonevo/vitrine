@@ -51,7 +51,7 @@ nonisolated struct TOTPGeneratorImpl: TOTPGenerator {
 
     // MARK: - TOTPGenerator
 
-    func code(for secret: String?, at date: Date) -> String? {
+    func window(for secret: String?, at date: Date) -> TOTPWindow? {
         guard let parameters = parameters(from: secret) else {
             // Usually not a fault: most login items simply have no TOTP secret. Logged at debug so
             // a genuinely malformed value is still traceable without spamming the log. The secret
@@ -60,7 +60,8 @@ nonisolated struct TOTPGeneratorImpl: TOTPGenerator {
             return nil
         }
 
-        let counter = UInt64(floor(date.timeIntervalSince1970 / Double(parameters.period)))
+        let step    = Double(parameters.period)
+        let counter = UInt64(floor(date.timeIntervalSince1970 / step))
         let message = withUnsafeBytes(of: counter.bigEndian) { Data($0) }
         let key     = SymmetricKey(data: parameters.secret)
 
@@ -71,7 +72,14 @@ nonisolated struct TOTPGeneratorImpl: TOTPGenerator {
         case .sha512: mac = Data(HMAC<SHA512>.authenticationCode(for: message, using: key))
         }
 
-        return truncate(mac, digits: parameters.digits)
+        guard let code = truncate(mac, digits: parameters.digits) else { return nil }
+
+        // The start of the next step, derived from the counter that produced the code rather than
+        // from a second division of `date` — so the window cannot describe a different step from the
+        // one the code belongs to. `floor` above makes this strictly after `date`.
+        return TOTPWindow(value:     code,
+                          expiresAt: Date(timeIntervalSince1970: (Double(counter) + 1) * step),
+                          period:    step)
     }
 
     // MARK: - Parsing

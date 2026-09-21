@@ -199,13 +199,24 @@ final class MockRootDependencies: RootViewModelDependencies {
 nonisolated struct StubTOTPGenerator: TOTPGenerator {
     let code: String?
 
-    init(code: String? = "654321") {
-        self.code = code
+    /// The step the stub reports. Fixed rather than derived, so a test asserting on the countdown is
+    /// asserting on the row rather than on the stub's arithmetic.
+    let period: TimeInterval
+
+    init(code: String? = "654321", period: TimeInterval = 30) {
+        self.code   = code
+        self.period = period
     }
 
-    func code(for secret: String?, at date: Date) -> String? {
+    func window(for secret: String?, at date: Date) -> TOTPWindow? {
         // Mirror the real contract: no usable secret, no code.
-        guard let secret, !secret.isEmpty else { return nil }
-        return code
+        guard let secret, !secret.isEmpty, let code else { return nil }
+        // Aligned to the step boundary exactly as the real generator is, so a caller that reads
+        // `expiresAt` gets a plausible instant rather than one that depends on when the test ran.
+        let step    = max(1, period)
+        let counter = floor(date.timeIntervalSince1970 / step)
+        return TOTPWindow(value:     code,
+                          expiresAt: Date(timeIntervalSince1970: (counter + 1) * step),
+                          period:    step)
     }
 }
