@@ -122,6 +122,14 @@ final class AppContainer: ObservableObject {
     /// second answer to "how long does a grant last", and it would be the copy that survives a lock.
     let sshAgentAuthorizer: SSHAgentAuthorizer
 
+    /// Owns the SSH agent: the listening socket, and whether it should be listening at all.
+    ///
+    /// Held by the container rather than by `RootViewModel` because it has two callers with no
+    /// relationship to each other — the screen state machine that knows when the vault unlocks, and
+    /// the Settings pane that flips the switch — and because it outlives both the settings window
+    /// and any one vault session.
+    let sshAgentCoordinator: SSHAgentCoordinator
+
     // MARK: - Init
 
     init() {
@@ -232,7 +240,12 @@ final class AppContainer: ObservableObject {
         // immediately without recreating the monitor.
         self.idleMonitor               = VaultIdleMonitor(settings: { VaultTimeoutSettings.load() })
         self.generatorHistory          = GeneratorHistory()
-        self.sshAgentAuthorizer        = SSHAgentAuthorizer(verifyMasterPassword: verifyMasterPasswordUseCase)
+        // Built as a local first: the coordinator needs the same authorizer instance, and reading
+        // the stored property back mid-init to hand it over is the kind of thing that stops
+        // compiling the moment the property order changes.
+        let sshAuthorizer      = SSHAgentAuthorizer(verifyMasterPassword: verifyMasterPasswordUseCase)
+        self.sshAgentAuthorizer = sshAuthorizer
+        self.sshAgentCoordinator = SSHAgentCoordinator(vault: vault, authorizer: sshAuthorizer)
     }
 
     // MARK: - Factories

@@ -165,4 +165,26 @@ final class RootViewModelLockTests: XCTestCase {
 
         XCTAssertEqual(deps.generatorHistory.entries.map(\.value), ["kept"])
     }
+
+    // MARK: - SSH agent
+
+    /// The agent's socket follows the vault's lock state, and the wiring is the thing under test
+    /// here rather than the coordinator: `transitionToVault` is what tells the agent the vault
+    /// became readable, and `lockVault()` is what tells it to stop.
+    ///
+    /// Both halves are asserted. A test that only checked the stop would pass against a coordinator
+    /// that was never started — which is exactly the state a broken `vaultDidUnlock()` call leaves.
+    func testLockVault_stopsTheSSHAgentThatTheVaultTransitionStarted() async throws {
+        mockAuth.stubbedStoredAccount = stubAccount
+        deps.sshAgentCoordinator.setEnabled(true)
+
+        sut.handleLoginFlow(.vault)
+        XCTAssertTrue(deps.sshAgentListener.isRunning,
+                      "reaching the vault should have started the agent")
+
+        sut.lockVault()
+        try await waitUntil { !self.deps.sshAgentListener.isRunning }
+
+        XCTAssertFalse(deps.sshAgentListener.isRunning)
+    }
 }

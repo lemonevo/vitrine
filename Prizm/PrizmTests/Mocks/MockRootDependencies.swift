@@ -56,6 +56,32 @@ final class MockRootDependencies: RootViewModelDependencies {
     lazy var sshAgentAuthorizer = SSHAgentAuthorizer(
         verifyMasterPassword: verifyMasterPasswordUseCase)
 
+    /// The agent's listener, held at the concrete type so a suite can assert it was started and
+    /// stopped. Never binds anything — see `FakeSSHAgentListener`.
+    let sshAgentListener = FakeSSHAgentListener()
+
+    /// The agent itself, over the mock vault and the fake listener above.
+    ///
+    /// Real rather than a double: the property under test is that the socket follows the vault's
+    /// lock state, and that has to be the same instance `RootViewModel` drives.
+    lazy var sshAgentCoordinator = SSHAgentCoordinator(
+        vault:        mockVault,
+        authorizer:   sshAgentAuthorizer,
+        socketPath:   sshAgentListener.socketPath,
+        defaults:     Self.sshAgentDefaults,
+        makeListener: { _, respond in
+            self.sshAgentListener.respond = respond
+            return self.sshAgentListener
+        }
+    )
+
+    /// The defaults the agent's switch is read from and written to.
+    ///
+    /// A private suite rather than `.standard`, for two reasons: the switch is persisted, so a value
+    /// left behind by an earlier run would make this mock start in a state no test asked for; and
+    /// writing to `.standard` from a test would change the developer's own Prizm preferences.
+    private static let sshAgentDefaults = UserDefaults(suiteName: "prizm.tests.sshagent") ?? .standard
+
     init(auth: MockAuthRepository,
          vault: MockVaultRepository,
          totpGenerator: any TOTPGenerator = TOTPGeneratorImpl()) {
@@ -63,6 +89,9 @@ final class MockRootDependencies: RootViewModelDependencies {
         self.vaultRepo     = vault
         self.mockVault     = vault
         self.totpGenerator = totpGenerator
+        // Cleared here rather than in each test: `sshAgentCoordinator` is lazy, so this runs before
+        // it reads the switch, and no suite has to remember that the default is persisted.
+        Self.sshAgentDefaults.removeObject(forKey: SSHAgentPreference.key)
     }
 
     func makeLoginViewModel() -> LoginViewModel {

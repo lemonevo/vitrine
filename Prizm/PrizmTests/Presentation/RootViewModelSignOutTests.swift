@@ -72,4 +72,24 @@ final class RootViewModelSignOutTests: XCTestCase {
 
         XCTAssertTrue(after.isEmpty)
     }
+
+    // MARK: - SSH agent
+
+    /// Signing out tears the session down completely, so the agent's socket has to go with it.
+    ///
+    /// Separate from the lock case on purpose: the two paths are separate teardowns, and the SSH
+    /// agent is the newest thing either of them has to remember. A grant that survives a sign-out
+    /// would outlive the account it was issued for.
+    func testSignOut_stopsTheSSHAgent() async throws {
+        deps.sshAgentCoordinator.setEnabled(true)
+
+        sut.handleLoginFlow(.vault)
+        XCTAssertTrue(deps.sshAgentListener.isRunning,
+                      "reaching the vault should have started the agent")
+
+        sut.signOut()
+        try await waitUntil { !self.deps.sshAgentListener.isRunning }
+
+        XCTAssertFalse(deps.sshAgentListener.isRunning)
+    }
 }

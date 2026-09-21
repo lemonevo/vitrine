@@ -356,6 +356,10 @@ protocol RootViewModelDependencies: AnyObject {
     /// its grants have to die in the same teardown as the reprompt grants — and because the sheet
     /// that answers it is presented by the app, not by the agent.
     var sshAgentAuthorizer: SSHAgentAuthorizer { get }
+    /// The SSH agent itself. Driven from here rather than observed by the coordinator, because the
+    /// screen is the only thing that knows when the vault became usable, and the coordinator has no
+    /// business knowing about screens.
+    var sshAgentCoordinator: SSHAgentCoordinator { get }
 }
 
 extension AppContainer: RootViewModelDependencies {
@@ -449,6 +453,10 @@ final class RootViewModel: ObservableObject, RepromptGating {
     /// The SSH agent's master-password gate. Held here so the lock and sign-out teardowns have one
     /// call to make; the agent reaches it through the same instance.
     let sshAgentAuthorizer: SSHAgentAuthorizer
+    /// The agent whose socket follows the vault's lock state. Held here so the vault transitions
+    /// start and stop it; the switch that turns it on lives in Settings, and the coordinator
+    /// reconciles the two.
+    let sshAgentCoordinator: SSHAgentCoordinator
     /// Drives the configurable idle timeout. Started only while the vault is unlocked.
     private let idleMonitor: any VaultIdleMonitoring
     /// Combine subscriptions — held for the lifetime of this object.
@@ -465,7 +473,8 @@ final class RootViewModel: ObservableObject, RepromptGating {
         self.loginVM        = container.makeLoginViewModel()
         self.vaultBrowserVM = container.makeVaultBrowserViewModel()
         self.idleMonitor    = container.idleMonitor
-        self.sshAgentAuthorizer = container.sshAgentAuthorizer
+        self.sshAgentAuthorizer  = container.sshAgentAuthorizer
+        self.sshAgentCoordinator = container.sshAgentCoordinator
 
         // Check for stored session at launch.
         if let account = container.authRepo.storedAccount() {
@@ -608,6 +617,10 @@ final class RootViewModel: ObservableObject, RepromptGating {
         // server's icon endpoint. Until this runs the loader fetches nothing at all.
         Task { await container.refreshWebsiteIcons() }
         screen = .vault
+        // The vault is readable from here on, which is the half of the agent's condition this
+        // transition supplies. Started after `screen` so the keys it reads are the ones the vault
+        // screen is about to show; a no-op when the user has not switched the agent on.
+        sshAgentCoordinator.vaultDidUnlock()
         // Defer handleSyncCompleted to the next run-loop cycle so that the initial
         // VaultBrowserView layout pass (triggered by `screen = .vault` above) commits
         // before any @Published mutations from async vault reads arrive.
@@ -688,6 +701,10 @@ final class RootViewModel: ObservableObject, RepromptGating {
             // Same rule for the SSH agent: a signing grant must not survive the session that
             // issued it, and anything waiting on one has to be refused rather than left hanging.
             sshAgentAuthorizer.revokeAll()
+            // The socket goes with the keys it signs with. Stopping it also ends any connection
+            // still blocked on a prompt — after `revokeAll()` those requests are answered false,
+            // so the client sees a refusal rather than a hang.
+            sshAgentCoordinator.vaultDidLock()
             vaultBrowserVM.discardReveals()
             unlockVM = nil
             screen   = .login
@@ -719,6 +736,10 @@ final class RootViewModel: ObservableObject, RepromptGating {
             // caches that hold it — and refusing everything still waiting is what stops a `git`
             // from hanging on a prompt that will never be answered.
             sshAgentAuthorizer.revokeAll()
+            // The socket goes with the keys it signs with. Stopping it also ends any connection
+            // still blocked on a prompt — after `revokeAll()` those requests are answered false,
+            // so the client sees a refusal rather than a hang.
+            sshAgentCoordinator.vaultDidLock()
             vaultBrowserVM.discardReveals()
             if let account = container.authRepo.storedAccount() {
                 unlockVM = container.makeUnlockViewModel(account: account)
