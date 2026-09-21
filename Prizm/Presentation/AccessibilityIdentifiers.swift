@@ -161,6 +161,26 @@ nonisolated enum AccessibilityID {
         static let unusableKey     = "sshAgent.settings.unusableKey"
     }
 
+    // MARK: - TOTP code display (totp-code-display)
+
+    /// The one-time-code row in the login detail view.
+    ///
+    /// `maskedValue` and `value` are separate identifiers rather than one with a changing label,
+    /// because which of the two is present *is* the assertion a test wants to make: the row is
+    /// masked by default, and revealing swaps one element for the other.
+    enum TOTP {
+        static let row          = "totp.row"
+        /// The grouped code, present only while revealed.
+        static let value        = "totp.value"
+        /// The bullet placeholder, present only while masked.
+        static let maskedValue  = "totp.maskedValue"
+        /// The seconds remaining, present only while revealed.
+        static let countdown    = "totp.countdown"
+        static let revealButton = "totp.reveal"
+        /// Shown in place of the code when the stored key produces none.
+        static let unusable     = "totp.unusable"
+    }
+
     // MARK: - Account fingerprint (account-fingerprint)
 
     enum Fingerprint {

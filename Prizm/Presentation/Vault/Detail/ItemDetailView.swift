@@ -23,6 +23,9 @@ struct ItemDetailView: View {
     /// says carry a history; the detail view decides that, not the container.
     var makePasswordHistoryViewModel: ((String) -> PasswordHistoryViewModel)? = nil
     var makePasskeysViewModel: ((String) -> PasskeysViewModel)? = nil
+    /// Factory for `TOTPCodeViewModel`; the second argument is the item's stored authenticator key.
+    /// Only login items use it, and only ones that actually carry a key.
+    var makeTOTPCodeViewModel: ((String, String?) -> TOTPCodeViewModel)? = nil
     /// Called when an attachment upload sheet is dismissed, whether the upload
     /// succeeded or was cancelled. The parent view uses this to refresh `itemSelection`
     /// so the attachment list in the detail pane reflects the new server state.
@@ -259,6 +262,7 @@ struct ItemDetailView: View {
         case .login(let l):      LoginDetailView(item: item, login: l, onCopy: onCopy,
                                                 makePasswordHistoryViewModel: makePasswordHistoryViewModel,
                                                 makePasskeysViewModel:        makePasskeysViewModel,
+                                                makeTOTPCodeViewModel:        makeTOTPCodeViewModel,
                                                 gate: gate)
         case .card(let c):       CardDetailView(item: item, card: c, onCopy: onCopy, gate: gate)
         case .identity(let i):   IdentityDetailView(item: item, identity: i, onCopy: onCopy, gate: gate)

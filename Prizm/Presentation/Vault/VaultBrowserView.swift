@@ -24,6 +24,8 @@ struct VaultBrowserView: View {
     /// Factory for `PasswordHistoryViewModel`, threaded to the login detail view.
     var makePasswordHistoryViewModel: ((String) -> PasswordHistoryViewModel)? = nil
     var makePasskeysViewModel: ((String) -> PasskeysViewModel)? = nil
+    /// Factory for `TOTPCodeViewModel`; the second argument is the item's stored authenticator key.
+    var makeTOTPCodeViewModel: ((String, String?) -> TOTPCodeViewModel)? = nil
 
     @State private var showPermanentDeleteAlert = false
     @State private var showDeleteFolderAlert = false
@@ -197,6 +199,7 @@ struct VaultBrowserView: View {
                     makeAttachmentRowViewModel:     makeAttachmentRowViewModel,
                     makePasswordHistoryViewModel:   makePasswordHistoryViewModel,
                     makePasskeysViewModel:          makePasskeysViewModel,
+                    makeTOTPCodeViewModel:          makeTOTPCodeViewModel,
                     onAttachmentsChanged:           { viewModel.refreshItemSelection() },
                     onEditSheetChanged:             { viewModel.handleEditSheetState($0) },
                     onSoftDelete:                   { id in await viewModel.performSoftDelete(id: id) },

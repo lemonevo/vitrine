@@ -5,6 +5,7 @@
 "\"%@\" will be moved to Trash." = "“%@”将被移到废纸篓。";
 "\"%@\" will be permanently deleted and cannot be recovered." = "“%@”将被永久删除，且无法恢复。";
 "%@ (copy)" = "%@（副本）";
+"%@ hidden" = "%@已隐藏";
 "%@ is unavailable for this build." = "此构建中%@不可用。";
 "%@ is unavailable — %@ (LAError %lld)" = "此版本中%@不可用 —— %@ (LAError %lld)";
 "%@ or enter the password for %@ to unlock." = "%@，或输入 %@ 的密码以解锁。";
@@ -16,6 +17,8 @@
 "%d items will be written to a file on this Mac." = "将把 %d 个项目写入这台 Mac 上的一个文件。";
 "%d of %d items" = "%d/%d 个项目";
 "%d of %d items could not be deleted. They are still in Trash." = "%d/%d 个项目无法删除，它们仍在回收站中。";
+"%d seconds remaining" = "剩余 %d 秒";
+"%ds" = "%d 秒";
 "%lld certificate(s)" = "%lld 个证书";
 "(unnamed)" = "（未命名）";
 "000000" = "000000";
@@ -454,6 +457,7 @@
 "This item is in Trash." = "该项目在废纸篓中。";
 "This key could not be read: %@" = "无法读取此密钥：%@";
 "This key is protected with a passphrase. Prizm does not store one for an SSH key, so it cannot use this key." = "此密钥受口令保护。Prizm 不保存 SSH 密钥的口令，因此无法使用此密钥。";
+"This key will not produce a code." = "这个密钥无法生成验证码。";
 "This key will not produce a code. Paste the secret, or the otpauth:// URL the site shows when you cannot scan its QR code." = "这个密钥无法生成验证码。请粘贴密钥，或粘贴网站在无法扫描二维码时显示的 otpauth:// 链接。";
 "This server doesn't appear to be a Bitwarden instance." = "该服务器似乎不是 Bitwarden 实例。";
 "This vault holds no SSH keys." = "此保险库中没有 SSH 密钥。";
@@ -488,6 +492,7 @@
 "Vault Health Report" = "保险库健康检查";
 "Vault Health Report…" = "保险库健康检查…";
 "Vaultwarden & Bitwarden — server API and vault format" = "Vaultwarden & Bitwarden —— 服务器 API 与保险库格式";
+"Verification Code" = "验证码";
 "Version %@" = "版本 %@";
 "Very strong" = "很强";
 "Very weak" = "很弱";

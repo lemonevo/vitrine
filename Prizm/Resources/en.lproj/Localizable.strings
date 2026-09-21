@@ -5,6 +5,7 @@
 "\"%@\" will be moved to Trash." = "\"%@\" will be moved to Trash.";
 "\"%@\" will be permanently deleted and cannot be recovered." = "\"%@\" will be permanently deleted and cannot be recovered.";
 "%@ (copy)" = "%@ (copy)";
+"%@ hidden" = "%@ hidden";
 "%@ is unavailable for this build." = "%@ is unavailable for this build.";
 "%@ is unavailable — %@ (LAError %lld)" = "%@ is unavailable — %@ (LAError %lld)";
 "%@ or enter the password for %@ to unlock." = "%@ or enter the password for %@ to unlock.";
@@ -16,6 +17,8 @@
 "%d items will be written to a file on this Mac." = "%d items will be written to a file on this Mac.";
 "%d of %d items" = "%d of %d items";
 "%d of %d items could not be deleted. They are still in Trash." = "%d of %d items could not be deleted. They are still in Trash.";
+"%d seconds remaining" = "%d seconds remaining";
+"%ds" = "%ds";
 "%lld certificate(s)" = "%lld certificate(s)";
 "(unnamed)" = "(unnamed)";
 "000000" = "000000";
@@ -454,6 +457,7 @@
 "This item is in Trash." = "This item is in Trash.";
 "This key could not be read: %@" = "This key could not be read: %@";
 "This key is protected with a passphrase. Prizm does not store one for an SSH key, so it cannot use this key." = "This key is protected with a passphrase. Prizm does not store one for an SSH key, so it cannot use this key.";
+"This key will not produce a code." = "This key will not produce a code.";
 "This key will not produce a code. Paste the secret, or the otpauth:// URL the site shows when you cannot scan its QR code." = "This key will not produce a code. Paste the secret, or the otpauth:// URL the site shows when you cannot scan its QR code.";
 "This server doesn't appear to be a Bitwarden instance." = "This server doesn't appear to be a Bitwarden instance.";
 "This vault holds no SSH keys." = "This vault holds no SSH keys.";
@@ -488,6 +492,7 @@
 "Vault Health Report" = "Vault Health Report";
 "Vault Health Report…" = "Vault Health Report…";
 "Vaultwarden & Bitwarden — server API and vault format" = "Vaultwarden & Bitwarden — server API and vault format";
+"Verification Code" = "Verification Code";
 "Version %@" = "Version %@";
 "Very strong" = "Very strong";
 "Very weak" = "Very weak";

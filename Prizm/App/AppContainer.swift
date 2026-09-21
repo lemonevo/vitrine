@@ -507,6 +507,18 @@ final class AppContainer: ObservableObject {
         PasskeysViewModel(itemId: itemId, useCase: getPasskeysUseCase)
     }
 
+    /// Creates a `TOTPCodeViewModel` for one item's stored authenticator key.
+    ///
+    /// The secret is passed in rather than looked up, because the caller already holds the
+    /// decrypted login: reading it again by id would decrypt the item a second time to learn
+    /// something that is already in hand. Per item rather than shared — the view model's clock
+    /// belongs to the row that is on screen, and a shared one would keep ticking for an item the
+    /// user has moved away from.
+    @MainActor
+    func makeTOTPCodeViewModel(itemId: String, secret: String?) -> TOTPCodeViewModel {
+        TOTPCodeViewModel(itemId: itemId, secret: secret, generator: totpGenerator)
+    }
+
     /// Creates an `AttachmentRowViewModel` for the given cipher + attachment pair.
     @MainActor
     func makeAttachmentRowViewModel(cipherId: String, attachment: Attachment) -> AttachmentRowViewModel {

@@ -284,6 +284,9 @@ struct PrizmApp: App {
                 },
                 makePasskeysViewModel: { itemId in
                     container.makePasskeysViewModel(itemId: itemId)
+                },
+                makeTOTPCodeViewModel: { itemId, secret in
+                    container.makeTOTPCodeViewModel(itemId: itemId, secret: secret)
                 }
             )
             // Installed here rather than on the app's root: the generator only exists inside the

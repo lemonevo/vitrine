@@ -219,7 +219,13 @@ nonisolated struct LoginContent: Equatable, Hashable {
     let username: String?
     let password: String?
     let uris: [LoginURI]
-    /// Stored TOTP seed. Present on some items but never displayed in v1 (FR-038).
+    /// Stored TOTP seed — the long-lived shared key, either a bare Base32 secret or a full
+    /// `otpauth://totp/…` URI.
+    ///
+    /// **This value is never displayed and never copied.** The detail view shows a code *derived*
+    /// from it (`TOTPCodeView`), and the copy commands put that derived code on the clipboard.
+    /// Anyone who reads this value can generate valid codes forever, so it stays inside the
+    /// generator. `Item ▸ Copy Code` used to copy it — see `FEATURE-GAP-ANALYSIS.md` §2.1.
     let totp: String?
     let notes: String?
     let customFields: [CustomField]
