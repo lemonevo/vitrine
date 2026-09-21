@@ -2,7 +2,7 @@
 
 # Prizm
 
-[![CI](https://github.com/b0x42/prizm/actions/workflows/ci.yml/badge.svg)](https://github.com/b0x42/prizm/actions/workflows/ci.yml)
+[![CI](https://github.com/lemonevo/prizm/actions/workflows/ci.yml/badge.svg)](https://github.com/lemonevo/prizm/actions/workflows/ci.yml)
 [![Swift 6.2](https://img.shields.io/badge/Swift-6.2-orange.svg)](https://swift.org/)
 [![macOS 26+](https://img.shields.io/badge/macOS-26%2B-blue.svg)](https://www.apple.com/macos/)
 [![MIT License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
@@ -81,7 +81,7 @@ brew install --cask prizm
 
 ### Direct Download
 
-**[Download Prizm](https://github.com/b0x42/prizm/releases/latest)**
+**[Download Prizm](https://github.com/lemonevo/prizm/releases/latest)**
 
 The app is not notarized. After downloading, right-click (Control-click) the `.app` and choose **Open**, then confirm. You only need to do this once. After that, you can open it normally.
 
@@ -96,7 +96,7 @@ xattr -dr com.apple.quarantine /Applications/Prizm.app
 ### Build from source
 
 ```bash
-git clone https://github.com/b0x42/prizm.git
+git clone https://github.com/lemonevo/prizm.git
 cd prizm
 cp Prizm/LocalConfig.xcconfig.template Prizm/LocalConfig.xcconfig
 # Fill in your Apple Team ID in LocalConfig.xcconfig, then:
@@ -147,7 +147,7 @@ Any shortcut can be remapped in **System Settings → Keyboard → Keyboard Shor
 
 > **Breach checking is deliberately not on this list.** Telling you whether a password appears in a breach dump means sending part of that password to a third party. For a client whose whole premise is that your secrets stay on your own server, that is not a trade worth making.
 
-Want to shift something up the list? [Open an issue](https://github.com/b0x42/prizm/issues) — priorities are driven by user feedback.
+Want to shift something up the list? [Open an issue](https://github.com/lemonevo/prizm/issues) — priorities are driven by user feedback.
 
 ## Known Limitations
 
