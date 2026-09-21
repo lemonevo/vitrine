@@ -3,10 +3,12 @@ import SwiftUI
 
 /// macOS Settings window (⌘,).
 ///
-/// Three sections:
+/// Five sections:
 /// - **General** — interface language.
-/// - **Privacy** — whether website icons are fetched at all.
-/// - **Security** — the biometric unlock toggle.
+/// - **Privacy** — whether website icons are fetched at all, and the clipboard timeout.
+/// - **Account** — the fingerprint phrase.
+/// - **Security** — biometric unlock, the idle timeout, and server certificate trust.
+/// - **SSH agent** — whether Prizm serves the vault's SSH keys, and which ones it cannot.
 ///
 /// The Security section is **always** rendered. It used to be hidden whenever the
 /// device reported no usable biometrics, which left the Settings pane completely
@@ -28,6 +30,11 @@ struct SettingsView: View {
     /// Asks the use case for the account fingerprint phrase. Injected for the same reason as the
     /// two above: the domain dependency stays behind the App layer (Constitution §II).
     let loadFingerprint:     @MainActor () async -> String?
+    /// The SSH agent, so the pane can show and change whether it is listening.
+    ///
+    /// The object itself rather than a set of values: this window can be open while the vault locks
+    /// or a start fails, and a snapshot passed in at construction would go stale silently.
+    let sshAgent:            SSHAgentCoordinator
 
     /// The language is global state owned by the shared manager, so this observes the
     /// singleton directly rather than taking it as a parameter.
@@ -56,13 +63,15 @@ struct SettingsView: View {
          serverHost:         String?,
          pickCertificateFile: @escaping @MainActor () -> URL?,
          loadCertificates:   @escaping (URL) throws -> [Data],
-         loadFingerprint:    @escaping @MainActor () async -> String?) {
+         loadFingerprint:    @escaping @MainActor () async -> String?,
+         sshAgent:           SSHAgentCoordinator) {
         self.authRepository     = authRepository
         self.serverTrustStore   = serverTrustStore
         self.serverHost         = serverHost
         self.pickCertificateFile = pickCertificateFile
         self.loadCertificates   = loadCertificates
         self.loadFingerprint    = loadFingerprint
+        self.sshAgent           = sshAgent
         _biometry = State(
             initialValue: .probe(systemEnforced: authRepository.biometricGateIsSystemEnforced)
         )
@@ -167,6 +176,15 @@ struct SettingsView: View {
                 Text("The timeout applies while the vault is unlocked and is measured from your last input in Prizm. Input in other applications does not count, so an untouched vault locks even if you are working elsewhere.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+            }
+
+            // Its own section rather than a row inside Security: it is a capability with its own
+            // lifetime, its own failure mode and its own list of keys, and folding it into Security
+            // would also make that section's footer — which is about the idle timeout — wrong.
+            Section {
+                SSHAgentSection(coordinator: sshAgent)
+            } header: {
+                Text("SSH agent")
             }
         }
         .formStyle(.grouped)

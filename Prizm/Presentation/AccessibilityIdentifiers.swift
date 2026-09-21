@@ -145,6 +145,20 @@ nonisolated enum AccessibilityID {
         static let cancelButton       = "sshAgent.button.cancel"
         /// The Confirm button.
         static let confirmButton      = "sshAgent.button.confirm"
+
+        // The Settings pane. Prefixed apart from the sheet's, because both can be on screen at once
+        // and an identifier that matched two controls would be worse than none.
+        static let settingsToggle  = "sshAgent.settings.toggle"
+        /// The one line saying what the agent is doing, or why it is not.
+        static let status          = "sshAgent.settings.status"
+        static let socketPath      = "sshAgent.settings.socketPath"
+        static let copySocket      = "sshAgent.settings.copySocket"
+        static let exportLine      = "sshAgent.settings.exportLine"
+        static let copyExportLine  = "sshAgent.settings.copyExportLine"
+        /// Shown when the vault holds no SSH keys at all.
+        static let noKeys          = "sshAgent.settings.noKeys"
+        static let usableKey       = "sshAgent.settings.usableKey"
+        static let unusableKey     = "sshAgent.settings.unusableKey"
     }
 
     // MARK: - Account fingerprint (account-fingerprint)

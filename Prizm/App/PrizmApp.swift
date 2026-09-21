@@ -202,7 +202,8 @@ struct PrizmApp: App {
                 serverHost:          container.authRepository.storedAccount()?.serverEnvironment.base.host,
                 pickCertificateFile: { AppContainer.defaultCertificateOpenPanel() },
                 loadCertificates:    { try CertificateImporter.certificates(at: $0) },
-                loadFingerprint:     { try? await container.getAccountFingerprintUseCase.execute() }
+                loadFingerprint:     { try? await container.getAccountFingerprintUseCase.execute() },
+                sshAgent:            container.sshAgentCoordinator
             )
             .environment(\.locale, locale)
                 .id(localization.language)
