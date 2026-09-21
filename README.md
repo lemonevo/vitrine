@@ -52,6 +52,15 @@ Prizm exists to give macOS users a native, auditable, trustworthy interface to t
 - **Password & passphrase generator** — configurable length, character sets, and word separators
 - **Touch ID / Face ID unlock** — unlock your vault with biometrics; auto-prompts on lock; graceful re-enrollment when fingerprints change
 - **Auto-lock** — locks on sleep and screensaver; sync status always visible in the sidebar
+- **TOTP codes** — shows the current 6-digit code with a live countdown for any login carrying a TOTP secret
+- **Two-factor login** — authenticator app (TOTP), YubiKey OTP, and email challenges, plus a per-account public-key fingerprint you can verify out of band
+- **Vault import & export** — Bitwarden-compatible unencrypted JSON, with a per-item report of what was imported and what was skipped
+- **Vault health report** — flags weak, reused, and old passwords, and items with no second factor
+- **Password strength & history** — per-item strength estimate, and the previous passwords kept on a login
+- **Master-password re-prompt** — per-item gate that asks for the master password before revealing or copying a protected field
+- **Certificate pinning** — per-server trust decision, recorded on first use and re-verified on every connection
+- **Passkey viewer** — passkeys attached to a vault item are listed, read-only
+- **SSH agent** — serves SSH keys from the vault over a local socket. Requires a build without the App Sandbox; see [Known Limitations](#known-limitations)
 - **Accessible** — VoiceOver labels and hints on all controls, keyboard navigable, respects Reduce Motion and Increase Contrast; targets WCAG 2.1 AA. See [ACCESSIBILITY.md](ACCESSIBILITY.md)
 
 ## Install
@@ -130,11 +139,13 @@ Any shortcut can be remapped in **System Settings → Keyboard → Keyboard Shor
 
 | Now | Next | Later |
 |---|---|---|
-| Background sync | Watchtower / breach check | Passkey support |
-| Multiple accounts | Bitwarden cloud login | Browser auto-fill extension |
-| | | Full support for KDBX 4 (KeePass) |
+| Background sync | Offline vault read / write | Browser auto-fill extension |
+| Multiple accounts | Bitwarden cloud login | Full support for KDBX 4 (KeePass) |
+| | Passkey creation & login | |
 
 **Now** — actively in development. **Next** — planned for the following 3–6 months. **Later** — on the list with no fixed timeline.
+
+> **Breach checking is deliberately not on this list.** Telling you whether a password appears in a breach dump means sending part of that password to a third party. For a client whose whole premise is that your secrets stay on your own server, that is not a trade worth making.
 
 Want to shift something up the list? [Open an issue](https://github.com/b0x42/prizm/issues) — priorities are driven by user feedback.
 
@@ -143,7 +154,8 @@ Want to shift something up the list? [Open an issue](https://github.com/b0x42/pr
 - **Not notarized** — The app is not signed with an Apple Developer ID. On first launch, right-click and choose Open to bypass Gatekeeper.
 - **No browser auto-fill** — There is no browser extension. Copy-paste is the current workflow.
 - **macOS 26 required** — The app uses SwiftUI features only available in macOS 26.
-- **Passkeys not supported** — SSH key items are viewable but passkey-based login is not implemented.
+- **Passkeys are read-only** — Passkeys attached to a vault item are listed, but Prizm cannot create one or use one to log in.
+- **SSH agent needs an unsandboxed build** — The agent listens on a Unix socket that `ssh` has to be able to reach, which a build with the App Sandbox enabled cannot create. In that case Prizm reports the agent as unavailable rather than failing silently. Builds produced by `./build-app.sh` disable the sandbox and can run it.
 - **No offline vault creation** — Creating or editing items requires an active server connection.
 - **Attachment size limit** — Files larger than 500 MB are rejected. Bitwarden-hosted servers require a premium subscription for attachments; Vaultwarden is unaffected.
 
