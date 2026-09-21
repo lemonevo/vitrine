@@ -1,4 +1,5 @@
 import Foundation
+import os
 import os.log
 
 // MARK: - SSHAgentSocketError
@@ -115,9 +116,21 @@ nonisolated enum SSHAgentSocketLocation {
 /// identities, the gate and the signing all arrive as the `respond` closure. That is what lets the
 /// protocol be tested without a socket and the socket be tested without a vault.
 ///
-/// `@unchecked Sendable` with all mutable state confined to `queue`: every read and write of
-/// `listenFD`, `listenSource` and `connections` happens on that one serial queue, and `isRunning`
-/// goes through `queue.sync` rather than reading the field directly.
+/// **Only the listening socket uses a `DispatchSource`.** Connections are served by a blocking loop
+/// on a dispatch thread instead, and that is a deliberate retreat rather than a preference. A
+/// `DispatchSource` owns the descriptor it was made from, and the rule about who closes it is
+/// enforced by libdispatch with a trap: cancelling a per-connection source and then closing its
+/// descriptor — from the cancel handler, from the queue that made it, from anywhere — killed the
+/// test process with `SIGTRAP` and no diagnostic. The listening source is kept because starting and
+/// stopping it is exercised by tests that pass; a source per connection is not worth the same
+/// argument.
+///
+/// A blocking loop also makes ordering free: one connection is one thread reading a request and
+/// writing its answer before reading the next, so two pipelined requests cannot come back reversed.
+///
+/// `@unchecked Sendable` with the listener's state confined to `queue`: `listenFD`, `listenSource`
+/// and `connections` are read and written only there, and `isRunning` goes through `queue.sync`
+/// rather than reading a field directly.
 nonisolated final class SSHAgentServer: @unchecked Sendable {
 
     /// The largest message accepted. `ssh` sends a signature request a few hundred bytes long; a
@@ -133,7 +146,10 @@ nonisolated final class SSHAgentServer: @unchecked Sendable {
 
     private var listenFD:     Int32 = -1
     private var listenSource: DispatchSourceRead?
-    private var connections:  [Int32: Connection] = [:]
+    /// Open client descriptors, so `stop()` can wake their threads. Written on `queue`.
+    private var connections: Set<Int32> = []
+    /// Read by connection threads between polls, written by `stop()`.
+    private let isStopped = OSAllocatedUnfairLock(initialState: true)
 
     init(socketPath: String, respond: @escaping @Sendable (Data) async -> Data) {
         self.socketPath = socketPath
@@ -165,10 +181,12 @@ nonisolated final class SSHAgentServer: @unchecked Sendable {
         }
     }
 
-    /// Stops listening, closes every connection and removes the socket file.
+    /// Stops listening, wakes every connection, and removes the socket file.
     ///
-    /// Connections are closed rather than drained: a client waiting on a signature whose grant was
-    /// revoked by a lock must not receive it, and the only way to guarantee that is to close.
+    /// Connections are cut off rather than drained: a client waiting on a signature whose grant was
+    /// revoked by a lock must not receive it, and the only way to guarantee that is to end the
+    /// connection. Each connection thread closes its own descriptor once its read returns, so
+    /// nothing here closes a descriptor another thread may still be using.
     func stop() {
         queue.sync { stopOnQueue() }
     }
@@ -244,6 +262,7 @@ nonisolated final class SSHAgentServer: @unchecked Sendable {
         }
 
         listenFD = fd
+        isStopped.withLock { $0 = false }
 
         let source = DispatchSource.makeReadSource(fileDescriptor: fd, queue: queue)
         source.setEventHandler { [weak self] in self?.acceptPending() }
@@ -258,166 +277,155 @@ nonisolated final class SSHAgentServer: @unchecked Sendable {
     }
 
     private func stopOnQueue() {
+        isStopped.withLock { $0 = true }
         listenSource?.cancel()
         listenSource = nil
         if listenFD >= 0 { close(listenFD); listenFD = -1 }
-        for (_, connection) in connections { connection.shutdown() }
+        // `shutdown` rather than `close`: it wakes a thread blocked in `read` with end-of-file and
+        // leaves the descriptor valid, so the thread that owns it is the one that closes it. A
+        // `close` from here would be a descriptor pulled out from under a `recv` already in flight.
+        for fd in connections { shutdown(fd, SHUT_RDWR) }
         connections.removeAll()
         unlink(socketPath)
         logger.info("SSH agent stopped")
     }
 
-    /// Accepts every connection currently pending, one `accept` per readable event.
+    /// Accepts every connection currently pending.
     ///
     /// Looping matters: a read event can correspond to more than one queued connection, and
-    /// accepting one per event leaves the rest waiting for an event that will not come.
+    /// accepting one per event leaves the rest waiting for an event that will not come. The
+    /// descriptor is non-blocking, so the loop is told when it is done rather than waiting.
     private func acceptPending() {
         while listenFD >= 0 {
             let fd = accept(listenFD, nil, nil)
-            guard fd >= 0 else {
-                // EAGAIN means "no more pending"; anything else is a real failure and the loop
-                // must not spin on it.
-                return
-            }
+            guard fd >= 0 else { return }
             openConnection(fd)
         }
     }
 
     private func openConnection(_ fd: Int32) {
-        // Blocking, deliberately: the connection's own queue does nothing else, and a non-blocking
-        // descriptor would turn the write loop's `EAGAIN` retry into a spin.
+        // Blocking, deliberately: the serving loop below has a thread to itself, and a
+        // non-blocking descriptor would turn every read into a spin.
         _ = fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) & ~O_NONBLOCK)
 
-        let connection = Connection(fd: fd)
-        connections[fd] = connection
-
-        let source = DispatchSource.makeReadSource(fileDescriptor: fd, queue: connection.queue)
-        connection.source = source
-        source.setEventHandler { [weak self, weak connection] in
-            guard let self, let connection else { return }
-            self.readAvailable(on: connection)
+        connections.insert(fd)
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self else { close(fd); return }
+            self.serve(fd)
         }
-        source.setCancelHandler { [weak self, weak connection] in
-            guard let connection else { return }
-            connection.shutdown()
-            guard let self else { return }
-            let fd = connection.fd
-            self.queue.async { self.connections.removeValue(forKey: fd) }
-        }
-        source.resume()
     }
 
-    private func readAvailable(on connection: Connection) {
-        var chunk = [UInt8](repeating: 0, count: 65_536)
-        let count = recv(connection.fd, &chunk, chunk.count, 0)
-
-        if count == 0 { connection.source?.cancel(); return }
-        if count < 0 {
-            if errno == EAGAIN || errno == EWOULDBLOCK { return }
-            connection.source?.cancel()
-            return
+    /// Reads requests from one client and writes answers back, until the client leaves.
+    private func serve(_ fd: Int32) {
+        defer {
+            close(fd)
+            queue.async { [weak self] in self?.connections.remove(fd) }
         }
 
-        connection.buffer.append(contentsOf: chunk[0..<count])
-
-        while let message = connection.nextMessage(maximum: Self.maximumMessageLength) {
-            // Chained, so answers go back in the order the requests arrived. A client that piped
-            // two sign requests would otherwise get the second signature first, and the failure
-            // would be blamed on the key.
-            let previous = connection.pending
-            connection.pending = Task.detached(priority: .userInitiated) { [weak self] in
-                if let previous { await previous.value }
-                guard let self else { return }
-                let answer = await self.respond(message)
-                self.write(answer, on: connection)
+        while !isStopped.withLock({ $0 }) {
+            switch Self.waitForReadable(fd) {
+            case .readable: break
+            case .timedOut: continue      // re-check the stop flag, then wait again
+            case .closed:   return
             }
-        }
-
-        if connection.declaresOversizedMessage(maximum: Self.maximumMessageLength) {
-            logger.error("SSH agent closed a connection that declared an oversized message")
-            connection.source?.cancel()
+            guard let message = Self.readMessage(from: fd,
+                                                 maximum: Self.maximumMessageLength) else { return }
+            guard let answer = awaitResponse(to: message) else { return }
+            guard Self.writeAll(answer, to: fd) else { return }
         }
     }
 
-    private func write(_ bytes: Data, on connection: Connection) {
-        connection.queue.async { [weak self] in
-            guard connection.isOpen else { return }
-            var remaining = bytes
-            while !remaining.isEmpty {
-                let written = remaining.withUnsafeBytes { raw in
-                    send(connection.fd, raw.baseAddress, raw.count, 0)
-                }
-                if written <= 0 {
-                    if errno == EAGAIN || errno == EWOULDBLOCK { continue }
-                    self?.logger.error("SSH agent could not write a response; closing")
-                    connection.source?.cancel()
-                    return
-                }
+    /// Bridges the blocking loop to the async responder.
+    ///
+    /// A semaphore rather than `await` at the top of `serve`, because `serve` is already running on
+    /// a dispatch thread and blocking it is the whole design. The responder runs on the
+    /// cooperative pool, so nothing here holds a cooperative thread while it waits.
+    private func awaitResponse(to message: Data) -> Data? {
+        let box       = AnswerBox()
+        let semaphore = DispatchSemaphore(value: 0)
+        let respond   = self.respond
+
+        Task.detached(priority: .userInitiated) {
+            box.value = await respond(message)
+            semaphore.signal()
+        }
+        semaphore.wait()
+        return box.value
+    }
+
+    // MARK: - Descriptor helpers
+
+    /// What a wait on one descriptor produced.
+    private enum Readiness { case readable, timedOut, closed }
+
+    /// Whether a request can be read, waiting up to a second.
+    ///
+    /// The timeout is not for the client's benefit: it is what lets a connection thread notice that
+    /// the agent was stopped without `stop()` having to reach into a descriptor the thread is
+    /// using. `stop()` also calls `shutdown`, which wakes the wait immediately; this is the backstop
+    /// for a server that was dropped without one. A timeout must **not** fall through to a read —
+    /// the descriptor is blocking, so reading after a timeout would wait forever.
+    private static func waitForReadable(_ fd: Int32) -> Readiness {
+        var descriptor = pollfd(fd: fd, events: Int16(POLLIN), revents: 0)
+        let ready = poll(&descriptor, 1, 1000)
+        if ready > 0 { return .readable }
+        if ready == 0 { return .timedOut }
+        return errno == EINTR ? .timedOut : .closed
+    }
+
+    /// One complete message, length prefix included, or nil when the stream ended.
+    ///
+    /// A message longer than `maximum` ends the connection rather than being skipped: the length
+    /// field is the only framing there is, so a peer that declares a length Prizm will not accept
+    /// has put the stream somewhere no subsequent read can be trusted to find the next message.
+    private static func readMessage(from fd: Int32, maximum: Int) -> Data? {
+        guard let header = readExactly(4, from: fd) else { return nil }
+        let start  = header.startIndex
+        let length = Int(UInt32(header[start])     << 24 |
+                         UInt32(header[start + 1]) << 16 |
+                         UInt32(header[start + 2]) << 8  |
+                         UInt32(header[start + 3]))
+        guard length <= maximum, let body = readExactly(length, from: fd) else { return nil }
+        return header + body
+    }
+
+    private static func readExactly(_ count: Int, from fd: Int32) -> Data? {
+        var result = Data()
+        while result.count < count {
+            var chunk = [UInt8](repeating: 0, count: count - result.count)
+            let read  = recv(fd, &chunk, chunk.count, 0)
+            if read == 0 { return nil }
+            if read < 0 {
+                if errno == EINTR { continue }
+                return nil
+            }
+            result.append(contentsOf: chunk[0..<read])
+        }
+        return result
+    }
+
+    private static func writeAll(_ bytes: Data, to fd: Int32) -> Bool {
+        var remaining = bytes
+        while !remaining.isEmpty {
+            let written = remaining.withUnsafeBytes { send(fd, $0.baseAddress, $0.count, 0) }
+            if written > 0 {
                 remaining = remaining.dropFirst(written)
+                continue
             }
+            if written < 0 && errno == EINTR { continue }
+            return false
         }
+        return true
     }
 }
 
-// MARK: - Connection
+// MARK: - AnswerBox
 
-/// One client, and the buffer it is being read into.
+/// Carries the responder's result from its task back to the connection thread.
 ///
-/// Every field is touched only on this connection's own queue, which is what makes the server's
-/// dictionary of them safe without a lock.
-private nonisolated final class Connection: @unchecked Sendable {
-
-    let fd: Int32
-    let queue = DispatchQueue(label: "com.prizm.ssh-agent.connection", qos: .userInitiated)
-
-    var buffer  = Data()
-    var source:  DispatchSourceRead?
-    /// The last response still being produced, so the next one waits for it. See
-    /// `readAvailable(on:)`.
-    var pending: Task<Void, Never>?
-
-    private(set) var isOpen = true
-
-    init(fd: Int32) { self.fd = fd }
-
-    /// Pulls one complete message — length prefix included — off the front of the buffer.
-    func nextMessage(maximum: Int) -> Data? {
-        guard let length = declaredLength(), length <= maximum else { return nil }
-        guard buffer.count >= 4 + length else { return nil }
-        let end     = 4 + length
-        let message = buffer.prefix(end)
-        buffer.removeFirst(end)
-        return Data(message)
-    }
-
-    /// Whether the buffer declares a message larger than Prizm will accept — meaning no framing of
-    /// this stream will ever succeed and the connection has to go.
-    func declaresOversizedMessage(maximum: Int) -> Bool {
-        guard let length = declaredLength() else { return false }
-        return length > maximum
-    }
-
-    /// The length in the buffer's first four bytes, read byte by byte.
-    ///
-    /// Not `load(as: UInt32.self)`: a `Data` slice is not guaranteed to be four-byte aligned, and
-    /// an unaligned load is a trap rather than a wrong answer.
-    private func declaredLength() -> Int? {
-        guard buffer.count >= 4 else { return nil }
-        let start = buffer.startIndex
-        return Int(UInt32(buffer[start])         << 24 |
-                   UInt32(buffer[start + 1])     << 16 |
-                   UInt32(buffer[start + 2])     << 8  |
-                   UInt32(buffer[start + 3]))
-    }
-
-    func shutdown() {
-        guard isOpen else { return }
-        isOpen = false
-        source?.cancel()
-        source = nil
-        pending?.cancel()
-        pending = nil
-        close(fd)
-        buffer.removeAll()
-    }
+/// A box rather than a captured `var`, which concurrent code cannot mutate, and rather than a
+/// `Task` handle whose value would have to be awaited — the thread is deliberately not async. The
+/// semaphore in `awaitResponse(to:)` is what orders the two: the write happens before the signal.
+private nonisolated final class AnswerBox: @unchecked Sendable {
+    var value = Data()
 }
