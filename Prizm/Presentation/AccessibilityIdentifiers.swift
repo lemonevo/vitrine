@@ -132,6 +132,21 @@ nonisolated enum AccessibilityID {
         static let confirmButton  = "reprompt.button.confirm"
     }
 
+    // MARK: - SSH agent (ssh-agent)
+
+    enum SSHAgent {
+        /// The key name and requesting process shown in the signature-request sheet.
+        static let requestDescription = "sshAgent.requestDescription"
+        /// The master-password field in the signature-request sheet.
+        static let passwordField      = "sshAgent.passwordField"
+        /// The inline error shown after a wrong master password.
+        static let error              = "sshAgent.error"
+        /// The Cancel button — the only way out of the sheet that grants nothing.
+        static let cancelButton       = "sshAgent.button.cancel"
+        /// The Confirm button.
+        static let confirmButton      = "sshAgent.button.confirm"
+    }
+
     // MARK: - Account fingerprint (account-fingerprint)
 
     enum Fingerprint {

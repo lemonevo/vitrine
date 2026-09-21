@@ -350,6 +350,9 @@
 "Reveal %@" = "显示%@";
 "Reveal this previous password" = "显示这个旧密码";
 "SSH Key" = "SSH 密钥";
+"An application asked Prizm to sign with the SSH key “%@”." = "某个应用请求 Prizm 使用 SSH 密钥「%@」签名。";
+"SSH signature request" = "SSH 签名请求";
+"“%@” asked Prizm to sign with the SSH key “%@”." = "「%@」请求 Prizm 使用 SSH 密钥「%@」签名。";
 "SSN" = "社保号";
 "Save" = "保存";
 "Save to Disk" = "保存到磁盘";

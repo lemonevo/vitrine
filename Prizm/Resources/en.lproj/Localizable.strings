@@ -350,6 +350,9 @@
 "Reveal %@" = "Reveal %@";
 "Reveal this previous password" = "Reveal this previous password";
 "SSH Key" = "SSH Key";
+"An application asked Prizm to sign with the SSH key “%@”." = "An application asked Prizm to sign with the SSH key “%@”.";
+"SSH signature request" = "SSH signature request";
+"“%@” asked Prizm to sign with the SSH key “%@”." = "“%@” asked Prizm to sign with the SSH key “%@”.";
 "SSN" = "SSN";
 "Save" = "Save";
 "Save to Disk" = "Save to Disk";

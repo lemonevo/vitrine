@@ -140,7 +140,10 @@ nonisolated final class SSHAgentServer: @unchecked Sendable {
 
     let socketPath: String
 
-    private let respond: @Sendable (Data) async -> Data
+    /// Answers one message. The second argument is the process on the other end of the connection,
+    /// when the kernel would name it — the responder needs it to say *who* is asking, and this is
+    /// the only layer that has a descriptor to ask about.
+    private let respond: @Sendable (Data, SSHAgentPeer?) async -> Data
     private let queue   = DispatchQueue(label: "com.prizm.ssh-agent", qos: .userInitiated)
     private let logger  = Logger(subsystem: "com.prizm", category: "SSHAgent")
 
@@ -151,7 +154,7 @@ nonisolated final class SSHAgentServer: @unchecked Sendable {
     /// Read by connection threads between polls, written by `stop()`.
     private let isStopped = OSAllocatedUnfairLock(initialState: true)
 
-    init(socketPath: String, respond: @escaping @Sendable (Data) async -> Data) {
+    init(socketPath: String, respond: @escaping @Sendable (Data, SSHAgentPeer?) async -> Data) {
         self.socketPath = socketPath
         self.respond    = respond
     }
@@ -308,15 +311,19 @@ nonisolated final class SSHAgentServer: @unchecked Sendable {
         // non-blocking descriptor would turn every read into a spin.
         _ = fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) & ~O_NONBLOCK)
 
+        // Asked once, here, rather than per message: the peer cannot change for a connection, and
+        // the answer is what the signature prompt shows.
+        let peer = SSHAgentPeerProcess.peer(forDescriptor: fd)
+
         connections.insert(fd)
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self else { close(fd); return }
-            self.serve(fd)
+            self.serve(fd, peer: peer)
         }
     }
 
     /// Reads requests from one client and writes answers back, until the client leaves.
-    private func serve(_ fd: Int32) {
+    private func serve(_ fd: Int32, peer: SSHAgentPeer?) {
         defer {
             close(fd)
             queue.async { [weak self] in self?.connections.remove(fd) }
@@ -330,7 +337,7 @@ nonisolated final class SSHAgentServer: @unchecked Sendable {
             }
             guard let message = Self.readMessage(from: fd,
                                                  maximum: Self.maximumMessageLength) else { return }
-            guard let answer = awaitResponse(to: message) else { return }
+            guard let answer = awaitResponse(to: message, peer: peer) else { return }
             guard Self.writeAll(answer, to: fd) else { return }
         }
     }
@@ -339,14 +346,15 @@ nonisolated final class SSHAgentServer: @unchecked Sendable {
     ///
     /// A semaphore rather than `await` at the top of `serve`, because `serve` is already running on
     /// a dispatch thread and blocking it is the whole design. The responder runs on the
-    /// cooperative pool, so nothing here holds a cooperative thread while it waits.
-    private func awaitResponse(to message: Data) -> Data? {
+    /// cooperative pool, so nothing here holds a cooperative thread while it waits — including
+    /// while it waits for a master password.
+    private func awaitResponse(to message: Data, peer: SSHAgentPeer?) -> Data? {
         let box       = AnswerBox()
         let semaphore = DispatchSemaphore(value: 0)
         let respond   = self.respond
 
         Task.detached(priority: .userInitiated) {
-            box.value = await respond(message)
+            box.value = await respond(message, peer)
             semaphore.signal()
         }
         semaphore.wait()

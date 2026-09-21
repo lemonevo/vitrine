@@ -302,6 +302,16 @@ struct PrizmApp: App {
                     )
                 }
             }
+            // The SSH agent's prompt. Presented at the app's root rather than inside the browser
+            // because the request arrives on a socket, from a process the user did not just click
+            // on: it has to be able to appear whatever the vault browser is showing, and it has to
+            // disappear by itself when a lock revokes what is waiting.
+            .sheet(isPresented: Binding(
+                get: { rootVM.sshAgentAuthorizer.pending != nil },
+                set: { presented in if !presented { rootVM.sshAgentAuthorizer.cancel() } }
+            )) {
+                SSHAgentAuthorizationSheet(authorizer: rootVM.sshAgentAuthorizer)
+            }
         }
     }
 }
@@ -342,6 +352,10 @@ protocol RootViewModelDependencies: AnyObject {
     /// The session's generator history. Cleared on lock and sign-out so a value that was generated
     /// but never saved cannot outlive the session that produced it (design D9).
     var generatorHistory: GeneratorHistory { get }
+    /// The master-password gate for SSH signatures. Shared rather than owned by the agent, because
+    /// its grants have to die in the same teardown as the reprompt grants — and because the sheet
+    /// that answers it is presented by the app, not by the agent.
+    var sshAgentAuthorizer: SSHAgentAuthorizer { get }
 }
 
 extension AppContainer: RootViewModelDependencies {
@@ -432,6 +446,9 @@ final class RootViewModel: ObservableObject, RepromptGating {
     let vaultBrowserVM:   VaultBrowserViewModel
 
     private let container: any RootViewModelDependencies
+    /// The SSH agent's master-password gate. Held here so the lock and sign-out teardowns have one
+    /// call to make; the agent reaches it through the same instance.
+    let sshAgentAuthorizer: SSHAgentAuthorizer
     /// Drives the configurable idle timeout. Started only while the vault is unlocked.
     private let idleMonitor: any VaultIdleMonitoring
     /// Combine subscriptions — held for the lifetime of this object.
@@ -448,6 +465,7 @@ final class RootViewModel: ObservableObject, RepromptGating {
         self.loginVM        = container.makeLoginViewModel()
         self.vaultBrowserVM = container.makeVaultBrowserViewModel()
         self.idleMonitor    = container.idleMonitor
+        self.sshAgentAuthorizer = container.sshAgentAuthorizer
 
         // Check for stored session at launch.
         if let account = container.authRepo.storedAccount() {
@@ -667,6 +685,9 @@ final class RootViewModel: ObservableObject, RepromptGating {
             healthReportVM = nil
             // A grant is permission to show what the key caches protect; it goes with them.
             repromptGrants.removeAll()
+            // Same rule for the SSH agent: a signing grant must not survive the session that
+            // issued it, and anything waiting on one has to be refused rather than left hanging.
+            sshAgentAuthorizer.revokeAll()
             vaultBrowserVM.discardReveals()
             unlockVM = nil
             screen   = .login
@@ -694,6 +715,10 @@ final class RootViewModel: ObservableObject, RepromptGating {
             // here: the grant, and the reveals it produced. Leaving the second behind would show a
             // password on the unlock screen's return with no prompt.
             repromptGrants.removeAll()
+            // The SSH agent's grants are permission to use key material, so they go with the
+            // caches that hold it — and refusing everything still waiting is what stops a `git`
+            // from hanging on a prompt that will never be answered.
+            sshAgentAuthorizer.revokeAll()
             vaultBrowserVM.discardReveals()
             if let account = container.authRepo.storedAccount() {
                 unlockVM = container.makeUnlockViewModel(account: account)

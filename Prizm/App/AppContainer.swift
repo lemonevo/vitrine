@@ -115,6 +115,13 @@ final class AppContainer: ObservableObject {
     /// value that was generated but never saved is still a credential (design D9).
     let generatorHistory: GeneratorHistory
 
+    /// The master-password gate in front of every SSH signature.
+    ///
+    /// Built here rather than by the agent so there is exactly one instance: the app presents the
+    /// sheet, and the lock and sign-out teardowns revoke its grants. A second instance would be a
+    /// second answer to "how long does a grant last", and it would be the copy that survives a lock.
+    let sshAgentAuthorizer: SSHAgentAuthorizer
+
     // MARK: - Init
 
     init() {
@@ -225,6 +232,7 @@ final class AppContainer: ObservableObject {
         // immediately without recreating the monitor.
         self.idleMonitor               = VaultIdleMonitor(settings: { VaultTimeoutSettings.load() })
         self.generatorHistory          = GeneratorHistory()
+        self.sshAgentAuthorizer        = SSHAgentAuthorizer(verifyMasterPassword: verifyMasterPasswordUseCase)
     }
 
     // MARK: - Factories

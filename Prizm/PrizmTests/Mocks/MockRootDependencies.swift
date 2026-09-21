@@ -48,6 +48,14 @@ final class MockRootDependencies: RootViewModelDependencies {
     /// so the answer has to be controllable from outside both of them.
     let verifyMasterPasswordUseCase = MockVerifyMasterPasswordUseCase()
 
+    /// The SSH agent's gate, over the same controllable password answer.
+    ///
+    /// Built here rather than inside a suite so the lock and sign-out tests exercise the real
+    /// instance the agent would use — the property under test is that a grant does not survive a
+    /// lock, and a fresh authorizer per assertion would not show that.
+    lazy var sshAgentAuthorizer = SSHAgentAuthorizer(
+        verifyMasterPassword: verifyMasterPasswordUseCase)
+
     init(auth: MockAuthRepository,
          vault: MockVaultRepository,
          totpGenerator: any TOTPGenerator = TOTPGeneratorImpl()) {

@@ -106,7 +106,7 @@ final class SSHAgentServerTests: XCTestCase {
 
     func testStart_bindsTheSocketAtThePath() throws {
         let (path, _) = try socketPath()
-        let server = SSHAgentServer(socketPath: path) { _ in SSHWireWriter.failure() }
+        let server = SSHAgentServer(socketPath: path) { _, _ in SSHWireWriter.failure() }
         defer { server.stop() }
 
         try server.start()
@@ -119,7 +119,7 @@ final class SSHAgentServerTests: XCTestCase {
     /// a start completes, and "address already in use" there would read as a broken agent.
     func testStart_isIdempotent() throws {
         let (path, _) = try socketPath()
-        let server = SSHAgentServer(socketPath: path) { _ in SSHWireWriter.failure() }
+        let server = SSHAgentServer(socketPath: path) { _, _ in SSHWireWriter.failure() }
         defer { server.stop() }
 
         try server.start()
@@ -129,7 +129,7 @@ final class SSHAgentServerTests: XCTestCase {
 
     func testStop_removesTheSocketFileAndRefusesConnections() throws {
         let (path, _) = try socketPath()
-        let server = SSHAgentServer(socketPath: path) { _ in SSHWireWriter.failure() }
+        let server = SSHAgentServer(socketPath: path) { _, _ in SSHWireWriter.failure() }
         try server.start()
         server.stop()
 
@@ -142,7 +142,7 @@ final class SSHAgentServerTests: XCTestCase {
     /// machine asking Prizm to sign with these keys.
     func testStart_refusesADirectoryThatIsNotPrivate() throws {
         let (path, _) = try socketPath(inPermissions: 0o755)
-        let server = SSHAgentServer(socketPath: path) { _ in SSHWireWriter.failure() }
+        let server = SSHAgentServer(socketPath: path) { _, _ in SSHWireWriter.failure() }
         defer { server.stop() }
 
         do {
@@ -158,7 +158,7 @@ final class SSHAgentServerTests: XCTestCase {
 
     func testStart_refusesAPathLongerThanTheSocketLimit() throws {
         let path = "/" + String(repeating: "a", count: 200) + "/agent.sock"
-        let server = SSHAgentServer(socketPath: path) { _ in SSHWireWriter.failure() }
+        let server = SSHAgentServer(socketPath: path) { _, _ in SSHWireWriter.failure() }
         defer { server.stop() }
 
         XCTAssertThrowsError(try server.start()) { error in
@@ -173,7 +173,7 @@ final class SSHAgentServerTests: XCTestCase {
     func testClient_receivesTheAnswerToItsRequest() throws {
         let (path, _) = try socketPath()
         let blob    = Data("public-key-blob".utf8)
-        let server  = SSHAgentServer(socketPath: path) { _ in
+        let server  = SSHAgentServer(socketPath: path) { _, _ in
             SSHWireWriter.identitiesAnswer([(blob: blob, comment: "Deploy Key")])
         }
         defer { server.stop() }
@@ -205,7 +205,7 @@ final class SSHAgentServerTests: XCTestCase {
     func testClient_receivesAnswersInTheOrderAsked() async throws {
         let (path, _) = try socketPath()
         let order = Order()
-        let server = SSHAgentServer(socketPath: path) { _ in
+        let server = SSHAgentServer(socketPath: path) { _, _ in
             let number = await order.next()
             if number == 1 { try? await Task.sleep(nanoseconds: 200_000_000) }
             return SSHWireWriter.identitiesAnswer([(blob: Data(), comment: "\(number)")])
@@ -237,7 +237,7 @@ final class SSHAgentServerTests: XCTestCase {
     /// Two clients at once, each answered on its own connection.
     func testServer_servesMoreThanOneClient() throws {
         let (path, _) = try socketPath()
-        let server = SSHAgentServer(socketPath: path) { _ in
+        let server = SSHAgentServer(socketPath: path) { _, _ in
             SSHWireWriter.identitiesAnswer([(blob: Data(), comment: "key")])
         }
         defer { server.stop() }
@@ -256,7 +256,7 @@ final class SSHAgentServerTests: XCTestCase {
     /// A peer that disconnects mid-message must not take the server down with it.
     func testServer_survivesAClientThatDisconnectsMidMessage() throws {
         let (path, _) = try socketPath()
-        let server = SSHAgentServer(socketPath: path) { _ in SSHWireWriter.failure() }
+        let server = SSHAgentServer(socketPath: path) { _, _ in SSHWireWriter.failure() }
         defer { server.stop() }
         try server.start()
 
