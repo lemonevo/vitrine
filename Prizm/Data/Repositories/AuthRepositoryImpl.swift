@@ -29,7 +29,32 @@ final class AuthRepositoryImpl: AuthRepository, EmbeddedBiometricUnlock {
     private let keychain:   any KeychainService
     private let biometricKeychain: any BiometricKeychainService
 
+    /// The offline vault cache, deleted here on sign-out rather than by the caller.
+    ///
+    /// Sign-out is the operation that promises "all local data will be cleared", and this cache is
+    /// the user's whole vault (as ciphertext) sitting on disk under a user id that only this type
+    /// reads. There is more than one sign-out entry point — the app-level teardown and the unlock
+    /// screen's "use a different account" — and the two have already diverged once, so the deletion
+    /// lives where the per-user Keychain items are deleted, which is the one place every path
+    /// reaches.
+    private let vaultCache: any VaultCacheStore
+
+    /// The alternative unlock. Held rather than created here so the key-wrapping policy lives in one
+    /// place and can be exercised without a real Keychain.
+    private let pinUnlock: any PinUnlockService
+
+    /// The domain the PIN's settings live in. `.standard` in the app; a private suite in a test, for
+    /// the same reason the sort order takes one — parallel test processes share the real domain.
+    private let userDefaults: UserDefaults
+
     private let logger = Logger(subsystem: "com.prizm", category: "AuthRepository")
+
+    /// Whether a full authentication (master password or biometrics) has happened since launch.
+    ///
+    /// Session-scoped and deliberately not persisted: it describes *this* launch of the app, and a
+    /// stored copy would answer the question "did you authenticate on a previous run", which is not
+    /// the question the PIN's restart setting asks.
+    private var fullAuthenticationThisLaunch = false
 
     // MARK: - Server configuration
 
@@ -58,12 +83,18 @@ final class AuthRepositoryImpl: AuthRepository, EmbeddedBiometricUnlock {
         apiClient: any PrizmAPIClientProtocol,
         crypto:    any PrizmCryptoService,
         keychain:  any KeychainService,
-        biometricKeychain: any BiometricKeychainService
+        biometricKeychain: any BiometricKeychainService,
+        vaultCache: any VaultCacheStore,
+        pinUnlock: any PinUnlockService,
+        userDefaults: UserDefaults = .standard
     ) {
         self.apiClient = apiClient
         self.crypto    = crypto
         self.keychain  = keychain
         self.biometricKeychain = biometricKeychain
+        self.vaultCache = vaultCache
+        self.pinUnlock  = pinUnlock
+        self.userDefaults = userDefaults
     }
 
     // MARK: - Server configuration
@@ -144,7 +175,7 @@ final class AuthRepositoryImpl: AuthRepository, EmbeddedBiometricUnlock {
                 email:             email,
                 passwordHash:      serverHash,
                 deviceIdentifier:  deviceId,
-                twoFactorToken:    nil,
+                twoFactorToken:    rememberedDeviceToken(for: email),
                 twoFactorProvider: nil,
                 twoFactorRemember: false
             )
@@ -232,6 +263,7 @@ final class AuthRepositoryImpl: AuthRepository, EmbeddedBiometricUnlock {
         // material SHALL NOT be discarded").
         pendingTwoFactor = nil
         logger.info("Two-factor code accepted")
+        rememberDeviceIfAsked(rememberDevice, token: tokenResp.twoFactorToken, email: pending.email)
         return try await finalizeSession(
             tokenResp:   tokenResp,
             stretched:   pending.stretchedKeys,
@@ -377,6 +409,7 @@ final class AuthRepositoryImpl: AuthRepository, EmbeddedBiometricUnlock {
             logger.error("Unlock: access token not found in Keychain — sync will fail with 401")
         }
 
+        fullAuthenticationThisLaunch = true
         logger.info("Unlock succeeded")
         return restoredAccount
     }
@@ -482,7 +515,15 @@ final class AuthRepositoryImpl: AuthRepository, EmbeddedBiometricUnlock {
         }
 
         // Clear biometric Keychain item and preference before clearing other keys.
-        try? await disableBiometricUnlock()
+        //
+        // Reported, not propagated: aborting sign-out here would leave the session keys in memory and
+        // the user unable to leave. The consequence is named in the log, and the item keeps its
+        // biometric gate, so a leftover is not an open door the way an leftover PIN blob would be.
+        do {
+            try await disableBiometricUnlock()
+        } catch {
+            logger.fault("Signed out, but the Touch ID vault key may still be stored for this account")
+        }
 
         // Clear per-user keys first — best-effort, log failures.
         if !userId.isEmpty {
@@ -495,12 +536,38 @@ final class AuthRepositoryImpl: AuthRepository, EmbeddedBiometricUnlock {
                 }
             }
         }
-        // Clear global key last.
-        do {
-            try keychain.delete(key: KeychainKey.activeUserId)
-        } catch {
-            logger.debug("activeUserId delete skipped: \(error.localizedDescription, privacy: .public)")
+        // Clear global keys last. The remembered-device pair goes with the session it was granted
+        // for: it is a credential that lets a login skip a second factor, and leaving it behind would
+        // mean a signed-out device is still a remembered one.
+        for key in [KeychainKey.activeUserId, KeychainKey.twoFactorToken, KeychainKey.twoFactorEmail] {
+            do {
+                try keychain.delete(key: key)
+            } catch {
+                logger.debug("Keychain delete \(key, privacy: .public) skipped: \(error.localizedDescription, privacy: .public)")
+            }
         }
+
+        // The PIN goes with the session: it is a second way into this account, and leaving it behind
+        // would keep a four-digit code working for a user who has signed out.
+        //
+        // A failure here is reported and the teardown continues, rather than thrown. Aborting
+        // `signOut` half-way would leave the live session keys in memory and the user stuck signed in —
+        // a worse state than the one being cleaned up. `remove()` logs what survived; this says who
+        // hears it.
+        if !userId.isEmpty {
+            do {
+                try pinUnlock.remove(userId: userId)
+            } catch {
+                logger.fault("""
+                Signed out, but the PIN's wrapped key material may still be stored for \
+                \(userId, privacy: .public). It can be unlocked by guessing the PIN.
+                """)
+            }
+        }
+
+        // The cached ciphertext goes with the keys that could read it. An empty `userId` (session
+        // already half-cleared) is a no-op in the store rather than a deletion of the cache root.
+        await vaultCache.delete(userId: userId)
 
         // Use self.lockVault() rather than crypto.lockVault() directly so that the
         // .vaultDidLock notification is posted — ItemEditViewModel observes it to
@@ -573,8 +640,21 @@ final class AuthRepositoryImpl: AuthRepository, EmbeddedBiometricUnlock {
     }
 
     func disableBiometricUnlock() async throws {
+        // The flag is cleared only once the key is actually gone. A failed delete leaves the item
+        // stored, which means the feature still works — and leaving the setting on is what gives the
+        // user a switch to try again with. Turning the flag off over a failed delete would report
+        // "disabled", strand the leftover item, and take away the retry.
         if let userId = try? readString(key: KeychainKey.activeUserId) {
-            try? biometricKeychain.deleteBiometric(key: KeychainKey.biometricVaultKey(userId))
+            do {
+                try biometricKeychain.deleteBiometric(key: KeychainKey.biometricVaultKey(userId))
+            } catch {
+                logger.fault("""
+                The biometric vault key could not be deleted (\(error.localizedDescription, privacy: .public)) \
+                and is still stored. It is gated by `.biometryCurrentSet`, so an enrolled fingerprint can \
+                still unwrap it.
+                """)
+                throw AuthError.secretRetirementFailed
+            }
         }
         UserDefaults.standard.set(false, forKey: "biometricUnlockEnabled")
         logger.info("Biometric unlock disabled")
@@ -639,11 +719,29 @@ final class AuthRepositoryImpl: AuthRepository, EmbeddedBiometricUnlock {
             throw AuthError.biometricUnavailable
         }
 
+        let account = await completeUnlock(
+            vaultKeys: vaultKeys, account: restoredAccount, userId: userId, origin: "Biometric"
+        )
+        logger.info("Biometric unlock succeeded")
+        return account
+    }
+
+    /// Shared tail of every unlock that arrives with key material already in hand — biometrics and PIN.
+    ///
+    /// Factored out rather than copied: it restores the API client's server and tokens, and a second
+    /// copy of that is a second place for the two unlock paths to drift apart. Biometrics and PIN are
+    /// two ways to obtain the same keys; everything after the keys is identical by definition.
+    private func completeUnlock(
+        vaultKeys: CryptoKeys,
+        account: Account,
+        userId: String,
+        origin: String
+    ) async -> Account {
         await crypto.unlockWith(keys: vaultKeys)
 
         // Restore API client state — same as unlockWithPassword().
-        serverEnvironment = restoredAccount.serverEnvironment
-        await apiClient.setBaseURL(restoredAccount.serverEnvironment.base)
+        serverEnvironment = account.serverEnvironment
+        await apiClient.setBaseURL(account.serverEnvironment.base)
 
         if let accessToken = try? readString(key: KeychainKey.user(userId, "accessToken")) {
             await apiClient.setAccessToken(accessToken)
@@ -656,13 +754,98 @@ final class AuthRepositoryImpl: AuthRepository, EmbeddedBiometricUnlock {
                         try? writeString(newRefresh, key: KeychainKey.user(userId, "refreshToken"))
                     }
                 } catch {
-                    logger.warning("Biometric unlock: token refresh failed — sync may fail: \(error.localizedDescription, privacy: .public)")
+                    logger.warning("\(origin, privacy: .public) unlock: token refresh failed — sync may fail: \(error.localizedDescription, privacy: .public)")
                 }
             }
         }
 
-        logger.info("Biometric unlock succeeded")
-        return restoredAccount
+        // A full authentication has now happened in this launch, which is what the "require master
+        // password on restart" setting gates the PIN on. Recorded here so every route in — biometric
+        // or master password — counts, matching the official wording ("master password or biometric").
+        fullAuthenticationThisLaunch = true
+
+        return account
+    }
+
+    // MARK: - PIN unlock
+
+    var pinUnlockAvailable: Bool {
+        guard let userId = try? readString(key: KeychainKey.activeUserId),
+              pinUnlock.isSet(userId: userId) else { return false }
+        // The setting is the whole point of defaulting to `true`: with it on, a PIN cannot open an app
+        // that has not been opened once properly since launch. Locking and unlocking again is a
+        // different question and deliberately unaffected — that is the case a PIN exists for.
+        if PinUnlockSettings.requiresMasterPasswordOnRestart(from: userDefaults) && !fullAuthenticationThisLaunch {
+            return false
+        }
+        return true
+    }
+
+    var pinUnlockRemainingAttempts: Int {
+        guard let userId = try? readString(key: KeychainKey.activeUserId) else { return 0 }
+        return pinUnlock.remainingAttempts(userId: userId)
+    }
+
+    func enablePinUnlock(pin: String) async throws {
+        // The key material has to come from a live vault: there is nothing to wrap otherwise, and
+        // wrapping stale or empty bytes would produce a PIN that unlocks to nothing.
+        guard await crypto.isUnlocked else {
+            throw AuthError.vaultLocked
+        }
+        guard let userId = try? readString(key: KeychainKey.activeUserId) else {
+            throw AuthError.noStoredSession
+        }
+        let keys = try await crypto.currentKeys()
+        try await pinUnlock.setPin(pin, keyMaterial: keys.toData(), userId: userId)
+        logger.info("PIN unlock enabled")
+    }
+
+    func disablePinUnlock() async throws {
+        if let userId = try? readString(key: KeychainKey.activeUserId) {
+            // Propagated. The leftover item is a vault key wrapped under a four-digit code, so the
+            // settings screen may only say "off" once it is actually gone — and it can retry, which it
+            // could not if this returned quietly and left the toggle looking settled.
+            try pinUnlock.remove(userId: userId)
+        }
+        logger.info("PIN unlock disabled")
+    }
+
+    func unlockWithPIN(_ pin: String) async throws -> Account {
+        logger.info("PIN unlock attempt")
+        guard let userId = try? readString(key: KeychainKey.activeUserId) else {
+            throw AuthError.invalidCredentials
+        }
+
+        let restoredAccount: Account
+        do {
+            restoredAccount = try account(for: userId)
+        } catch {
+            logger.error("Missing session data for PIN unlock: \(error.localizedDescription, privacy: .public)")
+            throw AuthError.invalidCredentials
+        }
+
+        let keyData: Data
+        do {
+            keyData = try await pinUnlock.unlock(with: pin, userId: userId)
+        } catch PinUnlockError.attemptsExhausted {
+            // The stored material is already destroyed, so there is nothing to try against. Signing
+            // out is what makes the limit mean something; rethrowing is what tells the caller to
+            // return to the sign-in screen rather than offer another guess.
+            logger.fault("PIN attempts exhausted — signing out")
+            try? await signOut()
+            throw PinUnlockError.attemptsExhausted
+        }
+
+        guard let vaultKeys = CryptoKeys(data: keyData) else {
+            logger.error("Stored PIN material is not a valid key")
+            throw PinUnlockError.storageUnavailable
+        }
+
+        let account = await completeUnlock(
+            vaultKeys: vaultKeys, account: restoredAccount, userId: userId, origin: "PIN"
+        )
+        logger.info("PIN unlock succeeded")
+        return account
     }
 
     // MARK: - EmbeddedBiometricUnlock
@@ -733,6 +916,54 @@ final class AuthRepositoryImpl: AuthRepository, EmbeddedBiometricUnlock {
     // MARK: - Private helpers
 
     /// Completes a successful token exchange: decrypts vault key, stores credentials, returns Account.
+    // MARK: - Remembered two-factor device
+
+    /// The stored token for `email`, or `nil` when there is none for **this** account.
+    ///
+    /// The email comparison is not decoration: sending account A's token while signing in as account B
+    /// hands the server a credential that belongs to someone else, and whether that is merely ignored
+    /// or actively wrong is the server's decision to make. Normalised the way the rest of the login
+    /// path treats an address.
+    private func rememberedDeviceToken(for email: String) -> String? {
+        guard let storedToken = try? keychain.read(key: KeychainKey.twoFactorToken),
+              let storedEmail = try? keychain.read(key: KeychainKey.twoFactorEmail),
+              let token = String(data: storedToken, encoding: .utf8),
+              let owner = String(data: storedEmail, encoding: .utf8) else {
+            return nil
+        }
+
+        let normalise: (String) -> String = {
+            $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        }
+        guard normalise(owner) == normalise(email) else {
+            logger.info("A remembered device is stored for a different account; not replaying it")
+            return nil
+        }
+        return token
+    }
+
+    /// Stores the device-remember token, if the user asked to be remembered and the server issued one.
+    ///
+    /// Only when asked: the response carries a token either way, and storing it regardless would
+    /// remember a device the user explicitly declined to remember.
+    private func rememberDeviceIfAsked(_ asked: Bool, token: String?, email: String) {
+        guard asked else { return }
+        guard let token, !token.isEmpty else {
+            // The checkbox did nothing, again, in a different way. Logged rather than shown: the user
+            // will find out at the next login, and a banner about a token they never saw is noise.
+            // But an inert control that also leaves no trace is how this shipped the first time.
+            logger.error("2FA remember-device was requested but the server returned no token; the device will not be remembered")
+            return
+        }
+        do {
+            try keychain.write(data: Data(token.utf8), key: KeychainKey.twoFactorToken)
+            try keychain.write(data: Data(email.utf8), key: KeychainKey.twoFactorEmail)
+            logger.info("Remembered this device for the current account")
+        } catch {
+            logger.error("Could not store the remembered-device token: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
     private func finalizeSession(
         tokenResp:   TokenResponse,
         stretched:   CryptoKeys,
@@ -798,6 +1029,8 @@ final class AuthRepositoryImpl: AuthRepository, EmbeddedBiometricUnlock {
         try keychain.write(data: envJSON, key: KeychainKey.user(userId, "serverEnvironment"))
 
         await apiClient.setAccessToken(accessToken)
+
+        fullAuthenticationThisLaunch = true
 
         return Account(
             userId:            userId,
@@ -947,6 +1180,20 @@ private extension TokenResponse {
 enum KeychainKey {
     static let activeUserId    = "bw.macos:activeUserId"
     static let deviceIdentifier = "bw.macos:deviceIdentifier"
+
+    /// The device-remember token from a two-factor login, and the email it belongs to.
+    ///
+    /// **Global rather than per-user, unlike every other session item.** The token has to be looked up
+    /// at the moment the user signs in — and at that point the only thing known is the email, because
+    /// the user id arrives in the response *after* the challenge has been decided. A
+    /// `bw.macos:<userId>:…` key cannot be addressed yet.
+    ///
+    /// Safe because the app holds one session at a time, so there is at most one remembered device.
+    /// The email is stored beside the token and compared before replaying, so it cannot be spent on a
+    /// different account. If multiple accounts are ever added, this becomes per-account and the
+    /// comparison becomes a lookup.
+    static let twoFactorToken = "bw.macos:twoFactorToken"
+    static let twoFactorEmail = "bw.macos:twoFactorEmail"
 
     static func user(_ userId: String, _ name: String) -> String {
         "bw.macos:\(userId):\(name)"

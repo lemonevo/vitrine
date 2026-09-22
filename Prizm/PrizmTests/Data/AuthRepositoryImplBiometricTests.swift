@@ -11,6 +11,7 @@ final class AuthRepositoryImplBiometricTests: XCTestCase {
     private var mockCrypto: MockPrizmCryptoService!
     private var mockKeychain: MockKeychainService!
     private var mockBiometricKeychain: MockBiometricKeychainService!
+    private var mockVaultCache: MockVaultCacheStore!
 
     private let testUserId = "test-user-id"
     private let testEmail  = "test@example.com"
@@ -25,11 +26,14 @@ final class AuthRepositoryImplBiometricTests: XCTestCase {
         mockCrypto   = MockPrizmCryptoService()
         mockKeychain = MockKeychainService()
         mockBiometricKeychain = MockBiometricKeychainService()
+        mockVaultCache = MockVaultCacheStore()
         sut = AuthRepositoryImpl(
             apiClient:  mockAPI,
             crypto:     mockCrypto,
             keychain:   mockKeychain,
-            biometricKeychain: mockBiometricKeychain
+            biometricKeychain: mockBiometricKeychain,
+            vaultCache: mockVaultCache,
+            pinUnlock: KeychainPinUnlockService(keychain: mockKeychain, crypto: mockCrypto)
         )
         // Seed Keychain with a stored session so account(for:) works.
         seedStoredSession()
@@ -101,6 +105,33 @@ final class AuthRepositoryImplBiometricTests: XCTestCase {
     }
 
     // MARK: - disableBiometricUnlock
+
+    /// **The setting stays on when the key would not delete.** Clearing the flag over a failed delete
+    /// would report "off" while a stored key an enrolled fingerprint can still unwrap is left behind,
+    /// and it would take away the only retry the user has — a switch that already reads off cannot be
+    /// turned off again.
+    func testDisableBiometricUnlock_whenTheDeleteFails_keepsTheSettingOnAndThrows() async throws {
+        mockCrypto._isUnlocked = true
+        try await sut.enableBiometricUnlock()
+        XCTAssertTrue(UserDefaults.standard.bool(forKey: "biometricUnlockEnabled"))
+
+        mockBiometricKeychain.deleteError = KeychainError.unexpectedStatus(errSecIO)
+
+        do {
+            try await sut.disableBiometricUnlock()
+            XCTFail("a key that survived must not be reported as deleted")
+        } catch let error as AuthError {
+            XCTAssertEqual(error, .secretRetirementFailed)
+        }
+
+        XCTAssertTrue(UserDefaults.standard.bool(forKey: "biometricUnlockEnabled"),
+                      "the feature is still genuinely available, so the setting must say so")
+
+        // Retrying once the Keychain cooperates finishes the job.
+        mockBiometricKeychain.deleteError = nil
+        try await sut.disableBiometricUnlock()
+        XCTAssertFalse(UserDefaults.standard.bool(forKey: "biometricUnlockEnabled"))
+    }
 
     func testDisableBiometricUnlock_clearsPreferenceAndKeychain() async throws {
         // Enable first.

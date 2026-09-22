@@ -17,6 +17,7 @@ final class AuthRepositoryVerifyMasterPasswordTests: XCTestCase {
     private var mockCrypto: MockPrizmCryptoService!
     private var mockKeychain: MockKeychainService!
     private var mockBiometricKeychain: MockBiometricKeychainService!
+    private var mockVaultCache: MockVaultCacheStore!
 
     override func setUp() async throws {
         try await super.setUp()
@@ -24,11 +25,14 @@ final class AuthRepositoryVerifyMasterPasswordTests: XCTestCase {
         mockCrypto   = MockPrizmCryptoService()
         mockKeychain = MockKeychainService()
         mockBiometricKeychain = MockBiometricKeychainService()
+        mockVaultCache = MockVaultCacheStore()
         sut = AuthRepositoryImpl(
             apiClient:  mockAPI,
             crypto:     mockCrypto,
             keychain:   mockKeychain,
-            biometricKeychain: mockBiometricKeychain
+            biometricKeychain: mockBiometricKeychain,
+            vaultCache: mockVaultCache,
+            pinUnlock: KeychainPinUnlockService(keychain: mockKeychain, crypto: mockCrypto)
         )
     }
 

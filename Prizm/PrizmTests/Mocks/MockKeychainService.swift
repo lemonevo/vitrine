@@ -1,5 +1,11 @@
 import Foundation
+import Security
 @testable import Prizm
+
+/// `errSecUnavailable` — what the real Keychain returns when it is busy or otherwise refusing an
+/// operation. Spelled as a number because the constant is not in scope for this target on the current
+/// SDK.
+private let keychainUnavailable: OSStatus = -25314
 
 /// Test double for `KeychainService`.
 ///
@@ -22,6 +28,17 @@ final class MockKeychainService: KeychainService, @unchecked Sendable {
     /// All keys passed to read(key:), in call order. Used to assert no duplicate reads.
     private(set) var readKeys:   [String]     = []
 
+    // MARK: - Failure stubbing
+
+    /// Keys whose write or delete should fail.
+    ///
+    /// Exists because the security-relevant behaviour of `KeychainPinUnlockService` lives entirely in
+    /// what it does when the Keychain says no: a PIN whose attempt counter cannot be written has no
+    /// limit, and a wrapped key that cannot be deleted is still unlockable by guessing. Without these
+    /// the failure branches are unreachable in tests, which is how they stayed wrong.
+    var failingWrites:  Set<String> = []
+    var failingDeletes: Set<String> = []
+
     // MARK: - KeychainService
 
     func read(key: String) throws -> Data {
@@ -33,11 +50,13 @@ final class MockKeychainService: KeychainService, @unchecked Sendable {
     }
 
     func write(data: Data, key: String) throws {
+        if failingWrites.contains(key) { throw KeychainError.unexpectedStatus(keychainUnavailable) }
         store[key] = data
         writtenKeys.append(key)
     }
 
     func delete(key: String) throws {
+        if failingDeletes.contains(key) { throw KeychainError.unexpectedStatus(keychainUnavailable) }
         deletedKeys.insert(key)
         store.removeValue(forKey: key)
     }

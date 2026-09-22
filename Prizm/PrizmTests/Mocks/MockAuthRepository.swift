@@ -114,8 +114,15 @@ final class MockAuthRepository: AuthRepository {
         signOutCalled = true
     }
 
+    /// When set, `lockVault()` sleeps for this long before returning.
+    ///
+    /// Lets a test observe the ordering *within* the teardown — specifically that the session epoch
+    /// has already moved while the teardown is still running.
+    var lockVaultDelay: Duration?
+
     func lockVault() async {
         lockVaultCalledCount += 1
+        if let lockVaultDelay { try? await Task.sleep(for: lockVaultDelay) }
     }
 
     // MARK: - Biometric unlock
@@ -143,6 +150,40 @@ final class MockAuthRepository: AuthRepository {
 
     func disableBiometricUnlock() async throws {
         disableBiometricUnlockCalled = true
+    }
+
+    // MARK: - PIN unlock
+
+    var stubbedPinUnlockAvailable: Bool = false
+    var stubbedPinUnlockRemainingAttempts: Int = 5
+    private(set) var enablePinUnlockCalled = false
+    private(set) var disablePinUnlockCalled = false
+    private(set) var unlockWithPINCallCount = 0
+    /// The PIN the last unlock attempt carried — "was called" would pass for an empty string.
+    private(set) var lastAttemptedPIN: String?
+    var enablePinUnlockError: Error?
+    var unlockWithPINError: Error?
+
+    var pinUnlockAvailable: Bool { stubbedPinUnlockAvailable }
+    var pinUnlockRemainingAttempts: Int { stubbedPinUnlockRemainingAttempts }
+
+    func enablePinUnlock(pin: String) async throws {
+        enablePinUnlockCalled = true
+        if let err = enablePinUnlockError { throw err }
+    }
+
+    func disablePinUnlock() async throws {
+        disablePinUnlockCalled = true
+    }
+
+    func unlockWithPIN(_ pin: String) async throws -> Account {
+        unlockWithPINCallCount += 1
+        lastAttemptedPIN = pin
+        if let err = unlockWithPINError { throw err }
+        guard case .success(let account) = stubbedLoginResult else {
+            throw AuthError.invalidCredentials
+        }
+        return account
     }
 
     func unlockWithBiometrics() async throws -> Account {

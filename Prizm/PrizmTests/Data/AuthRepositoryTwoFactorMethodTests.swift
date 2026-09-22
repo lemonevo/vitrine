@@ -16,6 +16,7 @@ final class AuthRepositoryTwoFactorMethodTests: XCTestCase {
     private var mockCrypto: MockPrizmCryptoService!
     private var mockKeychain: MockKeychainService!
     private var mockBiometricKeychain: MockBiometricKeychainService!
+    private var mockVaultCache: MockVaultCacheStore!
 
     override func setUp() async throws {
         try await super.setUp()
@@ -23,11 +24,14 @@ final class AuthRepositoryTwoFactorMethodTests: XCTestCase {
         mockCrypto   = MockPrizmCryptoService()
         mockKeychain = MockKeychainService()
         mockBiometricKeychain = MockBiometricKeychainService()
+        mockVaultCache = MockVaultCacheStore()
         sut = AuthRepositoryImpl(
             apiClient:  mockAPI,
             crypto:     mockCrypto,
             keychain:   mockKeychain,
-            biometricKeychain: mockBiometricKeychain
+            biometricKeychain: mockBiometricKeychain,
+            vaultCache: mockVaultCache,
+            pinUnlock: KeychainPinUnlockService(keychain: mockKeychain, crypto: mockCrypto)
         )
         try await sut.setServerEnvironment(ServerEnvironment(
             base: URL(string: "https://vault.example.com")!, overrides: nil

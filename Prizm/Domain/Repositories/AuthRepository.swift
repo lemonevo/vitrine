@@ -137,6 +137,35 @@ protocol AuthRepository: AnyObject {
     /// - Returns: The unlocked `Account`.
     /// - Throws: `AuthError.biometricInvalidated` if biometric enrollment changed.
     func unlockWithBiometrics() async throws -> Account
+
+    // MARK: - PIN unlock
+
+    /// Whether the unlock screen should offer a PIN right now.
+    ///
+    /// False when no PIN is set, and false on a launch that has not seen a full authentication while
+    /// `PinUnlockSettings.requiresMasterPasswordOnRestart` is on — which is its default. Locking and
+    /// unlocking again within a launch is unaffected; that is the case a PIN exists for.
+    var pinUnlockAvailable: Bool { get }
+
+    /// Attempts left before the stored material is destroyed. Shown while entering a PIN: a limit the
+    /// user cannot see is a trap rather than a protection.
+    var pinUnlockRemainingAttempts: Int { get }
+
+    /// Wraps the vault's current key material under a key derived from `pin`.
+    ///
+    /// - Throws: `AuthError.vaultLocked` when the vault is not unlocked — there is no key material to
+    ///   wrap otherwise — and `PinUnlockError.pinTooShort` for a PIN below the minimum.
+    func enablePinUnlock(pin: String) async throws
+
+    /// Removes the stored PIN material.
+    func disablePinUnlock() async throws
+
+    /// Unlocks with `pin`.
+    ///
+    /// - Throws: `PinUnlockError.incorrectPin` for a wrong PIN, and `PinUnlockError.attemptsExhausted`
+    ///   when that was the last permitted attempt — in which case the user has been signed out and
+    ///   there is nothing left to retry.
+    func unlockWithPIN(_ pin: String) async throws -> Account
 }
 
 // MARK: - Supporting types
@@ -183,6 +212,8 @@ nonisolated enum AuthError: Error, LocalizedError, Equatable {
     /// Distinct from `biometricInvalidated` — no error is shown; the app silently falls back.
     case biometricItemNotFound
     /// Biometric unlock cannot be enabled — vault is locked (keys not in memory).
+    /// The vault is locked, so an operation that needs live key material (setting a PIN) cannot run.
+    case vaultLocked
     case biometricUnavailable
     /// Biometric unlock cannot be enabled on this build at all.
     ///
@@ -190,6 +221,13 @@ nonisolated enum AuthError: Error, LocalizedError, Equatable {
     /// needs the `keychain-access-groups` entitlement, which only a Team ID-signed build
     /// can carry. An ad-hoc signed build is permanently unable to use the feature.
     case biometricUnsupportedInBuild
+    /// A stored secret could not be deleted when its feature was turned off.
+    ///
+    /// Said rather than logged-and-forgotten: for a PIN the leftover item is a wrapped vault key that a
+    /// four-digit code unlocks, so "disabled" would be a claim the app cannot make. The setting is left
+    /// on in that case — the key is still there, so the feature still works — which is what gives the
+    /// user a switch to try again with.
+    case secretRetirementFailed
 
     var errorDescription: String? {
         switch self {
@@ -217,10 +255,14 @@ nonisolated enum AuthError: Error, LocalizedError, Equatable {
         case .biometricItemNotFound:
             // Intentionally nil — this error is handled silently in UnlockViewModel.
             return nil
+        case .vaultLocked:
+            return L("Unlock the vault first.")
         case .biometricUnavailable:
             return L("Biometric unlock is not available. Please unlock with your master password.")
         case .biometricUnsupportedInBuild:
             return L("This build of Prizm is not signed with an Apple Developer certificate, so macOS does not allow it to store the key Touch ID unlock needs.")
+        case .secretRetirementFailed:
+            return L("Prizm could not delete the stored key, so this is still enabled. Try turning it off again.")
         }
     }
 }

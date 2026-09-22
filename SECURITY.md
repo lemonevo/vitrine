@@ -21,19 +21,60 @@ of the issue, steps to reproduce, and any relevant log output or proof of concep
 
 ### Data at rest
 
-No vault data is ever written to disk in plaintext. The only sensitive material
-persisted on disk is the **encrypted user key**, stored in the macOS Keychain under
-`kSecAttrAccessibleWhenUnlockedThisDeviceOnly` — accessible only when the Mac is
-unlocked and only on this specific device, excluded from iCloud Keychain and backups.
+No vault data is ever written to disk in plaintext. Two pieces of sensitive material
+are persisted, both as ciphertext the app cannot read without the master password:
+
+1. The **encrypted user key** (`encUserKey`) and the surrounding session material, in the
+   macOS Keychain under `kSecAttrAccessibleWhenUnlockedThisDeviceOnly` — accessible only
+   when the Mac is unlocked and only on this specific device, excluded from iCloud
+   Keychain and backups.
+2. The **offline vault cache**: the server's last `/api/sync` response, stored verbatim in
+   the app's container. See **Offline vault cache** below.
 
 | Data | How it is protected |
 |------|---------------------|
-| Vault items (passwords, card numbers, identities, notes, SSH keys, custom fields) | AES-256-CBC + HMAC-SHA256; decrypted in memory after unlock only, never written to disk |
+| Vault items (passwords, card numbers, identities, notes, SSH keys, custom fields) | AES-256-CBC + HMAC-SHA256; decrypted in memory only, after unlock; the ciphertext form of the whole sync response is cached on disk (see below) |
 | File attachments | Two-layer AES-256-CBC + HMAC-SHA256; plaintext exists in memory only during upload/download; see "File Attachments" section |
 | Master password | Never stored anywhere; used transiently during KDF and then discarded |
 | Encrypted user key (`encUserKey`) | AES-256-CBC encrypted by the stretched master key; stored in Keychain |
 | Access and refresh tokens | Stored in Keychain under `kSecAttrAccessibleWhenUnlockedThisDeviceOnly` |
 | KDF parameters | Stored in Keychain; required for offline unlock |
+| Remembered-device token | Stored in Keychain under `kSecAttrAccessibleWhenUnlockedThisDeviceOnly`; see "Remembered two-factor devices" |
+
+### Offline vault cache
+
+Prizm can unlock and show the vault with no network. The mechanism is a copy of the server's
+last successful `/api/sync` response, written to the app's container at:
+
+```
+~/Library/Application Support/Prizm/vault-cache/<userId>/sync.json
+~/Library/Application Support/Prizm/vault-cache/<userId>/sync.meta.json
+```
+
+| Property | Value |
+|---|---|
+| **Contains** | The `/api/sync` response exactly as the server sent it: item names, usernames, passwords, notes, TOTP seeds, SSH keys, card numbers, identities, custom fields, folder and collection names, and attachment *metadata*. Every content field is already an `EncString` in Bitwarden's own format. |
+| **Does not contain** | Any plaintext vault content, any key material of any kind, and attachment *blobs* — attachments are downloaded on demand and are not part of the sync response. |
+| **Encryption** | The server's ciphertext, unchanged. Nothing is decrypted to write it and nothing is re-encrypted. |
+| **Written when** | After a sync that reached the server *and* whose payload was decoded successfully. A failed or cache-sourced sync never writes. |
+| **Deleted when** | Sign-out. **Not** on lock — the file is what makes an offline unlock possible, and locking does not need to remove it (see below). |
+| **File permissions** | `0600`, in a `0700` directory. A user id that is not a plain identifier is refused, so the path cannot be made to escape the cache root. |
+
+**The lock still means what it means.** The cache holds ciphertext only. Decrypting it requires
+the vault symmetric keys, which are re-derived from the master password (or released by the
+biometric Keychain item) at unlock and zeroed at lock. A cached file therefore has the same
+standing as the `encUserKey` in the Keychain, which was already at rest: an attacker holding
+either one needs the master password to make use of it.
+
+**What an attacker with the file can do.** Read the ciphertext — that is all. They learn the
+*number* of items and, because the response's envelope is unencrypted, the vault's structural
+skeleton (how many folders, which collections, item types and revision dates). They cannot read
+a single field.
+
+**What an attacker with the unlocked machine can do.** Read the ciphertext file. This is a
+change in what is reachable on disk but not in substance: such an attacker can equally read the
+decrypted vault straight out of the running process, which is already outside what this app
+defends against.
 
 ### Data in transit
 
@@ -44,6 +85,14 @@ never receives plaintext vault content or the master key at any point.
 
 Authentication sends a one-way derived hash (`serverHash`) rather than the master
 password itself.
+
+**When the app talks to the server.** A sync is a `GET /api/sync` carrying only the session
+token; no vault content is sent. One runs at unlock, one when the user asks (⌘R), and one every
+five minutes for as long as the vault stays unlocked — plus one when the app comes back to the
+foreground or the machine wakes. Nothing is sent while the vault is locked: the refresh timer is
+stopped at lock, so a locked session makes no requests at all. Refreshing is the only traffic the
+app generates on its own; the other endpoints are reached only in response to something the user
+did.
 
 ### Algorithms
 
@@ -79,7 +128,8 @@ frameworks).
 | Access token | macOS Keychain | Persisted across sessions; deleted on sign-out |
 | Refresh token | macOS Keychain | Persisted across sessions; deleted on sign-out |
 | KDF parameters | macOS Keychain | Persisted across sessions; deleted on sign-out |
-| Device identifier (UUID) | macOS Keychain | Stable across sessions; deleted on sign-out |
+| Remembered-device token | macOS Keychain | Written only if you tick "Remember this device" at a two-factor prompt; deleted on sign-out, **not** on lock |
+| Device identifier (UUID) | macOS Keychain | Stable across sessions; **retained on sign-out** (corrected — this row previously said it was deleted; see the note below) |
 
 ### Key lifecycle
 
@@ -94,9 +144,82 @@ frameworks).
 3. **Lock** — all in-memory key material is zeroed. `OrgKeyCache` is cleared: each
    `CryptoKeys` entry's underlying `Data` bytes are overwritten with zeros before the
    dictionary entry is removed. Keychain entries are retained so the vault can be
-   unlocked offline without re-authenticating to the server.
-4. **Sign out** — all in-memory key material is zeroed and all Keychain entries for
-   the account are deleted. The app returns to a blank login screen.
+   unlocked offline without re-authenticating to the server. The offline vault cache is
+   likewise retained — it is ciphertext, and without the keys it is unreadable.
+   **The decrypted plaintext goes with the keys**: the item list, the selection, and the
+   decrypted folder, organisation and collection names are held by the presentation layer as
+   well as the vault store, and locking clears both. A sync that was already in flight when
+   the lock happened cannot put any of it back — it discards its own result, and the sync
+   repository refuses to write to the store or the key caches for a session that has ended.
+   The copy commands are additionally disabled while locked, so the menu cannot hand out a
+   password from the previous session.
+4. **Sign out** — all in-memory key material is zeroed, all Keychain entries for the
+   account are deleted, and the offline vault cache for that account is deleted. The app
+   returns to a blank login screen. The same plaintext teardown runs as on lock, from the
+   same routine, so the two cannot diverge.
+
+### Remembered two-factor devices
+
+Ticking **Remember this device** at a two-factor prompt lets the server recognise this installation
+and skip the challenge next time. The token the server issues for that is stored in the Keychain,
+alongside the email address it belongs to.
+
+- **What it is worth to an attacker.** It is a credential that lets a login skip a second factor. With
+  it, the password alone is enough for that account. It is stored `WhenUnlockedThisDeviceOnly`, so it
+  is not in iCloud Keychain, not in a backup, and not readable while the Mac is locked.
+- **It is sent only to the account it was issued for.** The stored email is compared against the one
+  being signed in with, so it cannot be spent on a different account. That comparison is why the email
+  is stored at all.
+- **It is deleted on sign-out**, with the rest of the session's material. It is **not** deleted on
+  lock: locking keeps you signed in, and a remembered device is part of being signed in rather than of
+  the vault being open.
+- **The server decides when it expires.** Prizm stores and replays it, and does not reinterpret its
+  lifetime. When the server stops accepting it, the challenge simply reappears — which is the ordinary
+  path and needs no special handling.
+
+> **A correction, recorded rather than quietly made.** The table above said the device identifier was
+> deleted on sign-out. It is not — `AuthRepositoryImpl.signOut` deletes the account's session keys and
+> leaves it. The row now says what the code does. Whether it *should* be deleted is a separate question
+> (the sign-out alert promises all local data is cleared), and changing it would give the installation
+> a new identity on the server after every sign-out, so it is not being changed as part of this edit.
+
+### PIN unlock
+
+A PIN is an alternative to the master password and to biometrics. It is off by default and must be set
+from an unlocked vault.
+
+**What it stores.** Not the PIN. The vault's key material (64 bytes) is wrapped with a key derived from
+the PIN — PBKDF2-SHA256, 210,000 rounds, over a random 32-byte salt generated once for this
+installation — and the wrapped value is stored in the Keychain under `WhenUnlockedThisDeviceOnly`,
+together with the salt and a count of consecutive failures. Nothing anywhere holds the PIN or a hash of
+it that could be tested offline: a wrong PIN simply fails to decrypt.
+
+**It deliberately weakens local protection, and the official documentation says so too** — using a PIN
+"can weaken the level of encryption that protects your application's local vault database". A
+four-character PIN is on the order of ten thousand possibilities. The key derivation is a speed bump,
+not the wall, and it is not presented as one.
+
+The protection rests on two things instead:
+
+1. **Where the wrapped key lives.** `WhenUnlockedThisDeviceOnly`: device-only, not synchronised to
+   iCloud, not in a backup, unreadable while the Mac is locked.
+2. **The attempt limit.** Five consecutive wrong PINs destroy the wrapped value, the salt and the
+   count, and sign the user out. **The count is stored**, not held in memory — an in-memory counter is
+   cleared by quitting the app, which would make five guesses per restart available indefinitely. That
+   is the difference between a limit and the appearance of one.
+
+**Requiring the master password after a restart is on by default**, matching the official client. With
+it on, a PIN cannot open an app that has not been opened properly since launch — locking and unlocking
+again is unaffected, which is the case a PIN is for. Turning it off is the user accepting that a
+four-digit code is all that stands between someone who has the machine and the vault.
+
+**What an attacker with the Keychain item and unlimited guesses can do.** Try PINs. Ten thousand of
+them, at 210,000 PBKDF2 rounds each, minus the five they get before the material is destroyed. Against
+someone who can also read process memory while the vault is unlocked, none of this matters — that case
+was already outside what this app defends against.
+
+**Deleted on sign-out, kept on lock.** A PIN is a way into a session, so it goes when the session does;
+locking keeps the session, and therefore keeps the PIN.
 
 ### Biometric vault key (Touch ID / Face ID)
 
@@ -239,10 +362,13 @@ nothing about whether it has been exposed.
 - **Server compromise** — The server never receives the master password, master key,
   or plaintext vault data. A fully compromised server exposes only ciphertext; an
   attacker must still brute-force the KDF to decrypt it.
-- **Disk / at-rest compromise** — Vault data is never on disk in plaintext. The
-  encrypted user key in the Keychain cannot be decrypted without the master password.
-- **Memory dump after lock** — All key material is zeroed on lock. A memory dump
-  taken after the vault locks reveals no usable keys.
+- **Disk / at-rest compromise** — Vault data is never on disk in plaintext. What is on
+  disk is the Keychain's encrypted user key and the offline cache's ciphertext; neither
+  can be decrypted without the master password.
+- **Memory dump after lock** — All key material is zeroed on lock, and the decrypted vault content
+  the app was holding is dropped with it — the item list, the selection, and the decrypted names. A
+  memory dump taken after the vault locks reveals neither usable keys nor usable plaintext. A sync
+  already in flight when the lock happened discards its own result rather than restoring either.
 - **Clipboard sniffing** — Copied secrets are automatically cleared from the clipboard
   after 30 seconds (best-effort on app quit).
 - **Network eavesdropping** — All server communication uses HTTPS/TLS. Vault payloads
@@ -284,6 +410,11 @@ The app is built with App Sandbox and Hardened Runtime enabled:
 - Inbound network connections: denied
 - File system access: read-only, user-selected files only
 - No access to camera, microphone, contacts, calendars, location, Bluetooth, USB, or printing
+
+The app writes nothing outside its own container: the Keychain items described above and the offline
+vault cache under `~/Library/Application Support/Prizm/`. Container writes are implicit to the
+sandbox and need no entitlement, which is why they are not in the list above; no entitlement grants
+access to any other location.
 
 ---
 
