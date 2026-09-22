@@ -140,12 +140,16 @@ struct SidebarView: View {
 
     /// A sidebar section heading.
     ///
-    /// `Typography.sectionLabel` uppercased and secondary, so the heading reads as a category rather
-    /// than as content. At body weight and size it competed with the item rows it introduces — which
-    /// is the same objection that removed the letter headings from the item list.
+    /// `Typography.sectionLabel` uppercased and muted, so the heading reads as a category rather than as
+    /// content. At body weight and size it competed with the item rows it introduces — which is the same
+    /// objection that removed the letter headings from the item list.
+    ///
+    /// The tracking is not decoration: an uppercase run at 11pt with default letter-spacing blurs into
+    /// one word at a glance, which is exactly the reading distance a caption is meant to survive.
     private func sectionLabel(_ title: String) -> some View {
         Text(title.uppercased())
             .font(Typography.sectionLabel)
+            .tracking(Spacing.sectionLabelTracking)
             .foregroundStyle(Foreground.muted)
             .accessibilityAddTraits(.isHeader)
     }

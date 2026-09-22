@@ -46,8 +46,10 @@ struct ItemListView: View {
                 .accessibilityIdentifier(AccessibilityID.ItemList.emptyState)
             } else {
                 List(selection: $selection) {
-                    ForEach(items, id: \.id) { item in
-                        row(item)
+                    // Enumerated rather than plain `items` for one reason: the last row must not draw the
+                    // hairline under itself, where there is nothing left to separate.
+                    ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                        row(item, isLast: index == items.count - 1)
                     }
                 }
                 // The identifier the attachment UI journey looks the table up by. It was declared
@@ -75,15 +77,41 @@ struct ItemListView: View {
 
     // MARK: - Row
 
+    /// A row, its selection marks, and the hairline below it.
+    ///
+    /// **Why the selection is drawn here.** `List(selection:)` still owns the selection — keyboard
+    /// arrows, ⌘-click and VoiceOver row traits all keep working, because the binding is untouched — but
+    /// the *marking* is the app's: a faint accent fill plus a 3pt full-opacity bar. AppKit cannot give the
+    /// bar, and its own highlight is a band that runs the full width of the pane.
+    ///
+    /// **Why the separator is drawn here too.** The `ui-redesign` requirement is that the hairline
+    /// between rows respond to Increase Contrast, which a native `List` separator does not.
     @ViewBuilder
-    private func row(_ item: VaultItem) -> some View {
+    private func row(_ item: VaultItem, isLast: Bool) -> some View {
+        let isSelected = selection == item
         ItemRowView(item: item, faviconLoader: faviconLoader, searchQuery: searchQuery,
                     orgName: orgName(for: item))
+            .overlay(alignment: .leading) {
+                if isSelected { selectionBar }
+            }
+            .overlay(alignment: .bottom) {
+                if !isLast { rowDivider }
+            }
             .tag(item)
             .draggable(item.id)
-            // The separator starts clear of the type chip rather than at the row's leading edge, so
-            // it reads as a break between items instead of a line through them.
-            .alignmentGuide(.listRowSeparatorLeading) { _ in Spacing.listDividerInset }
+            .listRowInsets(EdgeInsets(
+                top: 0,
+                leading: Spacing.listRowEdgeInset,
+                bottom: 0,
+                trailing: Spacing.listRowEdgeInset
+            ))
+            .listRowSeparator(.hidden)
+            .listRowBackground(
+                RoundedRectangle(cornerRadius: Spacing.selectionCornerRadius)
+                    .fill(isSelected
+                          ? Color.accentColor.opacity(Opacity.selectionFill(contrast))
+                          : Color.clear)
+            )
             .accessibilityIdentifier(AccessibilityID.ItemList.row(item.id))
             .contextMenu {
                 if let onToggleFavorite {
@@ -102,6 +130,22 @@ struct ItemListView: View {
                     }
                 }
             }
+    }
+
+    /// The full-opacity accent bar marking the selected row.
+    private var selectionBar: some View {
+        RoundedRectangle(cornerRadius: Spacing.selectionBarRadius)
+            .fill(Color.accentColor)
+            .frame(width: Spacing.selectionBarWidth, height: Spacing.selectionBarHeight)
+    }
+
+    /// The rule between two rows. Inset to the text column so it reads as a break between items rather
+    /// than a line through them — the chip is what the eye follows down the list.
+    private var rowDivider: some View {
+        Rectangle()
+            .fill(Color.primary.opacity(Opacity.hairline(contrast)))
+            .frame(height: 0.5)
+            .padding(.leading, Spacing.listDividerInset - Spacing.listRowEdgeInset)
     }
 
     /// Returns the org name for a vault item, or nil for personal items.

@@ -61,14 +61,22 @@ struct ItemRowView: View {
 
             Spacer(minLength: 4)
 
-            if item.isFavorite {
-                Image(systemName: "star.fill")
-                    .font(.caption)
-                    .foregroundStyle(Foreground.favorite)
-                    .accessibilityLabel(L("Favorited"))
+            // A column, not a conditional glyph. The star used to occupy space only on favourited rows,
+            // which pulled those rows' text short of every neighbour for no information — the name that
+            // needed reading most was the one given least room.
+            Group {
+                if item.isFavorite {
+                    Image(systemName: "star.fill")
+                        .font(.system(size: 11))
+                        .foregroundStyle(Foreground.favorite)
+                        .accessibilityLabel(L("Favorited"))
+                }
             }
+            .frame(width: Spacing.listStarColumn, alignment: .trailing)
         }
-        .padding(.vertical, Spacing.listRowVertical)
+        .padding(.horizontal, Spacing.listRowHorizontal)
+        .frame(height: Spacing.listRowHeight)
+        .contentShape(Rectangle())
     }
 
     /// The tinted square holding the favicon, or the type symbol when there is no favicon.

@@ -42,6 +42,20 @@ enum Opacity {
         contrast == .increased ? 0.22 : 0.12
     }
 
+    /// The accent fill behind the selected row, in the item list and the sidebar.
+    ///
+    /// The app draws its own selection because the accepted design marks it twice — a faint accent fill
+    /// plus a 3pt full-opacity bar — and the bar is the part AppKit will not give. The fill is
+    /// deliberately faint so the bar carries the state rather than a band of colour competing with the
+    /// row text.
+    ///
+    /// **What this harness cannot show:** in a screenshot the native highlight also renders *inactive*,
+    /// because an offscreen window is never key, so comparing the two from a picture proves nothing about
+    /// how the native one looks in a window the user is typing into.
+    static func selectionFill(_ contrast: ColorSchemeContrast) -> Double {
+        contrast == .increased ? 0.22 : 0.12
+    }
+
     /// The edge of the authentication card.
     ///
     /// Stronger than the vault hairlines on purpose: in dark aqua the card's fill sits only a few

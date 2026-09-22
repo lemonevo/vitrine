@@ -89,7 +89,7 @@ enum Typography {
     static let listSubtitle: Font  = .system(size: 11)
 
     /// Uppercase category label above a detail card and above a sidebar section.
-    static let sectionLabel: Font  = .system(size: 10, weight: .semibold)
+    static let sectionLabel: Font  = .system(size: 11, weight: .semibold)
 
     /// The item's name in the detail pane header.
     static let detailTitle: Font   = .system(size: 20, weight: .semibold)
@@ -348,36 +348,68 @@ enum Spacing {
 
     // MARK: Sidebar rows
 
+    /// Width reserved for a sidebar row's icon, so labels line up down the column. Also the leading
+    /// inset of an empty-state row, which has no icon to sit in that space.
+    static let sidebarIconWidth: CGFloat = 18
 
+    /// Height of a sidebar row. Fixed rather than padding-derived so the selection fill, the leading
+    /// bar and the label all sit on the same baseline down the list.
+    static let sidebarRowHeight: CGFloat = 30
 
-    /// Width reserved for a sidebar row's icon, so labels line up down the column.
-    static let sidebarIconWidth: CGFloat = 16
+    /// Space above a sidebar section caption, and below it. The caption belongs to what follows, so the
+    /// gap beneath it is a third of the gap above.
+    static let sidebarSectionTop: CGFloat = 16
+    static let sidebarSectionBottom: CGFloat = 5
 
-
+    /// Letter-spacing on the uppercase section captions. At 11pt an uppercase run with default tracking
+    /// reads as one blurred word; 0.5pt is what makes "TYPES" and "FOLDERS" scannable.
+    static let sectionLabelTracking: CGFloat = 0.5
 
     // MARK: Item list
 
-    /// Vertical padding inside an item row.
-    static let listRowVertical: CGFloat = 7
-
+    /// Height of an item row, chip and text included.
+    static let listRowHeight: CGFloat = 40
 
     /// Side of the square type-tinted chip holding an item row's icon.
-    static let listChip: CGFloat = 30
+    static let listChip: CGFloat = 26
 
     /// Side of the favicon inside the item row's type chip.
-    static let listChipIcon: CGFloat = 18
+    static let listChipIcon: CGFloat = 14
 
     /// Corner radius of the item row's type chip.
     static let listChipCornerRadius: CGFloat = 7
 
+    /// Inner horizontal padding of an item row — chip to text, and text to the row's own edges.
+    static let listRowHorizontal: CGFloat = 10
+
     /// Gap between the item row's chip and its text.
     static let listRowSpacing: CGFloat = 10
+
+    /// Space the row's fill is pulled in from the pane edge, so a selected row reads as a card in the
+    /// list rather than a band across it.
+    static let listRowEdgeInset: CGFloat = 6
+
+    /// Width reserved for the favourite star. Reserved whether or not the item is one: a glyph that
+    /// exists only on favourited rows drags that row's text short of its neighbours' for no
+    /// information.
+    static let listStarColumn: CGFloat = 20
 
     /// Gap between an item row's subtitle and the organisation badge beside it.
     static let listRowBadgeSpacing: CGFloat = 5
 
     /// Leading inset of the hairline between item rows, so it starts clear of the chip.
     static let listDividerInset: CGFloat = 52
+
+    // MARK: Selection
+
+    /// Corner radius of a selected row's fill, in both panes.
+    static let selectionCornerRadius: CGFloat = 6
+
+    /// The 3pt accent bar marking the selected row. Full opacity on purpose: it is the mark that
+    /// survives a grey-on-grey selection fill, and it is what the eye actually tracks.
+    static let selectionBarWidth: CGFloat = 3
+    static let selectionBarHeight: CGFloat = 18
+    static let selectionBarRadius: CGFloat = 1.5
 
     // MARK: Detail pane
 

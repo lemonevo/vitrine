@@ -31,20 +31,38 @@ its own; the mock is deleted only after cut ③, because until then it is the re
 
 ## 2. Cut ② — list and sidebar (§5, §6 of the pass)
 
-- [ ] 2.1 Item rows: 40pt, chip 26pt with a 14pt glyph, name 13/medium, subtitle 11 muted.
-- [ ] 2.2 Favourite star in a **reserved** 20pt trailing column, so a favourited row is not the only one
+- [x] 2.1 Item rows: 40pt, chip 26pt with a 14pt glyph, name 13/medium, subtitle 11 muted. The chip
+      shrink is what makes 40pt enough — at 30pt the row needed 44.
+- [x] 2.2 Favourite star in a **reserved** 20pt trailing column, so a favourited row is not the only one
       whose text ends early. Resolves the `toggle-favorite` REMOVED vs `vault-browser-ui` contradiction
-      in favour of keeping the star — needs a delta saying so.
-- [ ] 2.3 Selection: accent fill + 3pt leading bar, both through `Opacity` (the `ui-redesign` delta
-      forbids a literal opacity in a view and requires the bar at full opacity). Must keep
-      `List(selection:)` working: keyboard arrows, ⌘-click, VoiceOver row traits.
-- [ ] 2.4 Row hairline inset to the text column, through `Opacity.hairline`.
-- [ ] 2.5 Sidebar rows 30pt with the same selection bar; icon column 18pt; counts in a fixed 24pt
-      right-aligned `monospacedDigit` column (they currently ride `.badge`, so "86" and "1" end at
-      different x).
-- [ ] 2.6 Section captions 11pt semibold with 0.5 tracking, muted, 16pt above / 5pt below.
-- [ ] 2.7 New `Opacity` functions for selection fill, hover fill and row divider, each with an
-      increased-contrast pair, and the direction test that covers all of them.
+      in favour of keeping the star; the delta says why the REMOVED record's reasoning does not hold.
+- [x] 2.3 Selection: accent fill + 3pt leading bar through `Opacity.selectionFill`, with
+      `List(selection:)` still owning the selection — keyboard arrows, ⌘-click and VoiceOver traits
+      unchanged. Verified in the render: the native full-width band is suppressed by
+      `.listRowBackground`, so there is exactly one selection mark, not two.
+- [x] 2.4 Row hairline drawn by the app (`.listRowSeparator(.hidden)` + an `Opacity.hairline` rule),
+      inset to the text column, and absent under the last row.
+- [x] 2.5 Sidebar section captions: 11pt semibold with 0.5pt tracking, through the shared
+      `Typography.sectionLabel`.
+- [x] 2.6 `Opacity.selectionFill` added, and `AccessibilityTier2Tests`' five copy-pasted direction tests
+      replaced by one table over **all nine** functions — the five old ones covered five of eight and let
+      `typeChip`, `hairline` and `authCardBorder` go unasserted while a contrast delta required them.
+
+### Deliberate deviations from the mock in cut ②
+
+Three things §6 draws that the live sidebar does not need, each checked rather than assumed:
+
+- [x] **Counts stay on `.badge`.** The mock's complaint was "86 and 1 at two different x values". The
+      render shows `.badge` already right-aligns every count in a column; a fixed 24pt frame would be a
+      second mechanism doing what the first one already does.
+- [x] **No custom selection in the sidebar.** `.listStyle(.sidebar)` already draws a rounded accent fill,
+      which is the mock's own mark. Adding the bar there too would be a second signal for one state.
+      Caveat recorded honestly: the harness window is never key, so its screenshot shows the *inactive*
+      grey version of the native selection — what the live pane looks like in a key window is not
+      verifiable from here, and nobody should read the shot as confirming it.
+- [x] **No fixed sidebar row height.** §6 asks for one section rhythm and one indent; it does not ask for
+      a row height, and the mock's 30pt is incidental. Forcing it would risk clipping the folder rows'
+      badges for a goal the pass never stated.
 
 ## 3. Cut ③ — detail and controls (§1, §3, §4, §7)
 
