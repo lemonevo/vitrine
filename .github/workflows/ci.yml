@@ -33,6 +33,7 @@ jobs:
 
       - name: Build (no signing)
         run: |
+          set -o pipefail
           xcodebuild \
             -project "Prizm/Prizm.xcodeproj" \
             -scheme "Prizm" \
@@ -40,10 +41,11 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
-            build | xcpretty || exit ${PIPESTATUS[0]}
+            build | xcpretty
 
       - name: Test (no signing)
         run: |
+          set -o pipefail
           xcodebuild test \
             -project "Prizm/Prizm.xcodeproj" \
             -scheme "Prizm" \
@@ -51,4 +53,4 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
-            | xcpretty || exit ${PIPESTATUS[0]}
+            | xcpretty

@@ -47,8 +47,13 @@ final class SecretClipboard {
             // Delivered on the main thread; `assumeIsolated` states that rather than re-dispatching,
             // because a `Task { @MainActor }` here would be queued behind the exit it is meant to
             // happen before.
+            //
+            // The result is dropped explicitly. `self?.clearIfStillOurs()` is a `Bool?` through the
+            // optional chain, and an implicit single-expression closure hands `assumeIsolated` a
+            // return type that conflicts with its `Void` overload — which one applies differs
+            // between Swift versions, so CI rejected it while a local build accepted it.
             MainActor.assumeIsolated {
-                self?.clearIfStillOurs()
+                _ = self?.clearIfStillOurs()
             }
         }
     }
