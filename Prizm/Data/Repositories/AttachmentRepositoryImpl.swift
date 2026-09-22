@@ -81,8 +81,18 @@ final class AttachmentRepositoryImpl: AttachmentRepository {
         // Step 2: Encrypt file name.
         let encFileName = try crypto.encryptFileName(fileName, cipherKey: keys)
 
-        // Step 3: Encrypt file blob.
-        var encBlob = try crypto.encryptData(data, attachmentKey: attachmentKey)
+        // Step 3: Encrypt file blob — off the main actor.
+        //
+        // `encryptData` is `nonisolated` on an actor, which means it runs synchronously on whatever
+        // thread calls it, and this class is main-actor isolated by the target default. Left here,
+        // AES-256-CBC + HMAC over a file of up to 500 MB froze the interface for its whole duration.
+        // The file and the key are passed as arguments, not captured, so this function's own
+        // references are unique again by the time its `zeroize()` defers run. `crypto` is bound to a
+        // local because the closure cannot reach back through `self`.
+        let crypto = self.crypto
+        var encBlob = try await offMain(data, attachmentKey) { file, key in
+            try crypto.encryptData(file, attachmentKey: key)
+        }
         defer { encBlob.zeroize() }
 
         // Step 4: Wrap attachment key as EncString.
@@ -192,8 +202,13 @@ final class AttachmentRepositoryImpl: AttachmentRepository {
         var attachmentKey = try crypto.decryptAttachmentKey(attachment.encryptedKey, cipherKey: keys)
         defer { attachmentKey.zeroize() }
 
-        // Decrypt the blob.
-        let plaintext = try crypto.decryptData(encBlob, attachmentKey: attachmentKey)
+        // Decrypt the blob — off the main actor, for the same reason `upload` encrypts there. The
+        // blob and the key go in as arguments rather than captures: the defers above zero both, and
+        // a second live reference would make that memset hit a copy instead of these bytes.
+        let crypto = self.crypto
+        let plaintext = try await offMain(encBlob, attachmentKey) { blob, key in
+            try crypto.decryptData(blob, attachmentKey: key)
+        }
         logger.info("download: decrypted \(plaintext.count, privacy: .public) bytes for \(attachment.id, privacy: .public)")
         return plaintext
     }

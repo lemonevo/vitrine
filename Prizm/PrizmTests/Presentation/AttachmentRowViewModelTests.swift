@@ -96,7 +96,15 @@ final class AttachmentRowViewModelTests: XCTestCase {
         XCTAssertFalse(sut.isLoading)
     }
 
-    func test_saveToDisk_success_zerosBuffer() async throws {
+    /// Writes the downloaded bytes where the panel pointed and raises nothing.
+    ///
+    /// **This is not a zeroization test**, which is what it used to be called. The mock hands out
+    /// `plainData` while the test still holds a reference to it, so the view model's `zeroize()` would
+    /// reach a copy no matter what the production code did — see
+    /// `KeyCacheClearingTests.test_zeroize_doesNotReachAnotherCopy` for why that property is not
+    /// assertable from outside, and `OffMain.swift` for why the hop passes buffers as arguments rather
+    /// than capturing them.
+    func test_saveToDisk_success_writesTheFileAndRaisesNoError() async throws {
         let saveURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("prizm-save-\(UUID().uuidString).pdf")
         defer { try? FileManager.default.removeItem(at: saveURL) }

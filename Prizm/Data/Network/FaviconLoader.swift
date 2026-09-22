@@ -17,9 +17,16 @@ import os.log
 /// Earlier versions defaulted to `https://icons.bitwarden.net`, which leaked every login item's
 /// domain to a third party — see `FEATURE-GAP-ANALYSIS.md` §2.5.
 ///
-/// **Caching.** `URLCache` provides HTTP-level caching (`returnCacheDataElseLoad`); an in-memory
-/// `NSCache<NSString, NSImage>` provides session-level deduplication. The cache is dropped when the
-/// icon base changes so images from a previous server are not shown for the next one.
+/// **Caching.** `URLCache` provides HTTP-level caching (`returnCacheDataElseLoad`); the in-memory
+/// table below provides session-level deduplication. The table is dropped when the icon base changes
+/// so images from a previous server are not shown for the next one.
+///
+/// **Why the in-memory table is not an `NSCache`.** `NSCache` discards entries whenever it likes —
+/// that is its documented behaviour, and the reason it was chosen: it bounds its own memory. But it
+/// bounds nothing this loader needs, because an `actor` already serialises access to it, and it makes
+/// the one property callers rely on ("a domain is fetched once per session") unassertable: a test
+/// that counts network requests for a repeated fetch passes or fails depending on how much memory
+/// the rest of the process is using. The replacement is explicit about its bound instead.
 ///
 /// **Failures are silent** — callers fall back to the appropriate SF Symbol (FR-009). A password
 /// manager must not surface an alert because an icon host is unreachable.
@@ -41,7 +48,20 @@ actor FaviconLoader {
 
     // MARK: - In-memory cache
 
-    private let cache = NSCache<NSString, NSImage>()
+    /// Domains fetched this session, oldest first.
+    ///
+    /// Kept alongside `cachedImages` so eviction is a decision with a stated rule — drop the oldest
+    /// fetched domain — rather than something a library does silently. Only a domain that is new to
+    /// the table extends the order, so the two can never disagree about what is cached.
+    private var fetchedOrder: [String] = []
+    private var cachedImages: [String: NSImage] = [:]
+
+    /// Domains retained before the oldest is dropped.
+    ///
+    /// Icons are small — a 32×32 PNG is single-digit kilobytes — but the loader lives as long as the
+    /// signed-in session, so an unbounded table would retain one image per domain a user has ever
+    /// looked at. 512 is well past any realistic vault and a few megabytes at worst.
+    nonisolated static let memoryCacheLimit = 512
 
     // MARK: - Init
 
@@ -76,7 +96,7 @@ actor FaviconLoader {
     func configure(iconsBase: URL?) {
         guard iconsBase != self.iconsBase else { return }
         self.iconsBase = iconsBase
-        cache.removeAllObjects()
+        clearCache()
         logger.info("Favicon source updated — fetching \(iconsBase == nil ? "disabled" : "enabled", privacy: .public)")
     }
 
@@ -95,8 +115,7 @@ actor FaviconLoader {
             return nil
         }
 
-        let key = domain as NSString
-        if let cached = cache.object(forKey: key) {
+        if let cached = cachedImages[domain] {
             return cached
         }
 
@@ -115,11 +134,36 @@ actor FaviconLoader {
             guard let image = NSImage(data: data) else {
                 return nil
             }
-            cache.setObject(image, forKey: key)
+            remember(image, for: domain)
             return image
         } catch {
             logger.debug("Favicon fetch failed for \(domain, privacy: .public): \(error.localizedDescription, privacy: .public)")
             return nil
         }
+    }
+
+    // MARK: - Cache maintenance
+
+    private func remember(_ image: NSImage, for domain: String) {
+        // `favicon(for:)` awaits inside this actor, so two calls for the same domain can both miss
+        // and both arrive here. Only a genuinely new domain may extend the eviction order, or the
+        // order and the table would disagree about how many domains are cached.
+        let isNewDomain = cachedImages[domain] == nil
+        cachedImages[domain] = image
+        guard isNewDomain else { return }
+        fetchedOrder.append(domain)
+
+        if fetchedOrder.count > Self.memoryCacheLimit {
+            let overflow = fetchedOrder.count - Self.memoryCacheLimit
+            for evicted in fetchedOrder.prefix(overflow) {
+                cachedImages[evicted] = nil
+            }
+            fetchedOrder.removeFirst(overflow)
+        }
+    }
+
+    private func clearCache() {
+        cachedImages.removeAll()
+        fetchedOrder.removeAll()
     }
 }

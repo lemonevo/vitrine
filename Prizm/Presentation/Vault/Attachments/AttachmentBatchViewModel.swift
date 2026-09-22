@@ -213,7 +213,10 @@ final class AttachmentBatchViewModel: Identifiable {
     private func uploadItem(_ item: AttachmentBatchItem, at index: Int) async {
         var fileData: Data
         do {
-            fileData = try Data(contentsOf: item.fileURL)
+            // Reading up to 500 MB is itself the freeze: on the main actor this stalled the sheet
+            // before the row had even shown "Uploading…", so the state the user was waiting for
+            // could not be drawn while the wait was happening.
+            fileData = try await offMain(item.fileURL) { try Data(contentsOf: $0) }
         } catch {
             items[index].state = .failed(L("Could not read file: %@", error.localizedDescription))
             return

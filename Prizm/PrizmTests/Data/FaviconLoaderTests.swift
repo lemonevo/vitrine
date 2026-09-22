@@ -15,6 +15,15 @@ final class RecordingURLProtocol: URLProtocol {
     private static let lock = NSLock()
     nonisolated(unsafe) private static var recorded: [URLRequest] = []
 
+    /// Which test each recorded request is attributed to, index-parallel with `recorded`.
+    ///
+    /// The log is process-global, so a count can be inflated by traffic this test did not cause.
+    /// Tagging each request with the test that was running when it happened makes a failed count
+    /// assertion say whose the extra request was — that is the difference between a cache miss
+    /// here and an isolation problem somewhere else.
+    nonisolated(unsafe) private static var owners: [String] = []
+    nonisolated(unsafe) private static var currentOwner = "<unset>"
+
     /// A 1×1 PNG, so the happy path can be asserted on the decoded image as well as the request.
     private static let png = Data(base64Encoded: """
     iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==
@@ -27,9 +36,24 @@ final class RecordingURLProtocol: URLProtocol {
 
     static var requestedURLs: [URL] { requests.compactMap(\.url) }
 
+    /// `"test_x() → https://host/path"` for every request seen, oldest first.
+    static var trace: [String] {
+        lock.lock(); defer { lock.unlock() }
+        return zip(owners, recorded).map { owner, request in
+            "\(owner.isEmpty ? "<unset>" : owner) → \(request.url?.absoluteString ?? "<no url>")"
+        }
+    }
+
+    /// Labels the requests that follow. Called from `setUp` with the running test's name.
+    static func setOwner(_ owner: String) {
+        lock.lock(); defer { lock.unlock() }
+        currentOwner = owner
+    }
+
     static func reset() {
         lock.lock(); defer { lock.unlock() }
         recorded = []
+        owners = []
     }
 
     override class func canInit(with request: URLRequest) -> Bool { true }
@@ -38,6 +62,7 @@ final class RecordingURLProtocol: URLProtocol {
     override func startLoading() {
         Self.lock.lock()
         Self.recorded.append(request)
+        Self.owners.append(Self.currentOwner)
         Self.lock.unlock()
 
         guard let url = request.url else {
@@ -70,6 +95,7 @@ final class FaviconLoaderTests: XCTestCase {
 
     override func setUp() async throws {
         try await super.setUp()
+        RecordingURLProtocol.setOwner(name ?? "<unknown test>")
         RecordingURLProtocol.reset()
         defaults = UserDefaults(suiteName: suiteName)!
         defaults.removePersistentDomain(forName: suiteName)
@@ -186,11 +212,20 @@ final class FaviconLoaderTests: XCTestCase {
 
     // MARK: - Caching
 
+    /// Every request the recorder saw, labelled with the test that caused it.
+    ///
+    /// The recorder is one process-global log, so an absolute count can be inflated by another
+    /// test's traffic; a bare "2 is not equal to 1" would not say whether that happened. Including
+    /// the log in the failure message makes a count assertion self-diagnosing.
+    private var requestTrace: String {
+        "recorded [\n  \(RecordingURLProtocol.trace.joined(separator: "\n  "))\n]"
+    }
+
     func test_repeatedRequestsForTheSameDomainUseTheCache() async {
         _ = await sut.favicon(for: "github.com")
         _ = await sut.favicon(for: "github.com")
 
-        XCTAssertEqual(RecordingURLProtocol.requests.count, 1)
+        XCTAssertEqual(RecordingURLProtocol.requests.count, 1, requestTrace)
     }
 
     func test_reconfiguringClearsTheCache() async {
@@ -212,6 +247,24 @@ final class FaviconLoaderTests: XCTestCase {
         await sut.configure(iconsBase: URL(string: "https://vault.example.com/icons"))
         _ = await sut.favicon(for: "github.com")
 
-        XCTAssertEqual(RecordingURLProtocol.requests.count, 1)
+        XCTAssertEqual(RecordingURLProtocol.requests.count, 1, requestTrace)
+    }
+
+    func test_theCacheIsBoundedAndDropsTheOldestFetchedDomain() async {
+        // `NSCache` used to bound this table by discarding entries at its own discretion — which is
+        // also what made "a domain is fetched once per session" unassertable. The explicit bound
+        // replaces that behaviour, so the bound is what this test pins: one domain past the limit,
+        // and the first one is gone.
+        let limit = FaviconLoader.memoryCacheLimit
+        for index in 0 ... limit {
+            _ = await sut.favicon(for: "site\(index).example")
+        }
+        XCTAssertEqual(RecordingURLProtocol.requests.count, limit + 1)
+
+        _ = await sut.favicon(for: "site0.example")
+        XCTAssertEqual(RecordingURLProtocol.requests.count, limit + 2, "the oldest domain was not evicted")
+
+        _ = await sut.favicon(for: "site\(limit).example")
+        XCTAssertEqual(RecordingURLProtocol.requests.count, limit + 2, "the newest domain was not retained")
     }
 }

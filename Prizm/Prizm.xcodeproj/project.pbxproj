@@ -67,6 +67,7 @@
 		D19F10384C417D19B7D5F193 /* VaultHealthReport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82CD6C3CB6AD4BB928026A46 /* VaultHealthReport.swift */; };
 		BF8166DE7658118935F1BA05 /* VaultTimeoutSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74EC7415FC893D9E0F1A6BF8 /* VaultTimeoutSettings.swift */; };
 		3EAFE2490A2E29D5633D2FDF /* WebsiteIconsPreference.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA69644F960AD8631B48B686 /* WebsiteIconsPreference.swift */; };
+		CE1F00C1000000000000B0C1 /* OffMain.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE1F00C0000000000000F0C0 /* OffMain.swift */; };
 		FE362BC56BAE4CA7A602FE8B /* SSHAgentAuthorizationSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3DC9BA5F60613D92DC6075C /* SSHAgentAuthorizationSheet.swift */; };
 		5ED5A44404A1223E62385C15 /* SSHAgentAuthorizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B62F3CB26E0DEA8223E87E6 /* SSHAgentAuthorizer.swift */; };
 		BBB135F6F5FF26FF80928793 /* AccountFingerprintSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A301C6100E9A0227A9B0A5A /* AccountFingerprintSection.swift */; };
@@ -325,6 +326,7 @@
 		82CD6C3CB6AD4BB928026A46 /* VaultHealthReport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultHealthReport.swift; sourceTree = "<group>"; };
 		74EC7415FC893D9E0F1A6BF8 /* VaultTimeoutSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultTimeoutSettings.swift; sourceTree = "<group>"; };
 		BA69644F960AD8631B48B686 /* WebsiteIconsPreference.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebsiteIconsPreference.swift; sourceTree = "<group>"; };
+		CE1F00C0000000000000F0C0 /* OffMain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OffMain.swift; sourceTree = "<group>"; };
 		A3DC9BA5F60613D92DC6075C /* SSHAgentAuthorizationSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SSHAgentAuthorizationSheet.swift; sourceTree = "<group>"; };
 		6B62F3CB26E0DEA8223E87E6 /* SSHAgentAuthorizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SSHAgentAuthorizer.swift; sourceTree = "<group>"; };
 		1A301C6100E9A0227A9B0A5A /* AccountFingerprintSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountFingerprintSection.swift; sourceTree = "<group>"; };
@@ -1038,6 +1040,7 @@
 				74EC7415FC893D9E0F1A6BF8 /* VaultTimeoutSettings.swift */,
 				CA0E0080000000000000F080 /* PinUnlockSettings.swift */,
 				BA69644F960AD8631B48B686 /* WebsiteIconsPreference.swift */,
+				CE1F00C0000000000000F0C0 /* OffMain.swift */,
 				CE1F00A0000000000000F0A1 /* UnlockCredentialPreference.swift */,
 			);
 			path = Utilities;
@@ -1458,6 +1461,7 @@
 				D19F10384C417D19B7D5F193 /* VaultHealthReport.swift in Sources */,
 				BF8166DE7658118935F1BA05 /* VaultTimeoutSettings.swift in Sources */,
 				3EAFE2490A2E29D5633D2FDF /* WebsiteIconsPreference.swift in Sources */,
+				CE1F00C1000000000000B0C1 /* OffMain.swift in Sources */,
 				FE362BC56BAE4CA7A602FE8B /* SSHAgentAuthorizationSheet.swift in Sources */,
 				5ED5A44404A1223E62385C15 /* SSHAgentAuthorizer.swift in Sources */,
 				BBB135F6F5FF26FF80928793 /* AccountFingerprintSection.swift in Sources */,

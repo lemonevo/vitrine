@@ -1,6 +1,27 @@
 import Foundation
 @testable import Prizm
 
+/// How long the mock's bulk methods pretend to be busy, in nanoseconds.
+///
+/// A namespace rather than a `static` on the actor: an actor's static storage is actor-isolated, so
+/// a `nonisolated` method — the kind under test — could not read it without hopping, which is the
+/// very behaviour being measured.
+///
+/// A mock that returns instantly cannot show whether a caller moved the work off the main actor:
+/// there would be nothing to observe. Sleeping on the calling thread reproduces the one property
+/// that matters — whoever calls this is the one who waits.
+enum MockBulkWork {
+    nonisolated(unsafe) static var nanoseconds: UInt64 = 0
+
+    static func simulate() {
+        // `usleep` rather than `Thread.sleep(nanoseconds:)`: the latter fails overload resolution
+        // from here, because this target compiles with default MainActor isolation and the
+        // `UInt64` argument does not bind the way it would in a nonisolated context.
+        let micros = UInt32(min(nanoseconds / 1_000, 2_000_000_000))
+        if micros > 0 { usleep(micros) }
+    }
+}
+
 /// Test double for `PrizmCryptoService`.
 actor MockPrizmCryptoService: PrizmCryptoService {
 
@@ -138,8 +159,14 @@ actor MockPrizmCryptoService: PrizmCryptoService {
     nonisolated(unsafe) var stubbedEncFileName: String = "2.stubName|stub|stub"
 
     nonisolated func generateAttachmentKey() throws -> Data { stubbedAttachmentKey }
-    nonisolated func encryptData(_ data: Data, attachmentKey: Data) throws -> Data { stubbedEncryptedData }
-    nonisolated func decryptData(_ data: Data, attachmentKey: Data) throws -> Data { stubbedDecryptedData }
+    nonisolated func encryptData(_ data: Data, attachmentKey: Data) throws -> Data {
+        MockBulkWork.simulate()
+        return stubbedEncryptedData
+    }
+    nonisolated func decryptData(_ data: Data, attachmentKey: Data) throws -> Data {
+        MockBulkWork.simulate()
+        return stubbedDecryptedData
+    }
     nonisolated func encryptAttachmentKey(_ key: Data, cipherKey: CryptoKeys) throws -> String { stubbedEncAttachmentKey }
     nonisolated func decryptAttachmentKey(_ encString: String, cipherKey: CryptoKeys) throws -> Data { stubbedDecAttachmentKey }
     nonisolated func encryptFileName(_ name: String, cipherKey: CryptoKeys) throws -> String { stubbedEncFileName }

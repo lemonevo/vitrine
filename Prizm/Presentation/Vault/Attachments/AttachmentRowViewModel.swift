@@ -89,7 +89,7 @@ final class AttachmentRowViewModel {
                     cipherId:   self.cipherId,
                     attachment: self.attachment
                 )
-                let tmpURL = try self.writeTempFile(data: data)
+                let tmpURL = try await self.writeTempFile(data: data)
                 data.zeroize()
                 self.fileOpener(tmpURL)
                 self.tempFileManager.register(url: tmpURL)
@@ -126,7 +126,10 @@ final class AttachmentRowViewModel {
                     cipherId:   self.cipherId,
                     attachment: self.attachment
                 )
-                try data.write(to: saveURL)
+                // The buffer is passed in as an argument rather than captured, so this scope's
+                // reference is the only one left when `zeroize()` runs — a second reference would
+                // make it copy first and wipe the copy.
+                try await offMain(data, saveURL) { try $0.write(to: $1) }
                 data.zeroize()
                 self.logger.info("saveToDisk: saved \(self.attachment.id, privacy: .public)")
             } catch {
@@ -177,7 +180,7 @@ final class AttachmentRowViewModel {
 
             var fileData: Data
             do {
-                fileData = try Data(contentsOf: fileURL)
+                fileData = try await offMain(fileURL) { try Data(contentsOf: $0) }
             } catch {
                 self.retryError = L("Could not read file: %@", error.localizedDescription)
                 self.isRetrying = false
@@ -209,11 +212,11 @@ final class AttachmentRowViewModel {
 
     // MARK: - Private helpers
 
-    private func writeTempFile(data: Data) throws -> URL {
+    private func writeTempFile(data: Data) async throws -> URL {
         let ext  = URL(fileURLWithPath: attachment.fileName).pathExtension
         let name = ext.isEmpty ? UUID().uuidString : "\(UUID().uuidString).\(ext)"
         let url  = FileManager.default.temporaryDirectory.appendingPathComponent(name)
-        try data.write(to: url)
+        try await offMain(data, url) { try $0.write(to: $1) }
         return url
     }
 }

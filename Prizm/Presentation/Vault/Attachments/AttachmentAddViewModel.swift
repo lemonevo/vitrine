@@ -144,7 +144,7 @@ final class AttachmentAddViewModel: Identifiable {
 
             var fileData: Data
             do {
-                fileData = try Data(contentsOf: url)
+                fileData = try await offMain(url) { try Data(contentsOf: $0) }
             } catch {
                 self.uploadError = L("Could not read file: %@", error.localizedDescription)
                 self.isUploading = false
