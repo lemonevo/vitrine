@@ -122,7 +122,7 @@ struct TOTPCodeView: View {
                     CountdownRing(fraction: viewModel.remainingFraction)
                     Text(L("%ds", seconds))
                         .font(Typography.utility.monospacedDigit())
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Foreground.muted)
                         .accessibilityLabel(L("%d seconds remaining", seconds))
                         .accessibilityIdentifier(AccessibilityID.TOTP.countdown)
                 }
@@ -143,7 +143,7 @@ struct TOTPCodeView: View {
     private var unusableValue: some View {
         Text(L("This key will not produce a code."))
             .font(Typography.detailFieldValue)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(Foreground.muted)
             .multilineTextAlignment(.leading)
             .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -162,12 +162,12 @@ struct TOTPCodeView: View {
                 Text(L("copied"))
                     .font(Typography.utility)
                     .textCase(.uppercase)
-                    .foregroundStyle(Color.accentColor)
+                    .foregroundStyle(Foreground.action)
                     .transition(.opacity)
             } else {
                 Image(systemName: "doc.on.doc")
                     .imageScale(.medium)
-                    .foregroundStyle(isHovered ? Color.accentColor : Color.secondary)
+                    .foregroundStyle(isHovered ? Foreground.action : Foreground.muted)
                     .accessibilityLabel(L("Copy %@", Self.label))
             }
         }

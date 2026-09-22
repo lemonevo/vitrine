@@ -17,7 +17,7 @@ struct DetailFieldLabel: View {
     var body: some View {
         Text(text)
             .font(Typography.detailFieldLabel)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(Foreground.muted)
             .lineLimit(2)
             .fixedSize(horizontal: false, vertical: true)
             .frame(width: Spacing.detailLabelWidth, alignment: .leading)
@@ -154,13 +154,15 @@ struct FieldRowView: View {
                 Text(L("copied"))
                     .font(Typography.utility)
                     .textCase(.uppercase)
-                    .foregroundStyle(Color.accentColor)
+                    // Not `Color.accentColor`: this is 10pt text, and the accent measures 4.02:1 in
+                    // light aqua — under the floor `Foreground` exists to hold.
+                    .foregroundStyle(Foreground.action)
                     .transition(.opacity)
                     .accessibilityIdentifier(AccessibilityID.Field.copyButton(label))
             } else {
                 Image(systemName: "doc.on.doc")
                     .imageScale(.medium)
-                    .foregroundStyle(isHovered ? Color.accentColor : Color.secondary)
+                    .foregroundStyle(isHovered ? Foreground.action : Foreground.muted)
                     .accessibilityLabel(L("Copy %@", label))
                     .accessibilityIdentifier(AccessibilityID.Field.copyButton(label))
             }

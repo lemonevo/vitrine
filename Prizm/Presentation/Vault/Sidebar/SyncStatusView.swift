@@ -47,14 +47,14 @@ struct SyncStatusView: View {
                     // succeeded, so the dot's only job is to make the state visible at a glance from
                     // across the room.
                     Circle()
-                        .fill(hasSynced ? Color.green : Color.secondary)
+                        .fill(hasSynced ? Foreground.success : Foreground.muted)
                         .frame(width: 6, height: 6)
                         .accessibilityHidden(true)
                     Text(label)
                 }
             }
             .font(Typography.listSubtitle)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(Foreground.muted)
             .accessibilityIdentifier(AccessibilityID.Vault.syncStatusLabel)
 
             if let warning = UnreadableItemsLabel.make(count: unreadableCount) {

@@ -73,7 +73,7 @@ struct SectionCountLabel: View {
             }
         }
         .font(Typography.detailFieldLabel)
-        .foregroundStyle(.secondary)
+        .foregroundStyle(Foreground.muted)
         .monospacedDigit()
     }
 }
@@ -111,7 +111,7 @@ struct DetailSectionCard<Content: View>: View {
                 // primary colour it read as a heading and competed with the values beneath it.
                 Text(title!.uppercased())
                     .font(Typography.sectionLabel)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Foreground.muted)
                     .accessibilityAddTraits(.isHeader)
                     .accessibilityIdentifier(
                         AccessibilityID.Detail.cardHeader(title!)

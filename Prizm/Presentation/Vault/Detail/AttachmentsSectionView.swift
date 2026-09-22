@@ -63,7 +63,7 @@ struct AttachmentsSectionView: View {
         HStack {
             Text("No attachments")
                 .font(Typography.detailFieldLabel)
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(Foreground.muted)
             Spacer()
         }
         .padding(.vertical, Spacing.detailRowVertical)
@@ -100,7 +100,7 @@ struct AttachmentsSectionView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .buttonStyle(.plain)
-        .foregroundStyle(isPicking ? Color.secondary : Color.accentColor)
+        .foregroundStyle(isPicking ? Foreground.muted : Foreground.action)
         .disabled(isPicking)
         .padding(.vertical, Spacing.detailRowVertical)
         .padding(.horizontal, Spacing.detailRowHorizontal)

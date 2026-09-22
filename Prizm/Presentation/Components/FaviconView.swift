@@ -20,10 +20,10 @@ struct FaviconView: View {
     var size:     CGFloat = 16
     /// The colour of the fallback symbol.
     ///
-    /// `.secondary` by default, which is right wherever the view sits on plain chrome. A caller that
-    /// has put the view on a tinted chip passes that chip's tint — a grey glyph on a coloured square
-    /// reads as a failed load rather than as the fallback it is.
-    var tint:     Color = .secondary
+    /// `Foreground.muted` by default: the fallback is content, not a placeholder, and `.secondary` is
+    /// 3.95:1 in light aqua. A caller that has put the view on a tinted chip passes that chip's tint — a
+    /// grey glyph on a coloured square reads as a failed load rather than as the fallback it is.
+    var tint:     Color = Foreground.muted
 
     @State private var image: NSImage? = nil
 

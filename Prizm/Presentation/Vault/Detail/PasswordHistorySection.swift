@@ -64,7 +64,7 @@ struct PasswordHistorySection: View {
         case .failed(let message):
             Text(message)
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Foreground.muted)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityIdentifier(AccessibilityID.PasswordHistory.errorMessage)
 
@@ -73,7 +73,7 @@ struct PasswordHistorySection: View {
                 if entries.isEmpty {
                     Text(L("No previous passwords recorded."))
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Foreground.muted)
                         .accessibilityIdentifier(AccessibilityID.PasswordHistory.emptyState)
                 } else {
                     ForEach(Array(entries.enumerated()), id: \.offset) { index, entry in
@@ -88,7 +88,7 @@ struct PasswordHistorySection: View {
                      ? L("Previous passwords stay masked. Revealing one will require confirming your master password.")
                      : L("Previous passwords stay masked until you reveal them."))
                     .font(.caption2)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Foreground.muted)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityIdentifier(AccessibilityID.PasswordHistory.revealNote)
             }
@@ -99,7 +99,7 @@ struct PasswordHistorySection: View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             Text(dateText(entry))
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Foreground.muted)
                 .monospacedDigit()
 
             Spacer(minLength: 8)

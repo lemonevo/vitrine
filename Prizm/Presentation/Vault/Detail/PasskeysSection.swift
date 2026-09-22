@@ -58,7 +58,7 @@ struct PasskeysSection: View {
         case .failed(let message):
             Text(message)
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Foreground.muted)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityIdentifier(AccessibilityID.Passkeys.errorMessage)
 
@@ -67,7 +67,7 @@ struct PasskeysSection: View {
                 if credentials.isEmpty {
                     Text(L("No passkeys recorded."))
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Foreground.muted)
                         .accessibilityIdentifier(AccessibilityID.Passkeys.emptyState)
                 } else {
                     ForEach(Array(credentials.enumerated()), id: \.offset) { index, credential in
@@ -77,7 +77,7 @@ struct PasskeysSection: View {
 
                 Text(L("Vitrine cannot use these passkeys to sign in. Register, use and remove them from another Bitwarden client."))
                     .font(.caption2)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Foreground.muted)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityIdentifier(AccessibilityID.Passkeys.limitationNote)
             }
@@ -96,12 +96,12 @@ struct PasskeysSection: View {
                 if let rpName = credential.rpName, !rpName.isEmpty, rpName != credential.rpId {
                     Text(rpName)
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Foreground.muted)
                 }
                 if let userName = credential.userName, !userName.isEmpty {
                     Text(userName)
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Foreground.muted)
                         .accessibilityIdentifier(AccessibilityID.Passkeys.userName(index))
                 }
             }
@@ -111,7 +111,7 @@ struct PasskeysSection: View {
             if let date = credential.creationDate {
                 Text(date.formatted(.dateTime.day(.twoDigits).month(.twoDigits).year()))
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Foreground.muted)
                     .monospacedDigit()
                     .accessibilityIdentifier(AccessibilityID.Passkeys.date(index))
             }

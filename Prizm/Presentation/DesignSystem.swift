@@ -16,15 +16,43 @@ import SwiftUI
 /// re-checked.
 extension ItemType {
 
-    /// The tint for this item type, used at `Opacity.typeChip` behind the type symbol.
-    var tint: Color {
+    /// The sRGB components of this type's colour, per appearance.
+    ///
+    /// Authored as numbers rather than only as a `Color` so `ContrastTokenTests` measures the palette
+    /// the interface draws with. A test that read the `Color` back would be asserting on the
+    /// SwiftUI→AppKit bridge, not on these values.
+    nonisolated var tintComponents: (light: (Double, Double, Double), dark: (Double, Double, Double)) {
         switch self {
-        case .login:      return .blue
-        case .card:       return .purple
-        case .identity:   return .teal
-        case .secureNote: return .orange
-        case .sshKey:     return .green
+        // Two hand-picked values per type rather than one colour with its saturation pulled out:
+        // desaturating the system purple lands on grey, and grey beside the grey folder glyphs is the
+        // outcome this palette exists to avoid. Both branches keep a readable hue.
+        case .login:      return (light: (0.24, 0.40, 0.68), dark: (0.47, 0.64, 0.90))
+        case .card:       return (light: (0.48, 0.32, 0.65), dark: (0.74, 0.62, 0.87))
+        case .identity:   return (light: (0.16, 0.46, 0.47), dark: (0.44, 0.73, 0.73))
+        case .secureNote: return (light: (0.63, 0.40, 0.13), dark: (0.87, 0.70, 0.47))
+        case .sshKey:     return (light: (0.17, 0.46, 0.28), dark: (0.52, 0.77, 0.59))
         }
+    }
+
+    /// The tint for this item type: the sidebar's type rows, the icon chip in the list and the detail
+    /// header, and the fallback glyph behind a favicon.
+    ///
+    /// **These are not the system colours they replace.** `Color.teal`, `.orange` and `.green` measured
+    /// 1.89:1, 2.02:1 and 1.95:1 against their own `Opacity.typeChip` fill in light aqua — under the
+    /// 3:1 floor for non-text content, on the one surface where the glyph actually sits. `blue` was
+    /// next at 2.90:1. The values here clear 3.86:1 in the worst case of the same measurement, in both
+    /// appearances.
+    ///
+    /// They are also lower-saturation than the system set on purpose: with the accent colour now
+    /// carrying selection, a row of five saturated hues competed with it for the "this is the important
+    /// one" role.
+    var tint: Color {
+        let components = tintComponents
+        return Color(nsColor: NSColor(name: nil) { appearance in
+            let isDark = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+            let rgb = isDark ? components.dark : components.light
+            return NSColor(srgbRed: rgb.0, green: rgb.1, blue: rgb.2, alpha: 1)
+        })
     }
 }
 
@@ -123,14 +151,29 @@ enum Typography {
 // and `tertiaryLabelColor` is **1.88:1 in light / 2.26:1 in dark**. Both sit under the 4.5:1 that
 // `ACCESSIBILITY.md` claims for the interface, and `tertiary` is under the 3:1 floor for large text.
 //
-// `Color.primary.opacity(0.62)` resolves to **6.20:1 in light and 7.13:1 in dark** on both the window
-// and control backgrounds, so one value clears AA in either appearance — which is why it needs no
-// `colorScheme` branch, unlike the warning colour below.
+// **`Foreground.muted` used to be 0.62, and the ratio recorded beside it was wrong.** The measurement
+// that picked that value multiplied `Color.primary` by 0.62 and compared the result to the surface —
+// but `labelColor` is itself 84.7% opaque, so the two alphas compose to 52.7% and the real figure was
+// **4.31:1 on the light card and 4.35:1 on light white**, not the 6.20:1 written down. Under the floor
+// this file exists to enforce, 0.62 failed it. The alpha is now a named constant so
+// `ContrastTokenTests` measures the number the interface draws with rather than a copy of it.
 enum Foreground {
 
+    /// The alpha `Foreground.muted` applies to `Color.primary`.
+    ///
+    /// Kept separate from the `Color` so the contrast test can compute the same compositing the
+    /// renderer does. Changing it without re-running `ContrastTokenTests` is the mistake this exists
+    /// to prevent.
+    static let mutedAlpha: Double = 0.68
+
     /// Copy that is secondary in weight but not optional in content: the field hints on the entry
-    /// screens, the sentence under the login card, section labels, subtitles.
-    static let muted: Color = .primary.opacity(0.62)
+    /// screens, the sentence under the login card, section labels, subtitles, counts, breadcrumbs.
+    ///
+    /// Measured with `labelColor`'s own 84.7% alpha included: **5.18:1 on the light card (#FAFAFA),
+    /// 5.24:1 on light white, 5.70:1 on the dark card, 6.34:1 on the dark window** — one value that
+    /// clears AA in either appearance, which is why it needs no `colorScheme` branch, unlike the
+    /// warning colour below.
+    static let muted: Color = .primary.opacity(mutedAlpha)
 
     /// Text that is a way to do something — a link, a switch, an inline command.
     ///
@@ -140,6 +183,41 @@ enum Foreground {
     /// measures 5.26:1 / 5.89:1 — one value, both appearances, and it follows the user's System Settings
     /// accent the way a hand-picked blue would not.
     static let action: Color = Color(nsColor: .linkColor)
+
+    /// The sRGB components behind `Foreground.success`, per appearance — authored as numbers so
+    /// `ContrastTokenTests` measures what is drawn, not a bridge back to it.
+    nonisolated static let successComponents: (light: (Double, Double, Double), dark: (Double, Double, Double)) =
+        (light: (0.17, 0.46, 0.28), dark: (0.52, 0.77, 0.59))
+
+    /// The sRGB components behind `Foreground.favorite`, per appearance.
+    nonisolated static let favoriteComponents: (light: (Double, Double, Double), dark: (Double, Double, Double)) =
+        (light: (0.55, 0.38, 0.00), dark: (0.95, 0.76, 0.28))
+
+    /// The favourite marker, in the list row, the detail header's toggle and the sidebar's row icon.
+    ///
+    /// **Not `Color.yellow`.** System yellow measures **1.51:1 on white, 1.28:1 on the light window** —
+    /// under half the 3:1 floor for non-text content, on the glyph whose entire job is to be spotted at
+    /// a glance. It is also what the design mock drew, unchanged from the app: a picture reviewed on a
+    /// retina display shows a pale star as a pale star, and nothing in a still image reports a ratio.
+    ///
+    /// Gold rather than a darkened yellow, and per appearance like `warning`: the light value is a
+    /// bronze that keeps reading as "starred" (5.49:1), and the dark one is the bright gold (9.97:1).
+    static let favorite: Color = Color(nsColor: NSColor(name: nil) { appearance in
+        let isDark = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+        let rgb = isDark ? favoriteComponents.dark : favoriteComponents.light
+        return NSColor(srgbRed: rgb.0, green: rgb.1, blue: rgb.2, alpha: 1)
+    })
+
+    /// A state that is good and current — the sidebar's "synced" dot.
+    ///
+    /// `Color.green` measured **2.22:1** against the light window, under the 3:1 floor for non-text
+    /// content, so the dot that is supposed to make the sync state readable from across the room was
+    /// the weakest thing on the pane. These two clear 5.59:1 light and 8.23:1 dark.
+    static let success: Color = Color(nsColor: NSColor(name: nil) { appearance in
+        let isDark = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+        let rgb = isDark ? successComponents.dark : successComponents.light
+        return NSColor(srgbRed: rgb.0, green: rgb.1, blue: rgb.2, alpha: 1)
+    })
 
     /// A state that needs acting on — the remaining PIN attempts.
     ///

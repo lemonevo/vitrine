@@ -140,7 +140,7 @@ struct ItemDetailView: View {
                     .accessibilityIdentifier(AccessibilityID.Detail.itemName)
                 Text(breadcrumb(for: item))
                     .font(Typography.breadcrumb)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Foreground.muted)
                     .lineLimit(1)
                     .truncationMode(.middle)
                     .accessibilityIdentifier(AccessibilityID.Detail.breadcrumb)
@@ -177,7 +177,7 @@ struct ItemDetailView: View {
             onToggleFavorite?(item)
         } label: {
             Image(systemName: item.isFavorite ? "star.fill" : "star")
-                .foregroundStyle(item.isFavorite ? .yellow : .secondary)
+                .foregroundStyle(item.isFavorite ? Foreground.favorite : Foreground.muted)
         }
         .buttonStyle(.borderless)
         .help(item.isFavorite ? L("Unfavorite") : L("Favorite"))
@@ -345,7 +345,7 @@ struct ItemDetailView: View {
                Self.updatedLabel(for: item.revisionDate),
                Self.absoluteDateString(item.creationDate)))
             .font(Typography.metaLine)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(Foreground.muted)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, Spacing.detailMargin)
             .padding(.bottom, Spacing.cardBottom)
@@ -393,8 +393,8 @@ struct ItemDetailView: View {
     @ViewBuilder
     private func trashBanner(for item: VaultItem) -> some View {
         HStack(spacing: Spacing.headerGap) {
-            Image(systemName: "trash").foregroundStyle(.secondary)
-            Text("This item is in Trash.").font(Typography.bannerText).foregroundStyle(.secondary)
+            Image(systemName: "trash").foregroundStyle(Foreground.muted)
+            Text("This item is in Trash.").font(Typography.bannerText).foregroundStyle(Foreground.muted)
             Spacer()
         }
         .padding(.horizontal, Spacing.detailMargin)

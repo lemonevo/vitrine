@@ -170,18 +170,38 @@ view.
 
 `.secondary` and `.tertiary` are **not** safe for copy a user has to act on. Measured on this Mac
 against the resolved sRGB system surfaces, light / dark: `secondaryLabel` 3.95:1 / 5.89:1 (fails AA in
-light), `tertiaryLabel` 1.88:1 / 2.26:1 (fails both), `systemOrange` 2.31:1 / 7.47:1. AA for text at
-13pt and below is 4.5:1, which `ACCESSIBILITY.md` claims.
+light), `tertiaryLabel` 1.88:1 / 2.26:1 (fails both). AA for text at 13pt and below is 4.5:1, which
+`ACCESSIBILITY.md` claims.
 
 | Token | Light / dark | Use for |
 |---|---|---|
-| `Foreground.muted` (`Color.primary.opacity(0.62)`) | 6.20:1 / 7.13:1 | Secondary-in-weight, mandatory-in-content: field labels and hints, entry-screen subtitles, the sentence under the login card, section captions |
+| `Foreground.muted` (`Color.primary.opacity(Foreground.mutedAlpha)`, currently 0.68) | 5.18:1 on the light card, 5.24:1 on light grey, 5.70:1 / 6.34:1 dark | Secondary-in-weight, mandatory-in-content: field labels and hints, entry-screen subtitles, section captions, list subtitles, sidebar counts, breadcrumbs, the "COPIED" word |
 | `Foreground.action` (`Color(nsColor: .linkColor)`) | 5.26:1 / 5.89:1 | Text that is a way to do something: a link, a switch, an inline command. `accentColor` measures 4.02:1 / 4.15:1 and `systemBlue` 3.52:1 / 5.16:1 — neither clears AA at these sizes |
 | `Foreground.warning` (resolves per appearance: `#8C4700` / `#E9A23B`) | 6.97:1 / 7.69:1 | A state to act on. No single amber clears both modes, so this one is a dynamic `NSColor`, never a constant |
+| `Foreground.success` (`Foreground.successComponents`) | 5.59:1 / 8.23:1 | The sync dot. `Color.green` is 2.22:1 in light — under the 3:1 non-text floor, and it was the at-a-glance signal |
+| `Foreground.favorite` (`Foreground.favoriteComponents`) | 5.49:1 light / 9.97:1 dark | The favourite star, in the list row, the detail header and the sidebar. `Color.yellow` measured 1.28:1 on the light window — including in the design mock, which was reviewed as a picture and cannot show a ratio |
+
+**Measure the compositing, not the number you wrote.** `Foreground.muted` shipped as `0.62` with
+"6.20:1" beside it; the real figure was **4.31:1**, because `labelColor` is itself 84.7% opaque and the
+two alphas multiply. `ContrastTokenTests` now does that arithmetic against the surfaces the panes
+actually paint, and one of its tests asserts that 0.62 fails — so the token cannot drift back quietly.
+It also means `NSColor.windowBackgroundColor` cannot be used as the background in such a test: read
+outside a drawing context it resolves to pure white, which flatters dark text.
 
 Never write `.foregroundStyle(.tertiary)` on text, and never pick a warning colour at a call site.
 Neither token is ever the only signal — pair it with a glyph and plain words. See
 `openspec/changes/unlock-credential-layering/design.md` (D5).
+
+### Type colours (`ItemType.tint`)
+
+One definition, five types, drawn in the sidebar's type rows, the list's icon chip and the detail
+header's chip. They are **not** the system `.blue/.purple/.teal/.orange/.green` they replaced: those
+measured 2.90:1, 3.33:1, 1.89:1, 2.02:1 and 1.95:1 against their own `Opacity.typeChip` fill in light
+aqua, under the 3:1 floor for non-text content. The palette is per-appearance
+(`ItemType.tintComponents`) and clears 3.86:1 in its worst case.
+
+They are deliberately low-saturation: the accent colour now carries selection, and a row of five
+saturated hues competed with it for "this is the important one".
 
 ### Interface strings
 

@@ -31,11 +31,11 @@ struct AttachmentRowView: View {
                         .foregroundStyle(.primary)
                     Text(attachment.sizeName)
                         .font(Typography.listSubtitle)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Foreground.muted)
                 }
             } icon: {
                 Image(systemName: "doc")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Foreground.muted)
             }
 
             Spacer()

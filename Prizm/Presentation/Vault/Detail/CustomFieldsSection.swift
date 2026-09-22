@@ -56,7 +56,7 @@ struct CustomFieldsSection: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(field.name)
                         .font(Typography.fieldLabel)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Foreground.muted)
                     Image(systemName: field.value == "true" ? "checkmark.square" : "square")
                         .imageScale(.medium)
                 }
@@ -70,10 +70,10 @@ struct CustomFieldsSection: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(field.name)
                         .font(Typography.fieldLabel)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Foreground.muted)
                     Text("→ \(field.linkedId?.displayName ?? "Unknown Field")")
                         .font(Typography.fieldValue)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Foreground.muted)
                 }
                 Spacer()
             }

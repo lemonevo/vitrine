@@ -41,7 +41,7 @@ struct ItemRowView: View {
                     if let subtitle = subtitle(for: item) {
                         Text(styledSubtitle(subtitle))
                             .font(Typography.listSubtitle)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Foreground.muted)
                             .lineLimit(1)
                     }
                     if let org = orgName {
@@ -64,7 +64,7 @@ struct ItemRowView: View {
             if item.isFavorite {
                 Image(systemName: "star.fill")
                     .font(.caption)
-                    .foregroundStyle(.yellow)
+                    .foregroundStyle(Foreground.favorite)
                     .accessibilityLabel(L("Favorited"))
             }
         }

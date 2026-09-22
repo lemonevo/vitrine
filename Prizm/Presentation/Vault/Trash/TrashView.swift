@@ -102,7 +102,7 @@ struct TrashView: View {
                     .font(Typography.listSubtitle)
                 Spacer()
             }
-            .foregroundStyle(.secondary)
+            .foregroundStyle(Foreground.muted)
             .padding(.horizontal, Spacing.bannerHorizontal)
             .padding(.vertical, Spacing.bannerVertical)
             .accessibilityElement(children: .combine)

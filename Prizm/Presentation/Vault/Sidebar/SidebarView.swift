@@ -146,7 +146,7 @@ struct SidebarView: View {
     private func sectionLabel(_ title: String) -> some View {
         Text(title.uppercased())
             .font(Typography.sectionLabel)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(Foreground.muted)
             .accessibilityAddTraits(.isHeader)
     }
 
@@ -157,7 +157,7 @@ struct SidebarView: View {
         switch section {
         case .menu:
             SidebarRowView(title: SidebarSelection.allItems.displayName, systemImage: "square.grid.2x2", selection: .allItems, count: itemCounts[.allItems] ?? 0, identifier: AccessibilityID.Sidebar.allItems)
-            SidebarRowView(title: SidebarSelection.favorites.displayName, systemImage: "star", selection: .favorites, count: itemCounts[.favorites] ?? 0, tint: .yellow, identifier: AccessibilityID.Sidebar.favorites)
+            SidebarRowView(title: SidebarSelection.favorites.displayName, systemImage: "star", selection: .favorites, count: itemCounts[.favorites] ?? 0, tint: Foreground.favorite, identifier: AccessibilityID.Sidebar.favorites)
 
             // A view rather than a scope, so it is a button and carries no selection tag: opening a
             // sheet is not "being in" a category, and a highlighted row left behind afterwards would
@@ -168,7 +168,7 @@ struct SidebarView: View {
                         .font(Typography.sidebarRow)
                 } icon: {
                     Image(systemName: "lock.shield")
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Foreground.muted)
                         .frame(width: Spacing.sidebarIconWidth)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -205,7 +205,7 @@ struct SidebarView: View {
             if folders.isEmpty && !isCreatingFolder {
                 Text("No folders")
                     .font(Typography.listSubtitle)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Foreground.muted)
                     .padding(.leading, Spacing.sidebarIconWidth)
                     .tag(SidebarSelection?.none)
             }
@@ -240,7 +240,7 @@ struct SidebarView: View {
                 )
             }
         case .trash:
-            SidebarRowView(title: SidebarSelection.trash.displayName, systemImage: "trash", selection: .trash, count: itemCounts[.trash] ?? 0, tint: .secondary, identifier: AccessibilityID.Sidebar.trash)
+            SidebarRowView(title: SidebarSelection.trash.displayName, systemImage: "trash", selection: .trash, count: itemCounts[.trash] ?? 0, tint: Foreground.muted, identifier: AccessibilityID.Sidebar.trash)
         }
     }
 
@@ -337,7 +337,7 @@ private struct FolderTreeRow: View {
         } else {
             // Virtual parent — not selectable, no drop, no context menu
             Label(node.name, systemImage: "folder")
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Foreground.muted)
         }
     }
 }
@@ -363,7 +363,7 @@ private struct FolderRowLabel: View {
                 .font(Typography.sidebarRow)
         } icon: {
             Image(systemName: "folder")
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Foreground.muted)
                 .frame(width: Spacing.sidebarIconWidth)
         }
             .badge(count)
@@ -466,7 +466,7 @@ private struct OrgDisclosureRow: View {
             if collections.isEmpty && creatingCollectionInOrg != org.id {
                 Text("No collections")
                     .font(Typography.listSubtitle)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Foreground.muted)
                     .padding(.leading, Spacing.sidebarIconWidth)
                     .tag(SidebarSelection?.none)
             }
@@ -585,7 +585,7 @@ private struct CollectionTreeRow: View {
                     .font(Typography.sidebarRow)
             } icon: {
                 Image(systemName: "tray.2")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Foreground.muted)
                     .frame(width: Spacing.sidebarIconWidth)
             }
                 .badge(itemCounts[.collection(col.id)] ?? 0)
@@ -607,7 +607,7 @@ private struct CollectionTreeRow: View {
         } else {
             // Virtual parent node — not selectable, no context menu
             Label(node.name, systemImage: "tray.2")
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Foreground.muted)
         }
     }
 }
