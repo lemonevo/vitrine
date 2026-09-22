@@ -26,7 +26,7 @@ struct AttachmentRowView: View {
             Label {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(attachment.fileName)
-                        .font(Typography.fieldValue)
+                        .font(Typography.detailFieldValue)
                         .lineLimit(1)
                         .foregroundStyle(.primary)
                     Text(attachment.sizeName)
@@ -46,8 +46,8 @@ struct AttachmentRowView: View {
                 normalActions
             }
         }
-        .padding(.vertical, Spacing.rowVertical)
-        .padding(.horizontal, Spacing.rowHorizontal)
+        .padding(.vertical, Spacing.detailRowVertical)
+        .padding(.horizontal, Spacing.detailRowHorizontal)
         .contentShape(Rectangle())
         .onHover { hovering in
             optionalAnimation(.easeInOut(duration: 0.15)) {

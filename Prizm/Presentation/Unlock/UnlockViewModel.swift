@@ -26,6 +26,9 @@ final class UnlockViewModel: ObservableObject {
     // MARK: - Published state
 
     @Published var password:        String = ""
+    /// The PIN entry. Separate from `password` so the two fields cannot be confused by a stray
+    /// keystroke, and so clearing one on success cannot silently clear the other's meaning.
+    @Published var pin:             String = ""
     @Published var errorMessage:    String?
     @Published private(set) var flowState: UnlockFlowState = .unlock
     @Published var showEnrollmentPrompt: Bool = false
@@ -74,6 +77,20 @@ final class UnlockViewModel: ObservableObject {
     /// Whether biometric unlock is available for this device and session.
     var biometricUnlockAvailable: Bool { auth.biometricUnlockAvailable }
 
+    /// Whether the PIN should be offered at all.
+    ///
+    /// Answered by the repository, which knows both whether a PIN exists and whether this launch has
+    /// had a full authentication — the setting that keeps a four-digit code from opening a
+    /// freshly-restarted app.
+    var pinUnlockAvailable: Bool { auth.pinUnlockAvailable }
+
+    /// Attempts left before the stored material is destroyed. Rendered while entering a PIN: a limit
+    /// the user cannot see is a trap rather than a protection.
+    var pinRemainingAttempts: Int { auth.pinUnlockRemainingAttempts }
+
+    /// Whether the attempt count is worth showing — i.e. the user has already got one wrong.
+    var shouldShowRemainingAttempts: Bool { pinRemainingAttempts < PinUnlockSettings.maximumAttempts }
+
     // MARK: - Actions
 
     func unlock() {
@@ -104,6 +121,41 @@ final class UnlockViewModel: ObservableObject {
                 logger.error("Unlock failed: \(error.localizedDescription, privacy: .public)")
                 errorMessage = error.localizedDescription
                 flowState    = .unlock
+            }
+        }
+    }
+
+    /// Unlocks with the PIN.
+    ///
+    /// Kept separate from `unlock()` rather than folded into it: the two take different inputs, fail in
+    /// different ways, and the PIN's failure carries a count that the password's does not.
+    func unlockWithPIN() {
+        guard !pin.isEmpty else { return }
+        logger.info("PIN unlock flow started")
+        errorMessage = nil
+        flowState    = .loading
+        let enteredPIN = pin
+
+        Task {
+            do {
+                _ = try await auth.unlockWithPIN(enteredPIN)
+                pin = ""
+                await checkEnrollmentOrSync()
+            } catch let err as PinUnlockError {
+                logger.error("PIN unlock failed: \(err.localizedDescription, privacy: .public)")
+                errorMessage = err.errorDescription
+                pin = ""
+                flowState = .unlock
+                if err == .attemptsExhausted {
+                    // The session is gone, so this screen has nothing left to unlock. The repository
+                    // has already signed out; the app's flow observer moves us to sign-in.
+                    return
+                }
+            } catch {
+                logger.error("PIN unlock failed: \(error.localizedDescription, privacy: .public)")
+                errorMessage = error.localizedDescription
+                pin = ""
+                flowState = .unlock
             }
         }
     }
@@ -246,16 +298,31 @@ final class UnlockViewModel: ObservableObject {
         await performSync()
     }
 
+    /// The outcome of the sync that follows a successful unlock.
+    ///
+    /// Non-nil exactly when `.vault` is reachable: the transition and the result come from the same
+    /// statement, so the screen that shows the vault cannot be reached without an answer to "where
+    /// did this data come from".
+    private(set) var lastSyncResult: SyncResult?
+
     private func performSync() async {
         flowState = .syncing(message: L("Preparing…"))
         do {
-            _ = try await sync.execute(progress: { [weak self] message in
+            let result = try await sync.execute(progress: { [weak self] message in
                 Task { @MainActor [weak self] in self?.flowState = .syncing(message: message) }
             })
+            lastSyncResult = result
             flowState = .vault
         } catch {
-            logger.error("Post-unlock sync failed (non-fatal): \(error.localizedDescription, privacy: .public)")
-            flowState = .vault
+            // The vault could not be fetched and there was no cached copy to fall back to. Showing
+            // an empty vault here is the worst outcome available: it is indistinguishable from "all
+            // my items are gone", and it invites the user to act on that belief. Stay on this screen
+            // and say why — the password is already known to be correct, so the error is the only
+            // thing left to report.
+            logger.error("Post-unlock sync failed with no cache to fall back to: \(error.localizedDescription, privacy: .public)")
+            lastSyncResult = nil
+            errorMessage = error.localizedDescription
+            flowState = .unlock
         }
     }
 }

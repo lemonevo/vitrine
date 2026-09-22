@@ -19,20 +19,25 @@ struct VaultBackupSheetView: View {
     /// Runs the export, after the consent sheet has been confirmed.
     let onConfirmExport: () -> Void
 
+    /// The format the export will write, bound so the consent sheet can choose it.
+    @Binding var exportFormat: VaultExportFormat
+
     var body: some View {
         switch sheet {
         case .exportConsent:
             ExportConsentSheet(
-                itemCount: itemCount,
+                itemCount:  itemCount,
+                format:     $exportFormat,
                 onCancel:   onDismiss,
                 onConfirm:  onConfirmExport
             )
 
-        case .exportDone(let url, let exportedItems, let organisationItems):
+        case .exportDone(let url, let exportedItems, let organisationItems, let omitted):
             ExportDoneSheet(
                 url: url,
                 itemCount: exportedItems,
                 organisationItemCount: organisationItems,
+                omittedItemCount: omitted,
                 onDone: onDismiss
             )
 

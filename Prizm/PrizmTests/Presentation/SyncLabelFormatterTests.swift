@@ -173,4 +173,34 @@ final class SyncLabelFormatterTests: XCTestCase {
         XCTAssertEqual(result, L("Synced %lld hours ago", 23),
                        "Expected the hours tier for ~23h same-day elapsed, got: \(result)")
     }
+
+    // MARK: - Unreadable items
+
+    /// The count has to be readable as a sentence, and `L` has no plural machinery — so the choice
+    /// between two keys is made here, and a count of one is the case that would otherwise be wrong.
+    func testUnreadableItems_oneItem_isSingular() {
+        XCTAssertEqual(UnreadableItemsLabel.make(count: 1), L("1 item could not be read"))
+    }
+
+    func testUnreadableItems_severalItems_isPlural() {
+        XCTAssertEqual(UnreadableItemsLabel.make(count: 3), L("%d items could not be read", 3))
+    }
+
+    /// Nothing wrong is nothing to say. A line reading "0 items could not be read" would be a new
+    /// kind of noise, and the footer is the one place a user checks for exactly this.
+    func testUnreadableItems_none_isAbsent() {
+        XCTAssertNil(UnreadableItemsLabel.make(count: 0))
+    }
+
+    /// The explanation must say where the items are. A count alone invites the conclusion that they
+    /// were deleted — the one thing that is false, and the one the user cannot check from inside the
+    /// app.
+    func testUnreadableItems_explanation_saysTheItemsStillExist() {
+        let singular = UnreadableItemsLabel.explanation(count: 1)
+        let plural   = UnreadableItemsLabel.explanation(count: 4)
+
+        XCTAssertTrue(singular.contains("still on the server"), "got: \(singular)")
+        XCTAssertTrue(plural.contains("still on the server"), "got: \(plural)")
+        XCTAssertTrue(plural.contains("4"), "the count belongs in the explanation too; got: \(plural)")
+    }
 }

@@ -27,27 +27,17 @@ struct PasswordHistorySection: View {
     @State private var isExpanded = false
 
     var body: some View {
-        DetailSectionCard {
+        DetailSectionCard(L("Password history")) {
             DisclosureGroup(isExpanded: $isExpanded) {
                 content
                     .padding(.top, 6)
             } label: {
-                HStack(spacing: 6) {
-                    Text(L("Password history"))
-                        .font(.headline)
-
-                    if let count = viewModel.entryCount {
-                        Text("\(count)")
-                            .font(.caption.weight(.semibold))
-                            .monospacedDigit()
-                            .foregroundStyle(.secondary)
-                            .accessibilityLabel(L("%d entries", count))
-                            .accessibilityIdentifier(AccessibilityID.PasswordHistory.countBadge)
-                    }
-                }
+                SectionCountLabel(count: viewModel.entryCount,
+                                  isExpanded: isExpanded,
+                                  identifier: AccessibilityID.PasswordHistory.countBadge)
             }
-            .padding(.horizontal, Spacing.rowHorizontal)
-            .padding(.vertical, 14)
+            .padding(.horizontal, Spacing.detailRowHorizontal)
+            .padding(.vertical, Spacing.detailRowVertical)
             .accessibilityIdentifier(AccessibilityID.PasswordHistory.section)
         }
         .onChange(of: isExpanded) { _, expanded in

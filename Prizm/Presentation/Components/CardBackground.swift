@@ -33,6 +33,51 @@ extension View {
     }
 }
 
+// MARK: - SectionCountLabel
+
+/// The collapsed row's text inside a titled section card whose content loads on demand — the
+/// password history and the passkey list.
+///
+/// **Why it says a number rather than the section's name.** These two sections used to render as a
+/// `DetailSectionCard` with no title, with the heading inside the card in `.headline`. That left them
+/// looking like a rendering glitch next to Credentials and Websites, each of which has an uppercase
+/// label above its card. The fix is to give them that label like everyone else — which then means the
+/// row inside cannot repeat it, the same rule that removes duplicate labels elsewhere in the pane. So
+/// the header names the section and this row carries the one fact the header cannot: how many there
+/// are, before anything is decrypted to find out.
+struct SectionCountLabel: View {
+
+    /// `nil` until the section has been opened once and the count is known.
+    let count: Int?
+
+    /// Whether the disclosure is open. Needed because the same absence means two different things:
+    /// closed-and-not-yet-loaded, versus open-and-fetching-right-now. Saying "Loading…" to the first
+    /// would invent a request that is not happening.
+    let isExpanded: Bool
+
+    /// Kept as a parameter because each section has its own identifier, and a test asserts on the
+    /// one belonging to the section it is looking at.
+    let identifier: String
+
+    var body: some View {
+        Group {
+            if let count {
+                Text(L("%d entries", count))
+                    .accessibilityIdentifier(identifier)
+            } else if isExpanded {
+                Text(L("Loading…"))
+            } else {
+                // "Expand" rather than "Show": the latter would collide in the string table with the
+                // reveal controls, which mean "display the secret" — a different verb entirely.
+                Text(L("Expand"))
+            }
+        }
+        .font(Typography.detailFieldLabel)
+        .foregroundStyle(.secondary)
+        .monospacedDigit()
+    }
+}
+
 // MARK: - DetailSectionCard
 
 /// A card-style section container for vault item detail views.
@@ -60,11 +105,13 @@ struct DetailSectionCard<Content: View>: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: Spacing.sectionLabelGap) {
             if Self.hasHeader(title) {
-                Text(title!)
-                    .font(.headline)
-                    .padding(.leading, 4)
+                // Uppercase and secondary: a category label, not content. At `.headline` in the
+                // primary colour it read as a heading and competed with the values beneath it.
+                Text(title!.uppercased())
+                    .font(Typography.sectionLabel)
+                    .foregroundStyle(.secondary)
                     .accessibilityAddTraits(.isHeader)
                     .accessibilityIdentifier(
                         AccessibilityID.Detail.cardHeader(title!)
@@ -75,8 +122,7 @@ struct DetailSectionCard<Content: View>: View {
             }
             .cardBackground()
         }
-        .padding(.horizontal, Spacing.pageMargin)
-        .padding(.top, Spacing.cardTop)
+        .padding(.horizontal, Spacing.detailMargin)
         .padding(.bottom, Spacing.cardBottom)
     }
 

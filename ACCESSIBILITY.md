@@ -61,7 +61,7 @@ Prizm is a native macOS SwiftUI application. It inherits platform accessibility 
 | 1.4.10 Reflow | Supports | Three-pane layout reflows with window resizing. No horizontal scrolling required. |
 | 1.4.11 Non-text Contrast | Supports | Icon buttons use system accent colour against system backgrounds. Custom opacity values on borders and indicators meet 3:1 non-text contrast. Increase Contrast preference raises values further. |
 | 1.4.12 Text Spacing | Supports | SwiftUI respects system text spacing preferences. |
-| 1.4.13 Content on Hover or Focus | Supports | Hover-revealed actions (copy, open, save) do not obscure other content and are dismissible. |
+| 1.4.13 Content on Hover or Focus | Supports | The detail pane's copy affordance is a permanent trailing icon rather than one revealed on hover, so hovering is not required to discover it. The remaining hover-revealed actions (attachment open / save) do not obscure other content and are dismissible. |
 | 2.4.5 Multiple Ways | Supports | Items accessible via sidebar navigation, search (⌘F), and keyboard shortcuts. |
 | 2.4.6 Headings and Labels | Supports | Section headers have `.isHeader` trait. All form fields have descriptive labels. |
 | 2.4.7 Focus Visible | Supports | macOS provides default focus rings on all focusable controls. |

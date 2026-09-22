@@ -5,6 +5,25 @@ import SwiftUI
 /// Left-column sidebar with sections: Menu Items, Folders, Types, Trash.
 ///
 /// Each row displays a live item count sourced from `VaultBrowserViewModel.itemCounts`.
+/// What the sidebar can ask its owner to do.
+///
+/// Bundled rather than passed as nine separate closures, and the reason is not tidiness: this
+/// initializer is called inside `VaultBrowserView`'s body, which the type checker sees as one
+/// expression. Adding a single further closure argument to it produced "the compiler is unable to
+/// type-check this expression in reasonable time" — pointing, unhelpfully, at an unrelated toolbar
+/// button. Bundling removes the class of problem rather than this instance of it.
+struct SidebarActions {
+    var createFolder: (String) -> Void = { _ in }
+    var renameFolder: (String, String) -> Void = { _, _ in }
+    var deleteFolder: (Folder) -> Void = { _ in }
+    var dropItems: ([String], String) -> Void = { _, _ in }
+    var createCollection: (String, String) -> Void = { _, _ in }
+    var renameCollection: (String, String, String) -> Void = { _, _, _ in }
+    var deleteCollection: (String, String) -> Void = { _, _ in }
+    /// Opens the vault-wide verification-codes list.
+    var showVerificationCodes: () -> Void = {}
+}
+
 /// The sidebar is always visible, even when a category is empty.
 struct SidebarView: View {
     @Binding var selection: SidebarSelection?
@@ -14,16 +33,8 @@ struct SidebarView: View {
     var organizations: [Organization] = []
     var collections: [OrgCollection] = []
 
-    // Folder actions — provided by VaultBrowserViewModel
-    var onCreateFolder: ((String) -> Void)?
-    var onRenameFolder: ((String, String) -> Void)?  // (id, newName)
-    var onDeleteFolder: ((Folder) -> Void)?
-    var onDropItems: (([String], String) -> Void)?   // (itemIds, folderId)
-
-    // Collection actions — provided by VaultBrowserViewModel
-    var onCreateCollection: ((String, String) -> Void)?  // (name, organizationId)
-    var onRenameCollection: ((String, String, String) -> Void)?  // (id, orgId, newName)
-    var onDeleteCollection: ((String, String) -> Void)?  // (id, orgId)
+    /// Everything the sidebar can ask its owner to do.
+    var actions = SidebarActions()
 
     // Inline folder rename/create state
     @State private var renamingFolderId: String?
@@ -76,7 +87,7 @@ struct SidebarView: View {
         .alert("Delete Collection", isPresented: $showDeleteCollectionAlert,
                presenting: collectionToDelete) { col in
             Button("Delete", role: .destructive) {
-                onDeleteCollection?(col.id, col.organizationId)
+                actions.deleteCollection(col.id, col.organizationId)
             }
             Button("Cancel", role: .cancel) {}
         } message: { col in
@@ -93,7 +104,7 @@ struct SidebarView: View {
             EmptyView()
         case .folders:
             HStack(alignment: .firstTextBaseline) {
-                Text(section.title)
+                sectionLabel(section.title)
                 Spacer()
                 Button {
                     newFolderName = "New Folder"
@@ -121,10 +132,22 @@ struct SidebarView: View {
         case .trash:
             EmptyView()
         case .organizations:
-            Text(section.title)
+            sectionLabel(section.title)
         default:
-            Text(section.title)
+            sectionLabel(section.title)
         }
+    }
+
+    /// A sidebar section heading.
+    ///
+    /// `Typography.sectionLabel` uppercased and secondary, so the heading reads as a category rather
+    /// than as content. At body weight and size it competed with the item rows it introduces — which
+    /// is the same objection that removed the letter headings from the item list.
+    private func sectionLabel(_ title: String) -> some View {
+        Text(title.uppercased())
+            .font(Typography.sectionLabel)
+            .foregroundStyle(.secondary)
+            .accessibilityAddTraits(.isHeader)
     }
 
     // MARK: - Row Rendering
@@ -133,8 +156,26 @@ struct SidebarView: View {
     private func renderRows(for section: SidebarSection) -> some View {
         switch section {
         case .menu:
-            SidebarRowView(title: SidebarSelection.allItems.displayName, systemImage: "square.grid.2x2", selection: .allItems, count: itemCounts[.allItems] ?? 0)
-            SidebarRowView(title: SidebarSelection.favorites.displayName, systemImage: "star", selection: .favorites, count: itemCounts[.favorites] ?? 0)
+            SidebarRowView(title: SidebarSelection.allItems.displayName, systemImage: "square.grid.2x2", selection: .allItems, count: itemCounts[.allItems] ?? 0, identifier: AccessibilityID.Sidebar.allItems)
+            SidebarRowView(title: SidebarSelection.favorites.displayName, systemImage: "star", selection: .favorites, count: itemCounts[.favorites] ?? 0, tint: .yellow, identifier: AccessibilityID.Sidebar.favorites)
+
+            // A view rather than a scope, so it is a button and carries no selection tag: opening a
+            // sheet is not "being in" a category, and a highlighted row left behind afterwards would
+            // say otherwise.
+            Button(action: actions.showVerificationCodes) {
+                Label {
+                    Text(L("Verification Codes"))
+                        .font(Typography.sidebarRow)
+                } icon: {
+                    Image(systemName: "lock.shield")
+                        .foregroundStyle(.secondary)
+                        .frame(width: Spacing.sidebarIconWidth)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier(AccessibilityID.Vault.verificationCodesButton)
         case .folders:
             if isCreatingFolder {
                 TextField("Name or Parent/Name", text: $newFolderName, onCommit: {
@@ -156,20 +197,21 @@ struct SidebarView: View {
                     renamingFolderId: $renamingFolderId,
                     renameText: $renameText,
                     isRenameFocused: $isRenameFocused,
-                    onDeleteFolder: { onDeleteFolder?($0) },
-                    onDropItems: { ids, fid in onDropItems?(ids, fid) },
-                    onRenameFolder: { id, name in onRenameFolder?(id, name) }
+                    onDeleteFolder: { actions.deleteFolder($0) },
+                    onDropItems: { ids, fid in actions.dropItems(ids, fid) },
+                    onRenameFolder: { id, name in actions.renameFolder(id, name) }
                 )
             }
             if folders.isEmpty && !isCreatingFolder {
                 Text("No folders")
                     .font(Typography.listSubtitle)
                     .foregroundStyle(.secondary)
+                    .padding(.leading, Spacing.sidebarIconWidth)
                     .tag(SidebarSelection?.none)
             }
         case .types:
             ForEach(ItemType.allCases, id: \.self) { type in
-                SidebarRowView(title: type.displayName, systemImage: type.sfSymbol, selection: .type(type), count: itemCounts[.type(type)] ?? 0)
+                SidebarRowView(title: type.displayName, systemImage: type.sfSymbol, selection: .type(type), count: itemCounts[.type(type)] ?? 0, tint: type.tint, identifier: AccessibilityID.Sidebar.type(type.rawValue))
             }
         case .organizations:
             ForEach(organizations) { org in
@@ -189,8 +231,8 @@ struct SidebarView: View {
                     renamingCollectionOrgId: $renamingCollectionOrgId,
                     collectionRenameText: $collectionRenameText,
                     isCollectionRenameFocused: $isCollectionRenameFocused,
-                    onCreateCollection: { name in onCreateCollection?(name, org.id) },
-                    onRenameCollection: { colId, name in onRenameCollection?(colId, org.id, name) },
+                    onCreateCollection: { name in actions.createCollection(name, org.id) },
+                    onRenameCollection: { colId, name in actions.renameCollection(colId, org.id, name) },
                     onDeleteCollection: { col in
                         collectionToDelete = col
                         showDeleteCollectionAlert = true
@@ -198,7 +240,7 @@ struct SidebarView: View {
                 )
             }
         case .trash:
-            SidebarRowView(title: SidebarSelection.trash.displayName, systemImage: "trash", selection: .trash, count: itemCounts[.trash] ?? 0)
+            SidebarRowView(title: SidebarSelection.trash.displayName, systemImage: "trash", selection: .trash, count: itemCounts[.trash] ?? 0, tint: .secondary, identifier: AccessibilityID.Sidebar.trash)
         }
     }
 
@@ -207,7 +249,7 @@ struct SidebarView: View {
         isCreatingFolder = false
         selection = nil
         guard !trimmed.isEmpty else { return }
-        onCreateFolder?(trimmed)
+        actions.createFolder(trimmed)
     }
 }
 
@@ -316,8 +358,14 @@ private struct FolderRowLabel: View {
     @State private var isDropTargeted = false
 
     var body: some View {
-        Label(displayName ?? folder.name, systemImage: "folder")
-            .font(Typography.sidebarRow)
+        Label {
+            Text(displayName ?? folder.name)
+                .font(Typography.sidebarRow)
+        } icon: {
+            Image(systemName: "folder")
+                .foregroundStyle(.secondary)
+                .frame(width: Spacing.sidebarIconWidth)
+        }
             .badge(count)
             .tag(SidebarSelection.folder(folder.id))
             .listRowBackground(isDropTargeted ? Color.accentColor.opacity(Opacity.dropTarget(contrast)) : Color.clear)
@@ -419,6 +467,7 @@ private struct OrgDisclosureRow: View {
                 Text("No collections")
                     .font(Typography.listSubtitle)
                     .foregroundStyle(.secondary)
+                    .padding(.leading, Spacing.sidebarIconWidth)
                     .tag(SidebarSelection?.none)
             }
         } label: {
@@ -430,8 +479,14 @@ private struct OrgDisclosureRow: View {
     @ViewBuilder
     private var orgHeader: some View {
         HStack(alignment: .firstTextBaseline) {
-            Label(org.name, systemImage: "building.2")
-                .font(Typography.sidebarRow)
+            Label {
+                Text(org.name)
+                    .font(Typography.sidebarRow)
+            } icon: {
+                Image(systemName: "building.2")
+                    .foregroundStyle(.indigo)
+                    .frame(width: Spacing.sidebarIconWidth)
+            }
             Spacer()
             if org.canManageCollections {
                 Button {
@@ -525,8 +580,14 @@ private struct CollectionTreeRow: View {
                 isCollectionRenameFocused = false
             }
         } else if let col = node.collection {
-            Label(node.name, systemImage: "tray.2")
-                .font(Typography.sidebarRow)
+            Label {
+                Text(node.name)
+                    .font(Typography.sidebarRow)
+            } icon: {
+                Image(systemName: "tray.2")
+                    .foregroundStyle(.secondary)
+                    .frame(width: Spacing.sidebarIconWidth)
+            }
                 .badge(itemCounts[.collection(col.id)] ?? 0)
                 .tag(SidebarSelection.collection(col.id))
                 .contextMenu {
@@ -558,11 +619,28 @@ private struct SidebarRowView: View {
     let systemImage: String
     let selection:   SidebarSelection
     let count:       Int
+    /// The icon's colour. Defaults to the accent colour — the menu rows.
+    var tint:        Color = .accentColor
+    /// The identifier a UI test reaches this row by.
+    ///
+    /// Required rather than defaulted: `AccessibilityID.Sidebar` declares an identifier for every one
+    /// of these rows and none of them was ever applied, so the whole namespace was unreachable. A
+    /// default would let the next row be added the same way.
+    let identifier:  String
 
     var body: some View {
-        Label(title, systemImage: systemImage)
-            .font(Typography.sidebarRow)
-            .badge(count)
-            .tag(selection)
+        Label {
+            Text(title)
+                .font(Typography.sidebarRow)
+        } icon: {
+            // `Label`'s two-argument form styles icon and text together, so the icon is built by hand
+            // to carry the type tint while the title stays in the primary text colour.
+            Image(systemName: systemImage)
+                .foregroundStyle(tint)
+                .frame(width: Spacing.sidebarIconWidth)
+        }
+        .badge(count)
+        .tag(selection)
+        .accessibilityIdentifier(identifier)
     }
 }

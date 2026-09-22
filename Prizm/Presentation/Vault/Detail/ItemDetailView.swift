@@ -26,6 +26,13 @@ struct ItemDetailView: View {
     /// Factory for `TOTPCodeViewModel`; the second argument is the item's stored authenticator key.
     /// Only login items use it, and only ones that actually carry a key.
     var makeTOTPCodeViewModel: ((String, String?) -> TOTPCodeViewModel)? = nil
+    /// Derives a one-time code for the header's Copy code action.
+    ///
+    /// Injected as the Domain protocol rather than used to build a view model, because the header
+    /// needs a code at the instant the button is pressed and nothing else. A held view model would
+    /// mean a timer running for a button the user may never press — and a code read from one that has
+    /// gone stale is simply the wrong code.
+    var totpGenerator: (any TOTPGenerator)? = nil
     /// Called when an attachment upload sheet is dismissed, whether the upload
     /// succeeded or was cancelled. The parent view uses this to refresh `itemSelection`
     /// so the attachment list in the detail pane reflects the new server state.
@@ -34,6 +41,9 @@ struct ItemDetailView: View {
     var onSoftDelete: ((String) async -> Void)? = nil
     var onRestore: ((String) async -> Void)? = nil
     var onPermanentDelete: ((String) async -> Void)? = nil
+    /// Favourites or unfavourites the selected item. `VaultBrowserView` routes this to the view model,
+    /// which is the only place that knows how to rebuild the draft without losing fields.
+    var onToggleFavorite: ((VaultItem) -> Void)? = nil
     var editTrigger: Int = 0
     var saveTrigger: Int = 0
 
@@ -61,10 +71,9 @@ struct ItemDetailView: View {
                     if item.isDeleted { trashBanner(for: item) }
 
                     itemHeader(for: item)
+                    actionRow(for: item)
                     typeDetailView(for: item)
                     attachmentsSection(for: item)
-                    organizationRow(for: item)
-                    folderRow(for: item)
 
                     Spacer(minLength: 20)
                     metadataFooter(for: item)
@@ -103,64 +112,282 @@ struct ItemDetailView: View {
 
     // MARK: - Subviews
 
+    /// The item's name, what it is, and where it lives.
+    ///
+    /// The folder and organisation used to be two cards at the bottom of the scroll, below every
+    /// field — the one place a user checks to confirm they are looking at the right account, parked
+    /// out of sight. They are in the header now, beside the name, which is where they are read.
     @ViewBuilder
     private func itemHeader(for item: VaultItem) -> some View {
-        HStack(alignment: .center, spacing: 12) {
-            FaviconView(
-                domain:   primaryDomain(for: item),
-                itemType: itemType(for: item),
-                loader:   faviconLoader,
-                size:     36
-            )
-            Text(item.name.isEmpty ? " " : item.name)
-                .font(Typography.pageTitle)
-                .accessibilityIdentifier(AccessibilityID.Detail.itemName)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.top, Spacing.pageTop)
-        .padding(.horizontal, Spacing.pageMargin)
-        .padding(.bottom, Spacing.pageHeaderBottom)
-    }
+        let type = itemType(for: item)
+        HStack(spacing: Spacing.detailRowGap) {
+            ZStack {
+                RoundedRectangle(cornerRadius: Spacing.detailChipCornerRadius)
+                    .fill(type.tint.opacity(Opacity.typeChip(contrast)))
+                FaviconView(
+                    domain:   primaryDomain(for: item),
+                    itemType: type,
+                    loader:   faviconLoader,
+                    size:     Spacing.detailChipIcon,
+                    tint:     type.tint
+                )
+            }
+            .frame(width: Spacing.detailChip, height: Spacing.detailChip)
 
-    @ViewBuilder
-    private func organizationRow(for item: VaultItem) -> some View {
-        if let orgId = item.organizationId,
-           let org = organizations.first(where: { $0.id == orgId }) {
-            DetailSectionCard(L("Organization")) {
-                FieldRowView(label: "", value: org.name, itemId: item.id)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(item.name.isEmpty ? " " : item.name)
+                    .font(Typography.detailTitle)
+                    .accessibilityIdentifier(AccessibilityID.Detail.itemName)
+                Text(breadcrumb(for: item))
+                    .font(Typography.breadcrumb)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .accessibilityIdentifier(AccessibilityID.Detail.breadcrumb)
+            }
+
+            Spacer(minLength: 0)
+
+            // The item's own commands, beside the item they act on.
+            //
+            // They used to live in the window toolbar, which cost the window its shape: seven
+            // equal-weight circles in a row, where favouriting this item looked exactly like opening
+            // Settings, and the right end of the titlebar emptied out whenever nothing was selected.
+            if !item.isDeleted {
+                favoriteToggle(for: item)
+
+                Button(L("Edit")) { openEditSheet(for: item) }
+                    .disabled(isEditSheetPresented)
+                    .keyboardShortcut("e", modifiers: .command)
+                    .accessibilityIdentifier(AccessibilityID.Edit.editButton)
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.top, Spacing.detailHeaderTop)
+        .padding(.horizontal, Spacing.detailMargin)
+        .padding(.bottom, Spacing.detailHeaderBottom)
     }
 
-    @ViewBuilder
-    private func folderRow(for item: VaultItem) -> some View {
+    /// Favourite this item, or stop favouriting it.
+    ///
+    /// A control, replacing the display-only glyph that was here. The toolbar already had a star that
+    /// toggled, so a favourited item showed two stars and only one of them did anything.
+    private func favoriteToggle(for item: VaultItem) -> some View {
+        Button {
+            onToggleFavorite?(item)
+        } label: {
+            Image(systemName: item.isFavorite ? "star.fill" : "star")
+                .foregroundStyle(item.isFavorite ? .yellow : .secondary)
+        }
+        .buttonStyle(.borderless)
+        .help(item.isFavorite ? L("Unfavorite") : L("Favorite"))
+        .accessibilityLabel(item.isFavorite ? L("Unfavorite") : L("Favorite"))
+        .accessibilityValue(item.isFavorite ? L("Favorited") : L("Not favorited"))
+        .accessibilityIdentifier(AccessibilityID.Detail.favoriteToggle)
+    }
+
+    /// What places this item: its login name, its folder, its organisation.
+    private func breadcrumb(for item: VaultItem) -> String {
+        var parts: [String] = []
+        if case .login(let login) = item.content,
+           let username = login.username, !username.isEmpty {
+            parts.append(username)
+        }
         if let folderId = item.folderId,
            let folder = folders.first(where: { $0.id == folderId }) {
-            DetailSectionCard(L("Folder")) {
-                FieldRowView(label: "", value: folder.name, itemId: item.id)
+            parts.append(folder.name)
+        }
+        if let orgId = item.organizationId,
+           let org = organizations.first(where: { $0.id == orgId }) {
+            parts.append(org.name)
+        }
+        // Naming the absence rather than leaving the line blank: an item with no username, no folder
+        // and no organisation is a personal one, and that is worth saying.
+        return parts.isEmpty ? L("Personal vault") : parts.joined(separator: "  ·  ")
+    }
+
+    /// The actions the selected item can actually perform.
+    ///
+    /// These existed before, but only on hover over an individual row, in the toolbar, or in the Item
+    /// menu — three places to look when arriving at an item. A button is rendered only for a value
+    /// this item holds, so a secure note gets no action row at all.
+    @ViewBuilder
+    private func actionRow(for item: VaultItem) -> some View {
+        let actions = Self.headerActions(for: item, totpGenerator: totpGenerator)
+
+        if !actions.isEmpty {
+            HStack(spacing: Spacing.detailRowGap) {
+                ForEach(actions) { action in
+                    actionButton(action, for: item)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, Spacing.detailMargin)
+            .padding(.bottom, Spacing.detailActionsBottom)
+        }
+    }
+
+    @ViewBuilder
+    private func actionButton(_ action: DetailAction, for item: VaultItem) -> some View {
+        switch action {
+        case .copyPassword:
+            Button {
+                // The value is read again here rather than carried in from the decision that drew the
+                // button: an edit can replace the password between one render and the next.
+                if let password = passwordValue(of: item) { deliver(password) }
+            } label: {
+                DetailActionLabel(title: L("Copy password"),
+                                  systemImage: "doc.on.doc",
+                                  isProminent: true)
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier(AccessibilityID.Detail.copyPasswordButton)
+
+        case .copyCode:
+            Button {
+                // Derived at the press, not at the render — a code copied from a stale computation is
+                // simply the wrong code.
+                if let code = codeValue(of: item) { deliver(code) }
+            } label: {
+                DetailActionLabel(title: L("Copy code"),
+                                  systemImage: "clock.arrow.circlepath")
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier(AccessibilityID.Detail.copyCodeButton)
+
+        case .openWebsite(let url):
+            Link(destination: url) {
+                DetailActionLabel(title: L("Open website"),
+                                  systemImage: "arrow.up.right.square")
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier(AccessibilityID.Detail.openWebsiteButton)
+        }
+    }
+
+    // MARK: - Which actions the header offers
+
+    /// One action the detail header can offer for the selected item.
+    enum DetailAction: Equatable, Identifiable {
+        case copyPassword
+        case copyCode
+        case openWebsite(URL)
+
+        var id: String {
+            switch self {
+            case .copyPassword:      return "copyPassword"
+            case .copyCode:          return "copyCode"
+            case .openWebsite(let u): return "openWebsite:\(u.absoluteString)"
             }
         }
     }
 
-    private func metadataFooter(for item: VaultItem) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 0) {
-                Text("Updated:")
-                    .frame(width: 70, alignment: .leading)
-                Text(item.revisionDate.formatted(.dateTime.day(.twoDigits).month(.twoDigits).year()))
-            }
-            HStack(spacing: 0) {
-                Text("Created:")
-                    .frame(width: 70, alignment: .leading)
-                Text(item.creationDate.formatted(.dateTime.day(.twoDigits).month(.twoDigits).year()))
-            }
+    /// The actions `item` can perform, in the order the header shows them.
+    ///
+    /// Extracted from the view because "a secure note offers no copy-password button" and "an
+    /// authenticator key that yields no code offers no copy-code button" are decisions, not styling,
+    /// and a dead button that promises something the item cannot do is the failure being avoided.
+    /// Kept `static` and total so those are testable without a window.
+    static func headerActions(for item: VaultItem,
+                              totpGenerator: (any TOTPGenerator)? = nil) -> [DetailAction] {
+        guard case .login(let login) = item.content else { return [] }
+
+        var actions: [DetailAction] = []
+        if let password = login.password, !password.isEmpty {
+            actions.append(.copyPassword)
         }
-        .font(Typography.fieldValue)
-        .foregroundStyle(.secondary)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, Spacing.pageMargin)
-        .padding(.top, Spacing.cardTop)
-        .padding(.bottom, Spacing.cardBottom)
+        // Only when the stored key actually produces a code. The key is often a malformed or
+        // unsupported value, and the row below already says so — a header button beside it that would
+        // do nothing is a second, louder claim that something is available.
+        if let code = totpGenerator?.code(for: login.totp), !code.isEmpty {
+            actions.append(.copyCode)
+        }
+        if let uri = login.uris.first?.uri, let url = URL(string: uri) {
+            actions.append(.openWebsite(url))
+        }
+        return actions
+    }
+
+    private func passwordValue(of item: VaultItem) -> String? {
+        guard case .login(let login) = item.content else { return nil }
+        return login.password.flatMap { $0.isEmpty ? nil : $0 }
+    }
+
+    /// The code right now, or nil when the item stores no key or the key yields nothing.
+    ///
+    /// Derived per render rather than cached. It is one HMAC over a counter, and the alternative —
+    /// holding a view model so the button can be shown or hidden — either needs a timer running for a
+    /// button that may never be pressed, or risks copying a code that has since rolled over.
+    private func codeValue(of item: VaultItem) -> String? {
+        guard case .login(let login) = item.content, let totpGenerator else { return nil }
+        return totpGenerator.code(for: login.totp)
+    }
+
+    /// Puts `value` on the clipboard, through the gate when the item is protected by one.
+    ///
+    /// The header's buttons are the most convenient copy path on the screen, which makes them exactly
+    /// the path a re-prompt gate has to be standing in front of.
+    private func deliver(_ value: String) {
+        if gate.isGated {
+            gate.copyGated?(value)
+        } else {
+            onCopy(value)
+        }
+    }
+
+    /// One line: how old the item is, and when it started.
+    ///
+    /// The two dates used to be a stacked pair in `dd.MM.yyyy`, which answered neither question well.
+    /// "Updated" is the one a user is judging — is this stale? — so it is an age; "Created" is a fact
+    /// about the item, so it stays a date.
+    private func metadataFooter(for item: VaultItem) -> some View {
+        Text(L("Updated %@  ·  Created %@",
+               Self.updatedLabel(for: item.revisionDate),
+               Self.absoluteDateString(item.creationDate)))
+            .font(Typography.metaLine)
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, Spacing.detailMargin)
+            .padding(.bottom, Spacing.cardBottom)
+            .accessibilityIdentifier(AccessibilityID.Detail.metaLine)
+    }
+
+    // MARK: - Date formatting
+
+    /// Beyond this many days, the last-modified date stops being shown as an age.
+    static let relativeAgeLimitInDays = 30
+
+    /// The last-modified date, as an age while it is recent and as a date once it is not.
+    ///
+    /// Relative formatting is the better answer while the answer is small — "4 days ago" beats a date
+    /// the reader has to subtract from today. Past about a month the formatter produces "last month"
+    /// and "1 year ago", which are **vaguer than the date they replaced**, on the one value whose
+    /// whole purpose is telling you how stale a credential is. So the line gives up the convenience
+    /// when the convenience stops being informative.
+    ///
+    /// A date in the future — clock skew, a server ahead of the Mac — is shown as a date rather than
+    /// turned into "in 3 days", which would be a claim about the future that this view has no basis
+    /// for making.
+    static func updatedLabel(for date: Date,
+                             now: Date = Date(),
+                             calendar: Calendar = .current) -> String {
+        let days = calendar.dateComponents([.day], from: date, to: now).day ?? 0
+        guard days >= 0, days <= relativeAgeLimitInDays else {
+            return absoluteDateString(date, calendar: calendar)
+        }
+        var style = Date.RelativeFormatStyle(presentation: .named, unitsStyle: .wide)
+        style.locale = ActiveLocalization.locale
+        return date.formatted(style)
+    }
+
+    /// An absolute "Mar 12, 2024", following the interface language rather than the system locale.
+    static func absoluteDateString(_ date: Date, calendar: Calendar = .current) -> String {
+        // Property assignment rather than chaining: `FormatStyle` exposes `calendar` and `locale` as
+        // stored vars, so `.calendar(x)` parses as calling the Calendar value as a function.
+        var style = Date.FormatStyle.dateTime.month(.abbreviated).day().year()
+        style.calendar = calendar
+        style.locale   = ActiveLocalization.locale
+        return date.formatted(style)
     }
 
     @ViewBuilder
@@ -170,7 +397,7 @@ struct ItemDetailView: View {
             Text("This item is in Trash.").font(Typography.bannerText).foregroundStyle(.secondary)
             Spacer()
         }
-        .padding(.horizontal, Spacing.pageMargin)
+        .padding(.horizontal, Spacing.detailMargin)
         .padding(.vertical, Spacing.headerGap)
         .background(Color.secondary.opacity(Opacity.trashBanner(contrast)))
         .accessibilityIdentifier(AccessibilityID.Trash.statusBanner)
@@ -269,5 +496,44 @@ struct ItemDetailView: View {
         case .secureNote(let n): SecureNoteDetailView(item: item, secureNote: n, onCopy: onCopy, gate: gate)
         case .sshKey(let k):     SSHKeyDetailView(item: item, sshKey: k, onCopy: onCopy, gate: gate)
         }
+    }
+}
+
+// MARK: - Detail action label
+
+/// The shared chrome for the detail header's actions, used by both the `Button`s and the `Link`.
+///
+/// A label view rather than a styled button, because `Link` and `Button` take different styles and
+/// the one thing they must agree on is how they look.
+private struct DetailActionLabel: View {
+
+    let title:       String
+    let systemImage: String
+    /// The item's single most likely next action, drawn filled. Exactly one header action is
+    /// prominent; more than one and the row stops pointing at anything.
+    var isProminent: Bool = false
+
+    @Environment(\.colorSchemeContrast) private var contrast
+
+    var body: some View {
+        HStack(spacing: Spacing.badgeHorizontal) {
+            Image(systemName: systemImage)
+                .font(Typography.chipIcon)
+            Text(title)
+                .font(Typography.actionButton)
+        }
+        .foregroundStyle(isProminent ? Color.white : Color.primary)
+        .padding(.horizontal, Spacing.actionButtonHorizontal)
+        .padding(.vertical, Spacing.actionButtonVertical)
+        .background {
+            if isProminent {
+                RoundedRectangle(cornerRadius: Spacing.actionButtonCornerRadius)
+                    .fill(Color.accentColor)
+            } else {
+                RoundedRectangle(cornerRadius: Spacing.actionButtonCornerRadius)
+                    .stroke(Color.primary.opacity(Opacity.hairline(contrast)))
+            }
+        }
+        .contentShape(Rectangle())
     }
 }

@@ -11,6 +11,12 @@ final class PasswordGeneratorViewModel: ObservableObject {
     // MARK: - Published config properties
 
     @Published var mode: PasswordGeneratorConfig.Mode = .password { didSet { generate() } }
+
+    // MARK: - Username mode
+
+    /// Independent of `wordCount`: that one is the passphrase's secret-length setting.
+    @Published var usernameWordCount: Int = 2 { didSet { generate() } }
+    @Published var usernameIncludeNumber: Bool = true { didSet { generate() } }
     @Published var length: Int = 16 { didSet { generate() } }
     @Published var includeUppercase: Bool = true { didSet { generate() } }
     @Published var includeLowercase: Bool = true { didSet { generate() } }
@@ -45,6 +51,7 @@ final class PasswordGeneratorViewModel: ObservableObject {
 
     private let provider: RandomnessProvider
     private let generator = PasswordGenerator()
+    private let usernameGenerator = UsernameGenerator()
     private let estimator: PasswordStrengthEstimator
     private let defaults: UserDefaults
     /// The session history. `nil` where there is none to write to — previews, and tests that do not
@@ -84,6 +91,8 @@ final class PasswordGeneratorViewModel: ObservableObject {
         self.separator = config.separator
         self.capitalize = config.capitalize
         self.includeNumber = config.includeNumber
+        self.usernameWordCount = config.usernameWordCount
+        self.usernameIncludeNumber = config.usernameIncludeNumber
         isInitializing = false
 
         historySubscription = history?.$entries
@@ -108,6 +117,8 @@ final class PasswordGeneratorViewModel: ObservableObject {
                 generatedValue = try generator.generatePassword(config: config, provider: provider)
             case .passphrase:
                 generatedValue = try generator.generatePassphrase(config: config, provider: provider)
+            case .username:
+                generatedValue = try usernameGenerator.generate(config: config, provider: provider)
             }
             errorMessage = nil
             strength = estimator.estimate(generatedValue)
@@ -185,6 +196,8 @@ final class PasswordGeneratorViewModel: ObservableObject {
     private func currentConfig() -> PasswordGeneratorConfig {
         var config = PasswordGeneratorConfig()
         config.mode = mode
+        config.usernameWordCount     = usernameWordCount
+        config.usernameIncludeNumber = usernameIncludeNumber
         config.length = length
         config.includeUppercase = includeUppercase
         config.includeLowercase = includeLowercase

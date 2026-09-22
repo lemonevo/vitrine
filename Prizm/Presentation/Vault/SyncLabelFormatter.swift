@@ -1,5 +1,84 @@
 import Foundation
 
+// MARK: - Offline label
+
+/// The sidebar footer label for a vault populated from the offline cache.
+///
+/// Deliberately a different sentence from `syncStatusLabel`, not a variation on it. "Synced 5
+/// minutes ago" describes a successful conversation with the server; this describes the absence of
+/// one, and a label that reads like the former is the failure this whole capability exists to
+/// avoid — a vault that looks current and is not.
+///
+/// The age is rendered as an absolute local time rather than "2 hours ago": in the offline case the
+/// user is deciding whether what they see is too old to trust, and a wall-clock time is the form
+/// they can compare against the clock in the corner without arithmetic.
+enum OfflineSyncLabel {
+
+    /// - Parameter payloadTimestamp: When the cached payload was written by the server. `nil` when
+    ///   the read produced no timestamp, which drops the age rather than the whole label.
+    static func make(
+        payloadTimestamp: Date?,
+        relativeTo now: Date = Date(),
+        calendar: Calendar = .current
+    ) -> String {
+        guard let payloadTimestamp else {
+            return L("Offline — showing a saved copy of your vault")
+        }
+        return L("Offline — showing data from %@", formatted(payloadTimestamp, relativeTo: now, calendar: calendar))
+    }
+
+    private static func formatted(_ date: Date, relativeTo now: Date, calendar: Calendar) -> String {
+        // Same rule as `Date.syncStatusLabel`: follow the interface language, not the system locale.
+        var style = formatStyle(includingYear: false, calendar: calendar)
+        // A copy from a previous year is ambiguous without one — "Mar 26, 14:03" could be this year
+        // or five years ago, and which one it is is the entire question the label answers.
+        if calendar.component(.year, from: date) != calendar.component(.year, from: now) {
+            style = formatStyle(includingYear: true, calendar: calendar)
+        }
+        return date.formatted(style)
+    }
+
+    private static func formatStyle(includingYear: Bool, calendar: Calendar) -> Date.FormatStyle {
+        // Property assignment rather than chaining: `FormatStyle` exposes `calendar` as a stored
+        // var, so `.calendar(x)` parses as calling the Calendar value as a function.
+        var s = includingYear
+            ? Date.FormatStyle.dateTime.year().month(.abbreviated).day().hour().minute()
+            : Date.FormatStyle.dateTime.month(.abbreviated).day().hour().minute()
+        s.calendar = calendar
+        s.locale   = ActiveLocalization.locale
+        return s
+    }
+}
+
+// MARK: - Unreadable items
+
+/// The sidebar footer's report of items the last sync could not read.
+///
+/// A third sentence beside "Synced …" and "Offline …", and the only one that describes a *problem
+/// with the vault's contents* rather than the freshness of the fetch. It stays up for as long as the
+/// condition holds: it is not dismissable, because dismissing it would remove the only signal that
+/// the list is incomplete while the incompleteness remained.
+///
+/// The singular case gets its own string because `L` is `String(format:)` over a looked-up key with
+/// no plural machinery — one key cannot be grammatical for both counts in English.
+enum UnreadableItemsLabel {
+
+    /// The footer line, or `nil` when there is nothing wrong to report.
+    static func make(count: Int) -> String? {
+        guard count > 0 else { return nil }
+        return count == 1 ? L("1 item could not be read") : L("%d items could not be read", count)
+    }
+
+    /// The tooltip. Says where the items are, as well as that they could not be read — a count on
+    /// its own invites the conclusion that they were deleted, which is the one thing that is not
+    /// true and the one the user cannot check from inside the app.
+    static func explanation(count: Int) -> String {
+        count == 1
+            ? L("1 item could not be read. It is still on the server; Prizm could not decrypt it.")
+            : L("%d items could not be read. They are still on the server; Prizm could not decrypt them.", count)
+    }
+}
+
 // MARK: - Sync label formatter
 
 extension Optional where Wrapped == Date {

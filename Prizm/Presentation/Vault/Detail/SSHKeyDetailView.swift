@@ -28,6 +28,7 @@ struct SSHKeyDetailView: View {
                             label:  L("Public Key"),
                             value:  publicKey,
                             itemId: item.id,
+                            isMonospaced: true,
                             onCopy: onCopy
                         )
                         Divider()
@@ -40,6 +41,7 @@ struct SSHKeyDetailView: View {
                         label:  L("Fingerprint"),
                         value:  fingerprint,
                         itemId: item.id,
+                        isMonospaced: true,
                         onCopy: hasFingerprint ? onCopy : { _ in }
                     )
 

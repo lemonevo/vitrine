@@ -58,26 +58,20 @@ struct TOTPCodeView: View {
     private var hasCode: Bool { viewModel.copyValue != nil }
 
     var body: some View {
-        HStack(alignment: .center, spacing: 8) {
-            Text(Self.label)
-                .font(Typography.fieldValue)
-
-            Spacer()
+        HStack(spacing: 0) {
+            DetailFieldLabel(text: Self.label)
 
             if viewModel.isUnusable {
                 unusableValue
             } else {
-                hoverActions
-                if isRevealed {
-                    revealedValue
-                } else {
-                    maskedValue
-                }
+                codeValue
+                Spacer(minLength: Spacing.detailRowGap)
+                copyAffordance
                 revealButton
             }
         }
-        .padding(.vertical, 16)
-        .padding(.horizontal, Spacing.rowHorizontal)
+        .padding(.vertical, Spacing.detailRowVertical)
+        .padding(.horizontal, Spacing.detailRowHorizontal)
         .contentShape(Rectangle())
         .onTapGesture { copyCode() }
         .onHover { hovering in
@@ -105,29 +99,27 @@ struct TOTPCodeView: View {
 
     // MARK: - Value
 
-    /// The bullets, and nothing else. No countdown — see the type comment.
-    private var maskedValue: some View {
-        Text(MaskedFieldState.maskedPlaceholder)
-            .font(Typography.fieldValue.monospaced())
-            .accessibilityLabel(L("%@ hidden", Self.label))
-            .accessibilityIdentifier(AccessibilityID.TOTP.maskedValue)
-    }
-
-    /// The grouped code, the seconds left, and a bar for the step.
-    private var revealedValue: some View {
-        VStack(alignment: .trailing, spacing: 4) {
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
+    /// The code, or the eight bullets while it is hidden.
+    ///
+    /// Masked shows the bullets and nothing else — no countdown, see the type comment. Revealed adds
+    /// the ring and the seconds beside the digits, so the number that answers "how long do I have"
+    /// sits with the number the user is about to type.
+    @ViewBuilder
+    private var codeValue: some View {
+        if isRevealed {
+            HStack(alignment: .firstTextBaseline, spacing: Spacing.badgeHorizontal) {
                 Text(displayValue)
-                    .font(Typography.fieldValue.monospaced())
+                    .font(Typography.totpCode)
                     .textSelection(.enabled)
                     // Spelled out digit by digit: read as a number, a six-digit code comes out as
                     // "one hundred twenty-three thousand…", which is not what the user needs to
-                    // transcribe. The countdown is a separate element below so that the code's
-                    // announcement does not change as the seconds tick.
+                    // transcribe. The countdown is a separate element so that the code's announcement
+                    // does not change as the seconds tick.
                     .accessibilityLabel(Self.spelledOut(viewModel.copyValue))
                     .accessibilityIdentifier(AccessibilityID.TOTP.value)
 
                 if let seconds = viewModel.secondsRemaining {
+                    CountdownRing(fraction: viewModel.remainingFraction)
                     Text(L("%ds", seconds))
                         .font(Typography.utility.monospacedDigit())
                         .foregroundStyle(.secondary)
@@ -135,28 +127,12 @@ struct TOTPCodeView: View {
                         .accessibilityIdentifier(AccessibilityID.TOTP.countdown)
                 }
             }
-
-            stepBar
+        } else {
+            Text(MaskedFieldState.maskedPlaceholder)
+                .font(Typography.detailFieldValue.monospaced())
+                .accessibilityLabel(L("%@ hidden", Self.label))
+                .accessibilityIdentifier(AccessibilityID.TOTP.maskedValue)
         }
-    }
-
-    /// A bar that shrinks as the step runs out.
-    ///
-    /// The fraction *remaining*, not elapsed: a bar that grows as a code approaches expiry reads as
-    /// "almost ready", which is the opposite of what it means.
-    private var stepBar: some View {
-        GeometryReader { geometry in
-            ZStack(alignment: .leading) {
-                Capsule()
-                    .fill(Color.secondary.opacity(0.18))
-                Capsule()
-                    .fill(Color.accentColor)
-                    .frame(width: geometry.size.width * viewModel.remainingFraction)
-            }
-        }
-        .frame(width: 96, height: 3)
-        .animation(.linear(duration: 1), value: viewModel.remainingFraction)
-        .accessibilityHidden(true)
     }
 
     /// What the row says when the stored key yields no code.
@@ -166,12 +142,35 @@ struct TOTPCodeView: View {
     /// and the one that makes a user give up on the item (design D5).
     private var unusableValue: some View {
         Text(L("This key will not produce a code."))
-            .font(Typography.utility)
+            .font(Typography.detailFieldValue)
             .foregroundStyle(.secondary)
-            .multilineTextAlignment(.trailing)
+            .multilineTextAlignment(.leading)
             .fixedSize(horizontal: false, vertical: true)
-            .frame(maxWidth: 260, alignment: .trailing)
+            .frame(maxWidth: .infinity, alignment: .leading)
             .accessibilityIdentifier(AccessibilityID.TOTP.unusable)
+    }
+
+    /// The trailing copy control, visible without hovering — the same rule the field rows follow.
+    ///
+    /// Shown only once the code is revealed. Beside eight bullets it asked what it copied, and the
+    /// answer — a code nobody can see — is not something to discover after the click. Revealing is one
+    /// press away, and the row itself still copies either way.
+    @ViewBuilder
+    private var copyAffordance: some View {
+        if hasCode, isRevealed {
+            if showCopied {
+                Text(L("copied"))
+                    .font(Typography.utility)
+                    .textCase(.uppercase)
+                    .foregroundStyle(Color.accentColor)
+                    .transition(.opacity)
+            } else {
+                Image(systemName: "doc.on.doc")
+                    .imageScale(.medium)
+                    .foregroundStyle(isHovered ? Color.accentColor : Color.secondary)
+                    .accessibilityLabel(L("Copy %@", Self.label))
+            }
+        }
     }
 
     // MARK: - Controls
@@ -194,18 +193,6 @@ struct TOTPCodeView: View {
         .help(isRevealed ? L("Hide") : L("Reveal"))
         .accessibilityLabel(isRevealed ? L("Hide %@", Self.label) : L("Reveal %@", Self.label))
         .accessibilityIdentifier(AccessibilityID.TOTP.revealButton)
-    }
-
-    @ViewBuilder
-    private var hoverActions: some View {
-        if (isHovered || showCopied) && hasCode {
-            Text(showCopied ? L("copied") : L("copy"))
-                .font(.headline)
-                .textCase(.uppercase)
-                .foregroundStyle(Color.accentColor)
-                .padding(.trailing, 4)
-                .transition(.opacity)
-        }
     }
 
     private func copyCode() {
@@ -232,5 +219,35 @@ struct TOTPCodeView: View {
     nonisolated static func spelledOut(_ code: String?) -> String {
         guard let code else { return "" }
         return code.map { String($0) }.joined(separator: " ")
+    }
+}
+
+// MARK: - CountdownRing
+
+/// The step's remaining time, as a ring that empties as the code ages.
+///
+/// The fraction *remaining*, not elapsed: a bar that fills up as a code approaches expiry reads as
+/// "almost ready", which is the opposite of what it means.
+///
+/// Shared with the verification-codes list so the two screens say the same thing the same way. It
+/// lives here, beside its first user, rather than in a file of its own — the ring is the TOTP
+/// countdown's shape, and nothing that does not count a TOTP step should be reaching for it.
+struct CountdownRing: View {
+
+    let fraction: Double
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .stroke(Color.secondary.opacity(0.18), lineWidth: Spacing.totpRingLineWidth)
+            Circle()
+                .trim(from: 0, to: fraction)
+                .stroke(Color.accentColor,
+                        style: StrokeStyle(lineWidth: Spacing.totpRingLineWidth, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+        }
+        .frame(width: Spacing.totpRing, height: Spacing.totpRing)
+        .animation(.linear(duration: 1), value: fraction)
+        .accessibilityHidden(true)
     }
 }

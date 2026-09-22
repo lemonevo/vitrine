@@ -62,12 +62,12 @@ struct AttachmentsSectionView: View {
     private var emptyState: some View {
         HStack {
             Text("No attachments")
-                .font(Typography.fieldLabel)
+                .font(Typography.detailFieldLabel)
                 .foregroundStyle(.tertiary)
             Spacer()
         }
-        .padding(.vertical, Spacing.rowVertical)
-        .padding(.horizontal, Spacing.rowHorizontal)
+        .padding(.vertical, Spacing.detailRowVertical)
+        .padding(.horizontal, Spacing.detailRowHorizontal)
     }
 
     @ViewBuilder
@@ -95,15 +95,15 @@ struct AttachmentsSectionView: View {
                     Image(systemName: "paperclip")
                 }
                 Text("Add Attachment")
-                    .font(Typography.fieldValue)
+                    .font(Typography.detailFieldValue)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .buttonStyle(.plain)
         .foregroundStyle(isPicking ? Color.secondary : Color.accentColor)
         .disabled(isPicking)
-        .padding(.vertical, Spacing.rowVertical)
-        .padding(.horizontal, Spacing.rowHorizontal)
+        .padding(.vertical, Spacing.detailRowVertical)
+        .padding(.horizontal, Spacing.detailRowHorizontal)
         .accessibilityLabel("Add Attachment")
         .accessibilityIdentifier(AccessibilityID.Attachment.addButton)
     }
@@ -162,7 +162,7 @@ private struct AttachmentRowViewWithViewModel: View {
                 Text(error)
                     .font(Typography.utility)
                     .foregroundStyle(.red)
-                    .padding(.horizontal, Spacing.rowHorizontal)
+                    .padding(.horizontal, Spacing.detailRowHorizontal)
                     .transition(.opacity)
             }
         }

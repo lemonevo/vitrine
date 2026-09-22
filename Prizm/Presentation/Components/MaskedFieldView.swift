@@ -102,7 +102,7 @@ struct MaskedFieldView: View {
     var body: some View {
         HStack {
             Text(effectiveDisplayValue)
-                .font(Typography.fieldValue.monospaced())
+                .font(Typography.detailFieldValue.monospaced())
                 .textSelection(.enabled)
                 .accessibilityIdentifier(AccessibilityID.Masked.value(label))
             Button {

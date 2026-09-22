@@ -35,6 +35,14 @@ final class LoginViewModel: ObservableObject {
     @Published private(set) var isResendingCode: Bool = false
     @Published private(set) var flowState: LoginFlowState = .login
 
+    /// What the vault sync that follows a successful login produced, or `nil` when it failed.
+    ///
+    /// Read at the `.vault` transition, which has to report where the vault on screen came from.
+    /// `nil` is meaningful rather than a gap to be filled in with a fresh date: it means the server
+    /// could not be reached after the credentials were accepted, and the timestamp shown to the user
+    /// must not claim otherwise.
+    private(set) var lastSyncResult: SyncResult?
+
     // MARK: - Dependencies
 
     private let loginUseCase: any LoginUseCase
@@ -74,10 +82,11 @@ final class LoginViewModel: ObservableObject {
                 )
 
                 switch result {
-                case .success:
+                case .signedIn(_, let syncResult):
                     // Clear the password field so the plaintext does not linger in
                     // the published property (and therefore the SwiftUI state graph).
                     password  = ""
+                    lastSyncResult = syncResult
                     flowState = .vault
 
                 case .requiresTwoFactor(let method):
@@ -124,7 +133,8 @@ final class LoginViewModel: ObservableObject {
 
         Task {
             do {
-                let _ = try await loginUseCase.completeTwoFactor(code: code, rememberDevice: rememberDevice)
+                let outcome = try await loginUseCase.completeTwoFactor(code: code, rememberDevice: rememberDevice)
+                lastSyncResult = outcome.sync
                 flowState = .vault
             } catch let err as AuthError {
                 logger.error("2FA submission failed: \(err.localizedDescription, privacy: .public)")

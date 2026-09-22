@@ -17,6 +17,20 @@ struct SecureNoteDetailView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
 
+                // Hidden for `.generic`, which is the default and the value the server sends for
+                // notes that predate the field. A row reading "Generic" on every note would be noise
+                // rather than information.
+                if secureNote.subtype != .generic {
+                    DetailSectionCard(L("Note")) {
+                        FieldRowView(
+                            label: L("Type"),
+                            value: SecureNoteSubtypeLabel.name(for: secureNote.subtype),
+                            itemId: item.id,
+                            onCopy: onCopy
+                        )
+                    }
+                }
+
                 if let notes = secureNote.notes, !notes.isEmpty {
                     DetailSectionCard(L("Note")) {
                         FieldRowView(label: "", value: notes, itemId: item.id, isMultiLine: true, onCopy: onCopy)

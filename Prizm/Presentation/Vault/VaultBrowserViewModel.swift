@@ -70,13 +70,52 @@ final class VaultBrowserViewModel: ObservableObject {
     @Published private(set) var lastSyncedAt: Date?
     @Published var syncErrorMessage: String? = nil
 
+    /// Where the vault currently on screen came from.
+    ///
+    /// `.cache` is the offline case: the server could not be reached and what is displayed is a copy
+    /// of the last payload that was fetched. The label has to say so — a vault that looks live and
+    /// is not is the failure this distinction exists to prevent.
+    @Published private(set) var syncSource: SyncSource = .server
+
+    /// How many of the vault's items the last sync could not read.
+    ///
+    /// Surfaced rather than logged. These items are missing from the list with nothing else to
+    /// distinguish them from items the user never saved, and "my password isn't here" has a very
+    /// different meaning depending on which it is.
+    @Published private(set) var unreadableItemCount: Int = 0
+
+    /// When the displayed data was written by the server.
+    ///
+    /// Equal to `lastSyncedAt` after a live sync, and older than it after a cache read, where it is
+    /// the only honest answer to "how old is what I am looking at".
+    private(set) var payloadTimestamp: Date?
+
     /// `true` while a manual sync is in flight. Drives the toolbar button's disabled state and its
     /// progress indicator, and gates ⌘R.
     ///
     /// Distinct from `SyncRepositoryImpl.isSyncing`, which protects the actor. This one protects
     /// the button: without it the user could queue a second sync that the repository would then
     /// reject with `SyncError.syncInProgress`.
+    ///
+    /// Shared with the background refresh rather than duplicated for it. A second flag would mean
+    /// two ways to be syncing and one guard checking the wrong one — precisely the defect
+    /// `SyncError.syncInProgress` exists to prevent.
     @Published private(set) var isSyncing: Bool = false
+
+    /// `true` while a write the user asked for is in flight — a delete, restore, duplicate,
+    /// favourite toggle, move, or empty-trash.
+    ///
+    /// A background refresh must not land in the middle of one. Completing a sync replaces the item
+    /// list and re-reads the selected item from the store, so a refresh arriving between a write and
+    /// the store's update would leave the list disagreeing with the server — and the next sync would
+    /// not necessarily repair it.
+    ///
+    /// A counter, not a flag: two overlapping writes are possible (`performSoftDelete` on a second
+    /// item while the first is still in flight), and the first to finish must not clear the state
+    /// the second still needs. Counted rather than `@Published` because the only reader asks at tick
+    /// time, not reactively.
+    var isMutating: Bool { mutationCount > 0 }
+    private var mutationCount = 0
 
     /// Order the item list is displayed in. Persisted, so it survives relaunch.
     ///
@@ -86,7 +125,7 @@ final class VaultBrowserViewModel: ObservableObject {
     @Published var sortOrder: ItemSortOrder {
         didSet {
             guard oldValue != sortOrder else { return }
-            ItemSortPreference.save(sortOrder)
+            ItemSortPreference.save(sortOrder, to: userDefaults)
             refreshItems()
         }
     }
@@ -188,6 +227,30 @@ final class VaultBrowserViewModel: ObservableObject {
     /// The running import, so dismissing the sheet can stop it.
     private var importTask: Task<Void, Never>?
 
+    /// Identifies the session this view model is showing.
+    ///
+    /// A sync that returns after the session ended must not write into the UI: the user locked, and
+    /// the unlock screen would otherwise be repopulated by the sync they cancelled by locking.
+    ///
+    /// Defaults to a private epoch rather than being required, so a test that never locks does not
+    /// have to thread one through. `AppContainer` is the only production construction site and
+    /// passes the shared instance — a private one there would make every sync look stale the moment
+    /// a real lock happened, which is a failure the tests below would not catch.
+    private let sessionEpoch: SessionEpoch
+
+    /// Set by `clearSessionState()`, cleared when a new session's data arrives.
+    ///
+    /// The teardown must be the *last* word, and several of the properties it clears have observers
+    /// that start work: assigning `searchQuery` kicks off `refreshItems()`, and that refresh reads
+    /// from the vault store. Whether the list came back therefore depended on the caller having
+    /// already emptied the store — correct today, and exactly the kind of ordering-by-luck this
+    /// change exists to remove. A refresh that runs while this is set is dropped instead.
+    private var sessionStateCleared = false
+
+    /// The domain this view model's user preferences are read from and written to. `.standard` in
+    /// the app; a private suite in a test.
+    private let userDefaults: UserDefaults
+
     private let logger = Logger(subsystem: "com.prizm", category: "VaultBrowserViewModel")
 
     // MARK: - Menu bar action relay
@@ -252,7 +315,18 @@ final class VaultBrowserViewModel: ObservableObject {
         importVault:       any ImportVaultUseCase,
         verifyMasterPassword: any VerifyMasterPasswordUseCase,
         fileSaver:         @escaping @MainActor (String, Data) throws -> URL?,
-        filePicker:        @escaping @MainActor () -> URL?
+        filePicker:        @escaping @MainActor () -> URL?,
+        sessionEpoch:      SessionEpoch = SessionEpoch(),
+        /// The domain this view model's user preferences live in — the sort order, and the clipboard
+        /// clear interval it reads when copying.
+        ///
+        /// Defaulted so the app is unchanged, and injectable so a test can use a domain of its own.
+        /// Without one, suites running in **parallel processes** share the real preference domain:
+        /// one suite deletes the key another has just written, which made a sort test fail at random.
+        /// `ItemSortPreference` and `ClipboardClearInterval` both already took a domain for exactly
+        /// this reason; this type was the straggler. See
+        /// `openspec/changes/fix-test-preference-isolation/`.
+        userDefaults: UserDefaults = .standard
     ) {
         self.vault                  = vault
         self.search                 = search
@@ -276,13 +350,15 @@ final class VaultBrowserViewModel: ObservableObject {
         self.verifyMasterPassword   = verifyMasterPassword
         self.fileSaver              = fileSaver
         self.filePicker             = filePicker
-        self.sortOrder              = ItemSortPreference.load()
+        self.sessionEpoch           = sessionEpoch
+        self.userDefaults           = userDefaults
+        self.sortOrder              = ItemSortPreference.load(from: userDefaults)
         refreshItems()
         refreshCounts()
         refreshFolders()
         refreshOrganizations()
         lastSyncedAt    = getLastSyncDate.execute()
-        syncStatusLabel = lastSyncedAt.syncStatusLabel()
+        refreshSyncStatusLabel()
         startLabelRefreshTimer()
     }
 
@@ -300,12 +376,28 @@ final class VaultBrowserViewModel: ObservableObject {
         labelRefreshTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
             Task { @MainActor [weak self] in
                 guard let self else { return }
-                // Guard against no-op updates: only assign when the label text changes,
-                // avoiding unnecessary SwiftUI re-renders every 60 seconds.
-                let updated = lastSyncedAt.syncStatusLabel()
-                if syncStatusLabel != updated { syncStatusLabel = updated }
+                refreshSyncStatusLabel()
             }
         }
+    }
+
+    /// Recomputes `syncStatusLabel` from the current provenance.
+    ///
+    /// One function rather than one expression per call site: the 60-second tick, the initial load,
+    /// the account re-scope and the sync completion all have to agree on whether the vault on screen
+    /// is live, and the offline branch is the one that must not be lost by whichever of them runs
+    /// last. The no-op guard is kept from the timer's original body so a ticking clock does not
+    /// re-render the sidebar once a minute for no reason — the label is recomputed from provenance on
+    /// every call, so the guard can only suppress a write that would have changed nothing.
+    private func refreshSyncStatusLabel() {
+        let updated: String
+        switch syncSource {
+        case .server:
+            updated = lastSyncedAt.syncStatusLabel()
+        case .cache:
+            updated = OfflineSyncLabel.make(payloadTimestamp: payloadTimestamp)
+        }
+        if syncStatusLabel != updated { syncStatusLabel = updated }
     }
 
     // MARK: - Actions
@@ -347,7 +439,7 @@ final class VaultBrowserViewModel: ObservableObject {
         clipboardClearTask?.cancel()
         clipboardClearTask = nil
 
-        guard let seconds = ClipboardClearInterval.load().seconds else {
+        guard let seconds = ClipboardClearInterval.load(from: userDefaults).seconds else {
             logger.debug("Clipboard left uncleared (interval is Never)")
             return
         }
@@ -379,6 +471,21 @@ final class VaultBrowserViewModel: ObservableObject {
     /// **The action is deferred, not its result.** A one-time code generated when the sheet opened
     /// is stale by the time a password has been typed, so what has to wait is the work, not the
     /// value it produces.
+    /// The master-password gate for one item's secrets.
+    ///
+    /// Built here rather than in a view so that the detail pane and the verification-codes list cannot
+    /// drift on what "gated" means. `.none` for an item the user did not protect: there is nothing to
+    /// ask for, and a gate that asks anyway teaches people to click through prompts.
+    func revealGate(for item: VaultItem) -> RevealGateBinding {
+        guard needsPrompt(for: item) else { return .none }
+        return .gated(
+            isRevealed:     isRevealed(item.id),
+            request:        { [weak self] in self?.toggleReveal(itemId: item.id) },
+            requiresPrompt: true,
+            copyGated:      { [weak self] value in self?.copyGated(itemId: item.id, value) }
+        )
+    }
+
     func performGated(itemId: String, action: @escaping @MainActor () -> Void) {
         let item = displayedItems.first { $0.id == itemId } ?? itemSelection
         guard let item, item.id == itemId, repromptGate?.needsReprompt(for: item) == true else {
@@ -506,8 +613,9 @@ final class VaultBrowserViewModel: ObservableObject {
     /// Refreshes `displayedItems` from the vault store based on current selection + search query.
     /// Executes the vault read on the actor executor via a fire-and-forget `Task`.
     func refreshItems() {
+        guard !sessionStateCleared else { return }
         Task { [weak self] in
-            guard let self else { return }
+            guard let self, !sessionStateCleared else { return }
             do {
                 let scope: SidebarSelection
                 if isGlobalSearch {
@@ -557,9 +665,10 @@ final class VaultBrowserViewModel: ObservableObject {
     /// attachment list without requiring a full vault sync. Safe to call on cancel — if
     /// the item hasn't changed the assignment is a no-op.
     func refreshItemSelection() {
+        guard !sessionStateCleared else { return }
         guard let currentId = itemSelection?.id else { return }
         Task { [weak self] in
-            guard let self else { return }
+            guard let self, !sessionStateCleared else { return }
             guard let updated = try? await vault.allItems().first(where: { $0.id == currentId }) else { return }
             itemSelection = updated
         }
@@ -567,8 +676,9 @@ final class VaultBrowserViewModel: ObservableObject {
 
     /// Refreshes sidebar item counts from the vault store.
     func refreshCounts() {
+        guard !sessionStateCleared else { return }
         Task { [weak self] in
-            guard let self else { return }
+            guard let self, !sessionStateCleared else { return }
             do {
                 itemCounts = try await vault.itemCounts()
             } catch {
@@ -590,18 +700,30 @@ final class VaultBrowserViewModel: ObservableObject {
         self.syncTimestamp   = repository
         self.getLastSyncDate = useCase
         // Reload the persisted timestamp from the now-correct account-scoped key.
-        lastSyncedAt    = useCase.execute()
-        syncStatusLabel = lastSyncedAt.syncStatusLabel()
+        lastSyncedAt = useCase.execute()
+        refreshSyncStatusLabel()
     }
 
-    /// Called after a successful sync to update counts, items, and timestamp.
+    /// Called after a sync returns to update counts, items, timestamp and provenance.
     ///
-    /// Also persists the timestamp via `SyncTimestampRepository` so it survives app restarts.
-    /// Error paths MUST NOT call this method — the stored timestamp reflects the last *successful* sync.
-    func handleSyncCompleted(syncedAt: Date) {
-        lastSyncedAt = syncedAt
-        syncStatusLabel = syncedAt.syncStatusLabel()
-        syncTimestamp.recordSuccessfulSync()
+    /// A live sync persists the timestamp via `SyncTimestampRepository` so it survives app restarts.
+    /// A cache-sourced one deliberately does **not**: nothing was synced, and writing "now" would
+    /// tell the next launch the vault had been fetched when the network was gone. The label carries
+    /// the payload's own age instead, which is the fact the user needs.
+    ///
+    /// Error paths MUST NOT call this method — the stored timestamp reflects the last *successful*
+    /// server sync.
+    func handleSyncCompleted(_ result: SyncResult) {
+        // A new session's data has arrived, so the refreshes below are wanted again.
+        sessionStateCleared = false
+        syncSource       = result.source
+        unreadableItemCount = result.failedDecryptionCount
+        payloadTimestamp = result.payloadTimestamp
+        if result.source == .server {
+            lastSyncedAt = result.syncedAt
+            syncTimestamp.recordSuccessfulSync()
+        }
+        refreshSyncStatusLabel()
         refreshItems()
         refreshCounts()
         refreshFolders()
@@ -613,6 +735,22 @@ final class VaultBrowserViewModel: ObservableObject {
         // after a sync that correctly mapped them.
         refreshItemSelection()
         syncErrorMessage = nil
+    }
+
+    /// Called when the vault screen is entered by a flow that produced no sync result — the
+    /// credentials were accepted and the vault could not then be fetched.
+    ///
+    /// It refreshes everything `handleSyncCompleted` does and touches no timestamp, because there is
+    /// nothing to record: the last successful sync is still whatever it was. Reporting `Date()` here
+    /// was the previous behaviour, and it told the user their vault was current at the moment they
+    /// were least able to check.
+    func handleVaultEnteredWithoutSync() {
+        sessionStateCleared = false
+        refreshItems()
+        refreshCounts()
+        refreshFolders()
+        refreshOrganizations()
+        refreshItemSelection()
     }
 
     /// Called when a sync fails mid-session (FR-049).
@@ -635,10 +773,24 @@ final class VaultBrowserViewModel: ObservableObject {
         refreshCounts()
     }
 
+    // MARK: - Mutation tracking
+
+    /// Marks a user-requested write as started. Every `beginMutation()` needs a matching
+    /// `endMutation()`, on the failure path as much as the success one: a count left standing
+    /// disables the background refresh for the rest of the session.
+    ///
+    /// A save through the edit sheet does not come through here — that sheet's whole lifetime is
+    /// already reported by `editSheetOpen`, which the background decision checks first.
+    private func beginMutation() { mutationCount += 1 }
+
+    private func endMutation() { mutationCount = max(0, mutationCount - 1) }
+
     // MARK: - Toggle Favorite
 
     func toggleFavorite(item: VaultItem) {
         Task {
+            beginMutation()
+            defer { endMutation() }
             var draft = DraftVaultItem(item)
             draft.isFavorite.toggle()
             do {
@@ -658,6 +810,8 @@ final class VaultBrowserViewModel: ObservableObject {
     /// selected in the detail pane, it is deselected so the empty-state appears.
     /// Errors are surfaced via `actionError` for the Presentation layer to show as an alert.
     func performSoftDelete(id: String) async {
+        beginMutation()
+        defer { endMutation() }
         do {
             try await deleteUseCase.execute(id: id)
             logger.info("Item soft-deleted: \(id, privacy: .public)")
@@ -686,6 +840,8 @@ final class VaultBrowserViewModel: ObservableObject {
     /// On success refreshes the list and sidebar counts. If the restored item was selected
     /// in the detail pane, deselects it (it has moved to the active vault).
     func performRestore(id: String) async {
+        beginMutation()
+        defer { endMutation() }
         do {
             try await restoreUseCase.execute(id: id)
             logger.info("Item restored: \(id, privacy: .public)")
@@ -704,6 +860,8 @@ final class VaultBrowserViewModel: ObservableObject {
     /// via `PermanentDeleteVaultItemUseCase`, which permanently removes the cipher from the server.
     /// The caller is responsible for showing a confirmation alert before invoking this method.
     func performPermanentDelete(id: String) async {
+        beginMutation()
+        defer { endMutation() }
         do {
             try await permanentDeleteUseCase.execute(id: id)
             logger.info("Item permanently deleted: \(id, privacy: .public)")
@@ -716,7 +874,15 @@ final class VaultBrowserViewModel: ObservableObject {
         }
     }
 
-    // MARK: - Manual sync
+    // MARK: - Sync
+
+    /// What prompted a sync. The only thing it changes is what happens when the sync *fails*.
+    enum SyncOrigin {
+        /// The user pressed ⌘R or the toolbar button.
+        case manual
+        /// A background tick. Nobody asked for it, so nobody is told it failed.
+        case background
+    }
 
     /// Runs a vault sync on demand and folds the outcome into the same state the automatic sync
     /// uses, so a manual sync cannot drift from the login-time one.
@@ -725,23 +891,109 @@ final class VaultBrowserViewModel: ObservableObject {
     /// concurrent sync, which covers the race between this button and a login-time sync — that
     /// refusal surfaces as the ordinary error banner rather than as two syncs racing.
     func performManualSync() {
+        performSync(origin: .manual)
+    }
+
+    /// Refreshes the vault because a background tick decided it was due.
+    ///
+    /// Deliberately not a second implementation: it shares `performSync(origin:)` and therefore the
+    /// in-flight guard, so a tick landing during a manual sync is refused rather than queued. The
+    /// caller has already established that the vault is unlocked and the session is not mid-edit —
+    /// see `BackgroundSyncMonitor.shouldSync(trigger:isUnlocked:isBusy:lastSuccessfulSyncAt:)`.
+    func backgroundSync() {
+        performSync(origin: .background)
+    }
+
+    private func performSync(origin: SyncOrigin) {
         guard !isSyncing else { return }
+        // Captured synchronously, before the task is created. Reading it inside the task would leave
+        // a gap between deciding to sync and recording which session that was for — and a lock
+        // landing in that gap would hand this sync the *new* session's token.
+        let epochToken = sessionEpoch.current()
         isSyncing = true
         Task {
             defer { isSyncing = false }
             do {
-                // Progress messages are not surfaced for a manual sync: the toolbar already shows a
-                // spinner, and the messages are sub-second for a small vault.
+                // Progress messages are not surfaced: the toolbar already shows a spinner, and the
+                // messages are sub-second for a small vault.
                 let result = try await syncUseCase.execute(progress: { _ in })
-                logger.info("Manual sync completed: \(result.totalCiphers) ciphers, \(result.failedDecryptionCount) failed")
-                handleSyncCompleted(syncedAt: result.syncedAt)
+
+                guard sessionEpoch.isCurrent(epochToken) else {
+                    // The user locked while this was in flight. Applying it would repopulate the
+                    // unlock screen, and reporting it would tell them their locked vault failed.
+                    logger.info("\(origin == .manual ? "Manual" : "Background", privacy: .public) sync discarded: the session ended while it was in flight")
+                    return
+                }
+
+                logger.info("\(origin == .manual ? "Manual" : "Background", privacy: .public) sync completed: \(result.totalCiphers) ciphers, \(result.failedDecryptionCount) failed, source=\(String(describing: result.source), privacy: .public)")
+                handleSyncCompleted(result)
             } catch {
-                logger.error("Manual sync failed: \(error.localizedDescription, privacy: .public)")
-                // `handleSyncError` deliberately does not touch the timestamp: it must keep
-                // reflecting the last *successful* sync.
-                handleSyncError(error.localizedDescription)
+                // A sync refused because its session ended is not a failure — it is the correct
+                // outcome of a race the teardown won, so it is not reported and not logged as one.
+                if case SyncError.sessionEnded = error { return }
+
+                switch origin {
+                case .manual:
+                    logger.error("Manual sync failed: \(error.localizedDescription, privacy: .public)")
+                    // `handleSyncError` deliberately does not touch the timestamp: it must keep
+                    // reflecting the last *successful* sync.
+                    handleSyncError(error.localizedDescription)
+
+                case .background:
+                    // Logged and left at that. A dismissable banner for a sync the user did not ask
+                    // for would appear every interval to anyone working offline, and the same banner
+                    // is how a *manual* failure is reported — becoming noise would cost it that.
+                    // What the user sees instead is the last-sync label ageing, which is true and
+                    // needs no dismissal.
+                    logger.error("Background sync failed: \(error.localizedDescription, privacy: .public)")
+                }
             }
         }
+    }
+
+    // MARK: - Session teardown
+
+    /// Drops everything this view model holds that came out of the vault in plaintext.
+    ///
+    /// Locking zeroes the keys and empties the store, but neither reaches the copies kept here: the
+    /// decrypted item list, the selection, and the folder, organisation and collection names all
+    /// survive it — and so does `RootViewModel.selectedLogin`, which is derived from the selection
+    /// and is what keeps the copy commands enabled on the unlock screen.
+    ///
+    /// One method, called from both `lockVault()` and `signOut()`, for the reason the offline cache
+    /// is deleted inside `signOut()` rather than by its callers: two call sites each clearing what
+    /// they remember is how the two sign-out paths drifted before. A property added here is cleared
+    /// on both paths by construction.
+    func clearSessionState() {
+        // First, so the refreshes that the assignments below trigger are dropped rather than
+        // repopulating the list from a store the caller may not have emptied yet.
+        sessionStateCleared = true
+        // The item list and the selection are the bulk of it — `VaultItem` fields are plain
+        // `String`s, decrypted at sync time and never re-encrypted.
+        itemSelection            = nil
+        displayedItems           = []
+        itemCounts               = [:]
+        // Decrypted names, same reasoning.
+        folders                  = []
+        organizations            = []
+        collections              = []
+        // What the user searched a password manager for is frequently the secret itself.
+        searchQuery              = ""
+        isGlobalSearch           = false
+        // Reveals and re-prompt state are permissions to show material that is now gone.
+        discardReveals()
+        pendingReprompt          = nil
+        repromptContinuation     = nil
+        repromptError            = nil
+        isVerifyingReprompt      = false
+        // The count describes this session's vault, so it goes with the rest of it.
+        unreadableItemCount      = 0
+        // Error strings can quote the server or the item.
+        syncErrorMessage         = nil
+        actionError              = nil
+        // Sheets that would open onto an empty vault.
+        createItemType           = nil
+        backupSheet              = nil
     }
 
     // MARK: - Duplicate
@@ -752,6 +1004,8 @@ final class VaultBrowserViewModel: ObservableObject {
     /// duplicate is almost always to then edit the copy.
     func duplicateItem(id: String) {
         Task {
+            beginMutation()
+            defer { endMutation() }
             do {
                 let copy = try await duplicateUseCase.execute(id: id)
                 logger.info("Item duplicated: \(id, privacy: .public) → \(copy.id, privacy: .public)")
@@ -772,6 +1026,8 @@ final class VaultBrowserViewModel: ObservableObject {
     /// Failures are reported rather than thrown: emptying Trash is a sequence of independent
     /// requests, and the user needs to know how much was actually removed. See `EmptyTrashResult`.
     func performEmptyTrash() async {
+        beginMutation()
+        defer { endMutation() }
         let result = await emptyTrashUseCase.execute()
         logger.info("Empty Trash: \(result.deletedCount) deleted, \(result.failedCount) failed")
 
@@ -799,6 +1055,13 @@ final class VaultBrowserViewModel: ObservableObject {
     /// Nothing is written until `confirmExport()` runs, and that only happens from the sheet's own
     /// confirm button. The consent is mandatory, not decorative — Bitwarden's normative security
     /// requirements make it a precondition of any vault export.
+    /// Which plaintext format the next export writes. A presentation choice, so it lives here rather
+    /// than in the use case; kept across openings because a user who wants CSV usually wants it again.
+    @Published var exportFormat: VaultExportFormat = .json
+
+    /// Whether the verification-codes sheet is up.
+    @Published var isShowingVerificationCodes = false
+
     func requestExport() {
         guard backupSheet == nil else { return }
         backupSheet = .exportConsent
@@ -808,7 +1071,7 @@ final class VaultBrowserViewModel: ObservableObject {
     func confirmExport() {
         Task {
             do {
-                let export = try await exportUseCase.execute()
+                let export = try await exportUseCase.execute(format: exportFormat)
 
                 // A cancelled save panel returns nil. That is a decision, not a failure: the
                 // sheet closes and no error is shown, because the user just said no.
@@ -821,7 +1084,8 @@ final class VaultBrowserViewModel: ObservableObject {
                 backupSheet = .exportDone(
                     url: url,
                     itemCount: export.itemCount,
-                    organisationItemCount: export.organisationItemCount
+                    organisationItemCount: export.organisationItemCount,
+                    omittedItemCount: export.omittedItemCount
                 )
             } catch {
                 logger.error("Export failed: \(error.localizedDescription, privacy: .public)")
@@ -939,6 +1203,8 @@ final class VaultBrowserViewModel: ObservableObject {
 
     func moveItemsToFolder(itemIds: [String], folderId: String) {
         Task {
+            beginMutation()
+            defer { endMutation() }
             do {
                 if itemIds.count == 1, let id = itemIds.first {
                     try await moveItemUseCase.execute(itemId: id, folderId: folderId)
@@ -957,8 +1223,9 @@ final class VaultBrowserViewModel: ObservableObject {
     // MARK: - Refresh
 
     func refreshFolders() {
+        guard !sessionStateCleared else { return }
         Task { [weak self] in
-            guard let self else { return }
+            guard let self, !sessionStateCleared else { return }
             do {
                 folders = try await vault.folders()
             } catch {
@@ -968,8 +1235,9 @@ final class VaultBrowserViewModel: ObservableObject {
     }
 
     func refreshOrganizations() {
+        guard !sessionStateCleared else { return }
         Task { [weak self] in
-            guard let self else { return }
+            guard let self, !sessionStateCleared else { return }
             do {
                 organizations = try await vault.organizations()
                 collections   = try await vault.collections()

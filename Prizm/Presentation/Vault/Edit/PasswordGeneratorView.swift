@@ -18,6 +18,7 @@ struct PasswordGeneratorView: View {
             Picker("Mode", selection: $viewModel.mode) {
                 Text("Password").tag(PasswordGeneratorConfig.Mode.password)
                 Text("Passphrase").tag(PasswordGeneratorConfig.Mode.passphrase)
+                Text("Username").tag(PasswordGeneratorConfig.Mode.username)
             }
             .pickerStyle(.segmented)
             .accessibilityIdentifier(AccessibilityID.Generator.modePicker)
@@ -30,6 +31,8 @@ struct PasswordGeneratorView: View {
                 passwordControls
             case .passphrase:
                 passphraseControls
+            case .username:
+                usernameControls
             }
 
             Divider()
@@ -91,6 +94,20 @@ struct PasswordGeneratorView: View {
     // MARK: - Passphrase controls
 
     @ViewBuilder
+    /// The username mode's controls.
+    ///
+    /// Separate from the passphrase's, and deliberately so: that mode's word count is a secret-length
+    /// decision, and a username needs two words to be memorable rather than more to be unguessable.
+    private var usernameControls: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Stepper("Words: \(viewModel.usernameWordCount)",
+                    value: $viewModel.usernameWordCount, in: 1...4)
+                .accessibilityIdentifier(AccessibilityID.Generator.usernameWordCountStepper)
+            Toggle("Include number", isOn: $viewModel.usernameIncludeNumber)
+                .accessibilityIdentifier(AccessibilityID.Generator.usernameIncludeNumberToggle)
+        }
+    }
+
     private var passphraseControls: some View {
         VStack(alignment: .leading, spacing: 8) {
             Stepper("Words: \(viewModel.wordCount)", value: $viewModel.wordCount, in: 3...10)

@@ -24,27 +24,17 @@ struct PasskeysSection: View {
     @State private var isExpanded = false
 
     var body: some View {
-        DetailSectionCard {
+        DetailSectionCard(L("Passkeys")) {
             DisclosureGroup(isExpanded: $isExpanded) {
                 content
                     .padding(.top, 6)
             } label: {
-                HStack(spacing: 6) {
-                    Text(L("Passkeys"))
-                        .font(.headline)
-
-                    if let count = viewModel.credentialCount {
-                        Text("\(count)")
-                            .font(.caption.weight(.semibold))
-                            .monospacedDigit()
-                            .foregroundStyle(.secondary)
-                            .accessibilityLabel(L("%d entries", count))
-                            .accessibilityIdentifier(AccessibilityID.Passkeys.countBadge)
-                    }
-                }
+                SectionCountLabel(count: viewModel.credentialCount,
+                                  isExpanded: isExpanded,
+                                  identifier: AccessibilityID.Passkeys.countBadge)
             }
-            .padding(.horizontal, Spacing.rowHorizontal)
-            .padding(.vertical, 14)
+            .padding(.horizontal, Spacing.detailRowHorizontal)
+            .padding(.vertical, Spacing.detailRowVertical)
             .accessibilityIdentifier(AccessibilityID.Passkeys.section)
         }
         .onChange(of: isExpanded) { _, expanded in

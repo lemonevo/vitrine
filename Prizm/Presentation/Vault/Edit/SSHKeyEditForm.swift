@@ -5,8 +5,8 @@ import SwiftUI
 /// Edit form for SSH Key vault items.
 ///
 /// Private key is masked by default (same treatment as Login password and Hidden
-/// custom fields — spec §4.9). Key fingerprint is read-only: it is auto-derived
-/// from the private key by the server and is not sent in the PUT request body.
+/// custom fields — spec §4.9). Key fingerprint is read-only because it is derived from the key,
+/// not because it is unsent: it is round-tripped to the server on save.
 struct SSHKeyEditForm: View {
 
     @Binding var draft: DraftSSHKeyContent
@@ -21,7 +21,7 @@ struct SSHKeyEditForm: View {
                     Divider()
                     OptionalEditFieldRow(label: L("Public Key"), value: $draft.publicKey)
                     Divider()
-                    // Key fingerprint is server-derived; shown for reference only.
+                    // Key fingerprint is derived from the key; shown for reference only.
                     readOnlyFingerprintRow
                 }
 

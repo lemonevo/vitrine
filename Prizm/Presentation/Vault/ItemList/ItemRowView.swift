@@ -2,7 +2,7 @@ import SwiftUI
 
 // MARK: - ItemRowView
 
-/// A single row in the item list, showing favicon/type-icon, name, subtitle, and favorite star.
+/// A single row in the item list, showing a type-tinted icon chip, name, subtitle, and favorite star.
 ///
 /// FR-021: type-specific subtitle
 ///   - Login:       username
@@ -13,6 +13,12 @@ import SwiftUI
 ///
 /// FR-022: favorite star indicator (display-only)
 /// FR-009: favicon with SF Symbol fallback
+///
+/// **The chip keeps the favicon.** It would have been simpler to draw the type symbol in every row,
+/// and it would have deleted a feature: a row that stops showing the site's own icon is a regression
+/// wearing the redesign's clothes. The favicon sits on the tinted square and the tint shows around it;
+/// when there is no favicon the type symbol is drawn in that same tint, so the chip reads as the type
+/// either way.
 struct ItemRowView: View {
 
     let item:          VaultItem
@@ -21,37 +27,64 @@ struct ItemRowView: View {
     /// Org name shown as a small badge when the item belongs to an organization (FR task 6.1).
     var orgName:       String? = nil
 
-    var body: some View {
-        HStack(spacing: 10) {
-            FaviconView(
-                domain:    primaryDomain(for: item),
-                itemType:  itemType(for: item),
-                loader:    faviconLoader,
-                size:      26
-            )
+    @Environment(\.colorSchemeContrast) private var contrast
 
-            VStack(alignment: .leading, spacing: 3) {
+    var body: some View {
+        HStack(spacing: Spacing.listRowSpacing) {
+            typeChip
+
+            VStack(alignment: .leading, spacing: 1) {
                 Text(styledName)
-                    .font(.headline)
+                    .font(Typography.listTitle)
                     .lineLimit(1)
-                if let subtitle = subtitle(for: item) {
-                    Text(styledSubtitle(subtitle))
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
-                if let org = orgName {
-                    Text(org)
-                        .font(Typography.listSubtitle)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .padding(.horizontal, Spacing.badgeHorizontal)
-                        .padding(.vertical, Spacing.badgeVertical)
-                        .background(Color.accentColor.opacity(0.12), in: RoundedRectangle(cornerRadius: Spacing.badgeCornerRadius))
+                HStack(spacing: Spacing.listRowBadgeSpacing) {
+                    if let subtitle = subtitle(for: item) {
+                        Text(styledSubtitle(subtitle))
+                            .font(Typography.listSubtitle)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                    if let org = orgName {
+                        Text(org)
+                            .font(Typography.orgBadge)
+                            .foregroundStyle(itemType(for: item).tint)
+                            .lineLimit(1)
+                            .padding(.horizontal, Spacing.badgeHorizontal)
+                            .padding(.vertical, Spacing.badgeVertical)
+                            .background(
+                                itemType(for: item).tint.opacity(Opacity.typeChip(contrast)),
+                                in: RoundedRectangle(cornerRadius: Spacing.badgeCornerRadius)
+                            )
+                    }
                 }
             }
+
+            Spacer(minLength: 4)
+
+            if item.isFavorite {
+                Image(systemName: "star.fill")
+                    .font(.caption)
+                    .foregroundStyle(.yellow)
+                    .accessibilityLabel(L("Favorited"))
+            }
         }
-        .padding(.vertical, 8)
+        .padding(.vertical, Spacing.listRowVertical)
+    }
+
+    /// The tinted square holding the favicon, or the type symbol when there is no favicon.
+    private var typeChip: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: Spacing.listChipCornerRadius)
+                .fill(itemType(for: item).tint.opacity(Opacity.typeChip(contrast)))
+            FaviconView(
+                domain:   primaryDomain(for: item),
+                itemType: itemType(for: item),
+                loader:   faviconLoader,
+                size:     Spacing.listChipIcon,
+                tint:     itemType(for: item).tint
+            )
+        }
+        .frame(width: Spacing.listChip, height: Spacing.listChip)
     }
 
     // MARK: - Highlighted text helpers

@@ -12,6 +12,8 @@ struct ExportDoneSheet: View {
     let url: URL
     let itemCount: Int
     let organisationItemCount: Int
+    /// Items the format could not carry. Non-zero for CSV.
+    var omittedItemCount: Int = 0
 
     let onDone: () -> Void
 
@@ -29,6 +31,14 @@ struct ExportDoneSheet: View {
 
             Text(L("%d items were written.", itemCount))
                 .fixedSize(horizontal: false, vertical: true)
+
+            if omittedItemCount > 0 {
+                Text(L("%d items were not written: this format holds logins only. Export as JSON to include everything.", omittedItemCount))
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier(AccessibilityID.Vault.omittedCount)
+            }
 
             if organisationItemCount > 0 {
                 Text(L("This includes %d items that belong to an organisation. The official Bitwarden export leaves those out.", organisationItemCount))

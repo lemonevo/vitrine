@@ -42,8 +42,11 @@ nonisolated enum AccessibilityID {
     // MARK: - Unlock (US2)
 
     enum Unlock {
-        static let emailLabel        = "unlock.email"
         static let passwordField     = "unlock.password"
+        /// The PIN entry, offered only when the repository says a PIN may open this launch.
+        static let pinField              = "unlock.pin"
+        /// Shown only after a wrong PIN — a bare count on arrival reads as a threat.
+        static let pinAttemptsRemaining  = "unlock.pinAttemptsRemaining"
         static let unlockButton      = "unlock.unlock"
         static let errorMessage      = "unlock.error"
         static let headerTitle       = "unlock.headerTitle"
@@ -56,12 +59,25 @@ nonisolated enum AccessibilityID {
 
     enum Vault {
         static let navigationSplit   = "vault.navigationSplit"
-        static let searchField       = "vault.search"
-        static let lastSyncedLabel   = "vault.lastSynced"
         static let syncStatusLabel   = "vault.syncStatus"
+        /// The sidebar's standing report of items the last sync could not read. Distinct from
+        /// `syncStatusLabel`: this one is not dismissable, because the condition it describes
+        /// outlives the message.
+        static let unreadableItemsLabel = "vault.unreadableItems"
+        /// The secure-note subtype picker in the edit sheet.
+        static let itemEditNoteSubtype   = "vault.edit.noteSubtype"
+        static let itemEditCardBrand     = "vault.edit.cardBrand"
+        static let itemEditCardExpMonth  = "vault.edit.cardExpMonth"
+        static let itemEditCardExpYear   = "vault.edit.cardExpYear"
         static let syncErrorBanner   = "vault.syncErrorBanner"
         static let syncErrorDismiss  = "vault.syncErrorDismiss"
+        /// The JSON/CSV choice on the export consent sheet.
+        static let formatPicker     = "vault.backup.exportFormat"
+        /// The line naming how many items the chosen format could not carry.
+        static let omittedCount     = "vault.backup.omittedCount"
         static let settingsButton    = "vault.settings"
+        /// The toolbar button opening the vault-wide verification-codes list.
+        static let verificationCodesButton = "vault.verificationCodes"
         /// The manual sync button in the content toolbar (⌘R).
         static let syncButton        = "vault.button.sync"
         /// The sort-order menu in the content toolbar.
@@ -93,8 +109,17 @@ nonisolated enum AccessibilityID {
     enum Detail {
         static let emptyState        = "detail.empty"
         static let itemName          = "detail.name"
-        static let createdDate       = "detail.created"
-        static let updatedDate       = "detail.updated"
+        /// The line under the item's name: username · folder · organisation.
+        static let breadcrumb        = "detail.breadcrumb"
+        /// The header's favourite control, which moved here from the window toolbar.
+        static let favoriteToggle    = "detail.favorite"
+        /// The single relative/absolute date line at the foot of the pane.
+        static let metaLine          = "detail.meta"
+        /// The header's action row. These are the copy paths a re-prompt gate has to cover, so a
+        /// test needs to reach them without depending on their labels, which are localised.
+        static let copyPasswordButton = "detail.action.copyPassword"
+        static let copyCodeButton     = "detail.action.copyCode"
+        static let openWebsiteButton  = "detail.action.openWebsite"
         /// Accessibility identifier for a `DetailSectionCard` header label.
         static func cardHeader(_ title: String) -> String {
             "detail.cardHeader.\(title.lowercased().replacingOccurrences(of: " ", with: "."))"
@@ -159,6 +184,29 @@ nonisolated enum AccessibilityID {
         static let noKeys          = "sshAgent.settings.noKeys"
         static let usableKey       = "sshAgent.settings.usableKey"
         static let unusableKey     = "sshAgent.settings.unusableKey"
+    }
+
+    /// The PIN settings and the set-PIN sheet.
+    ///
+    /// A namespace of its own because the sheet can be on screen over the pane, and an identifier
+    /// matching two controls is worse than none.
+    enum PinSettings {
+        static let toggle                  = "pinSettings.toggle"
+        static let requirePasswordOnRestart = "pinSettings.requirePasswordOnRestart"
+        static let pinEntry                = "pinSettings.entry"
+        static let pinConfirmation         = "pinSettings.confirmation"
+        static let pinConfirm              = "pinSettings.confirm"
+        static let pinCancel               = "pinSettings.cancel"
+    }
+
+    /// The verification-codes list and its rows.
+    enum VerificationCodes {
+        static let sheet       = "verificationCodes.sheet"
+        static let emptyState  = "verificationCodes.empty"
+        static let doneButton  = "verificationCodes.done"
+        static func row(_ id: String) -> String { "verificationCodes.row.\(id)" }
+        static func copyButton(_ id: String) -> String { "verificationCodes.copy.\(id)" }
+        static func revealButton(_ id: String) -> String { "verificationCodes.reveal.\(id)" }
     }
 
     // MARK: - TOTP code display (totp-code-display)
@@ -243,6 +291,7 @@ nonisolated enum AccessibilityID {
         static let permanentDeleteButton = "trash.button.permanentDelete"
         /// The "Empty Trash" button in the Trash view.
         static let emptyTrashButton      = "trash.button.empty"
+        static let retentionNotice = "trash.retentionNotice"
     }
 
     // MARK: - Create Item (add-vault-items)
@@ -250,10 +299,6 @@ nonisolated enum AccessibilityID {
     enum Create {
         /// The "+" button that opens the new-item type picker popover.
         static let newItemButton = "create.button.newItem"
-        /// The List inside the type picker popover.
-        static let pickerList    = "typePicker.list"
-        /// A row inside the type picker; `typeName` is the `ItemType.rawValue` (e.g. "login", "card").
-        static func pickerRow(_ typeName: String) -> String { "typePicker.row.\(typeName)" }
     }
 
     // MARK: - Attachments (vault-document-storage)
@@ -286,6 +331,8 @@ nonisolated enum AccessibilityID {
         static let symbolsToggle       = "generator.toggle.symbols"
         static let avoidAmbiguousToggle = "generator.toggle.avoidAmbiguous"
         static let wordCountStepper    = "generator.wordCount"
+        static let usernameWordCountStepper = "generator.username.wordCount"
+        static let usernameIncludeNumberToggle = "generator.username.includeNumber"
         static let separatorField      = "generator.separator"
         static let capitalizeToggle    = "generator.toggle.capitalize"
         static let includeNumberToggle = "generator.toggle.includeNumber"

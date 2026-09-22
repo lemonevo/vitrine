@@ -27,6 +27,14 @@ struct VaultBrowserView: View {
     /// Factory for `TOTPCodeViewModel`; the second argument is the item's stored authenticator key.
     var makeTOTPCodeViewModel: ((String, String?) -> TOTPCodeViewModel)? = nil
 
+    /// Factory for the verification-codes list. A closure rather than a built view model, so the rows
+    /// — and their timers — come into existence when the sheet opens and not before.
+    var makeVerificationCodesViewModel: (() -> VerificationCodesViewModel)? = nil
+
+    /// Derives the one-time code behind the detail header's Copy code action. Injected so the
+    /// Presentation layer never constructs a crypto service (Constitution §II).
+    var totpGenerator: (any TOTPGenerator)? = nil
+
     @State private var showPermanentDeleteAlert = false
     @State private var showDeleteFolderAlert = false
     @State private var folderToDelete: Folder?
@@ -37,14 +45,197 @@ struct VaultBrowserView: View {
     /// Rebuilt on each render from the view model's current answer rather than cached, so a reveal
     /// granted a moment ago is reflected immediately and there is no second source of truth about
     /// whether a password may be shown.
+    /// The sidebar's selection binding, extracted from the view body.
+    ///
+    /// Not a style choice: inlined, the `NavigationSplitView` closure grew past what the type checker
+    /// will do in reasonable time once a row was added to the sidebar.
+    private var sidebarSelectionBinding: Binding<SidebarSelection?> {
+        Binding(
+            get: { viewModel.isGlobalSearch ? nil : viewModel.sidebarSelection },
+            set: { newValue in
+                guard let value = newValue else { return }
+                Task { @MainActor in viewModel.sidebarSelection = value }
+            }
+        )
+    }
+
+    /// The sort-order menu.
+    ///
+    /// Extracted from the toolbar rather than written inline. `NavigationSplitView`'s closures are one
+    /// enormous expression to the type checker, and adding a second toolbar item to it pushed the whole
+    /// body past what it will do in reasonable time. The message it gives ("unable to type-check this
+    /// expression") points at whichever sub-expression it gave up on, not at the cause.
+    private var sortOrderToolbarItem: some ToolbarContent {
+        ToolbarItem(placement: .automatic) {
+            Menu {
+                ForEach(ItemSortOrder.allCases) { order in
+                    Button {
+                        viewModel.sortOrder = order
+                    } label: {
+                        if order == viewModel.sortOrder {
+                            Label(order.displayName, systemImage: "checkmark")
+                        } else {
+                            Text(order.displayName)
+                        }
+                    }
+                }
+            } label: {
+                Image(systemName: "arrow.up.arrow.down")
+            }
+            .help(L("Sort Order"))
+            .accessibilityLabel(L("Sort Order"))
+            .accessibilityIdentifier(AccessibilityID.Vault.sortMenu)
+        }
+    }
+
+    /// Manual sync (⌘R). Disabled and replaced by a spinner while a sync is running, so the button
+    /// cannot queue a second one.
+    ///
+    /// Extracted for the same reason as `sortOrderToolbarItem`: `NavigationSplitView { } content: { }
+    /// detail: { }` is a single expression to the type checker, and this file has crossed its limit
+    /// more than once.
+    private var syncToolbarItem: some ToolbarContent {
+        ToolbarItem(placement: .automatic) {
+            Button {
+                viewModel.performManualSync()
+            } label: {
+                if viewModel.isSyncing {
+                    ProgressView()
+                        .controlSize(.small)
+                } else {
+                    Image(systemName: "arrow.clockwise")
+                }
+            }
+            .disabled(viewModel.isSyncing)
+            .help(L("Sync Now (⌘R)"))
+            .accessibilityLabel(L("Sync Now"))
+            .accessibilityIdentifier(AccessibilityID.Vault.syncButton)
+        }
+    }
+
+    /// A trashed item's two commands.
+    ///
+    /// **An active item's commands are not here** — favouriting and editing act on the item you are
+    /// looking at, so they live in its header (`ItemDetailView.itemHeader`). Why the trash keeps its
+    /// pair in the toolbar is in `openspec/changes/item-actions-in-detail-header/design.md` (D3).
+    ///
+    /// Extracted for the same reason as `sortOrderToolbarItem`: the whole `NavigationSplitView` is one
+    /// expression to the type checker, and an `if` inside its toolbar was enough to exceed it again.
+    @ToolbarContentBuilder
+    private var trashToolbarItems: some ToolbarContent {
+        if let item = viewModel.itemSelection, item.isDeleted {
+            ToolbarItem(placement: .primaryAction) {
+                Button("Restore") {
+                    Task { await viewModel.performRestore(id: item.id) }
+                }
+                .accessibilityIdentifier(AccessibilityID.Trash.restoreButton)
+            }
+            ToolbarItem(placement: .destructiveAction) {
+                Button("Delete Permanently", role: .destructive) {
+                    showPermanentDeleteAlert = true
+                }
+                .foregroundStyle(.red)
+                .accessibilityIdentifier(AccessibilityID.Trash.permanentDeleteButton)
+            }
+        }
+    }
+
+    /// The "new item" menu, with ⌘N on a zero-size companion button because a `Menu` cannot itself
+    /// carry a keyboard shortcut.
+    private var newItemToolbarItem: some ToolbarContent {
+        ToolbarItem(placement: .primaryAction) {
+            Menu {
+                ForEach(ItemType.allCases) { type in
+                    Button {
+                        viewModel.createItemType = type
+                    } label: {
+                        Label(type.displayName, systemImage: type.sfSymbol)
+                    }
+                }
+            } label: {
+                Image(systemName: "plus")
+            }
+            .help("New Item (⌘N)")
+            .accessibilityLabel("New Item")
+            .accessibilityIdentifier(AccessibilityID.Create.newItemButton)
+            .menuIndicator(.visible)
+            .background {
+                Button("") { viewModel.createItemType = .login }
+                    .keyboardShortcut("n", modifiers: .command)
+                    .frame(width: 0, height: 0)
+                    .opacity(0)
+            }
+        }
+    }
+
+    /// The detail column, extracted from the `NavigationSplitView` expression.
+    ///
+    /// Extracted for the same reason as the toolbar items above: `NavigationSplitView { } content: { }
+    /// detail: { }` is a single expression to the type checker, and adding one more closure argument to
+    /// the `ItemDetailView(...)` call — the header's favourite callback — was enough to exceed it.
+    private var detailColumn: some View {
+        ItemDetailView(
+            item:                           viewModel.itemSelection,
+            faviconLoader:                  faviconLoader,
+            folders:                        viewModel.folders,
+            organizations:                  viewModel.organizations,
+            onCopy:                         { viewModel.copy($0) },
+            makeEditViewModel:              makeEditViewModel,
+            makeAddAttachmentViewModel:     makeAddAttachmentViewModel,
+            makeBatchAttachmentViewModel:   makeBatchAttachmentViewModel,
+            makeAttachmentRowViewModel:     makeAttachmentRowViewModel,
+            makePasswordHistoryViewModel:   makePasswordHistoryViewModel,
+            makePasskeysViewModel:          makePasskeysViewModel,
+            makeTOTPCodeViewModel:          makeTOTPCodeViewModel,
+            totpGenerator:                  totpGenerator,
+            onAttachmentsChanged:           { viewModel.refreshItemSelection() },
+            onEditSheetChanged:             { viewModel.handleEditSheetState($0) },
+            onSoftDelete:                   { id in await viewModel.performSoftDelete(id: id) },
+            onRestore:                      { id in await viewModel.performRestore(id: id) },
+            onPermanentDelete:              { id in await viewModel.performPermanentDelete(id: id) },
+            onToggleFavorite:               { viewModel.toggleFavorite(item: $0) },
+            editTrigger:                    viewModel.editTrigger,
+            saveTrigger:                    viewModel.saveTrigger,
+            gate:                           revealGate
+        )
+        // The gate's own prompt. Driven by the view model rather than by local state so
+        // there is exactly one place that decides a master password is owed.
+        .sheet(isPresented: Binding(
+            get: { viewModel.pendingReprompt != nil },
+            set: { presented in if !presented { viewModel.cancelReprompt() } }
+        )) {
+            RepromptSheet(viewModel: viewModel)
+        }
+        .toolbar { trashToolbarItems }
+    }
+
+    /// The verification-codes sheet's content, extracted from the modifier chain.
+    ///
+    /// A view body of this size is one expression to the type checker, and an inline closure here was
+    /// enough to push it past what the checker will do — reporting, unhelpfully, that some unrelated
+    /// toolbar button could not be type-checked.
+    @ViewBuilder
+    private var verificationCodesSheet: some View {
+        if let makeVerificationCodesViewModel {
+            VerificationCodesSheet(
+                makeViewModel: makeVerificationCodesViewModel,
+                onDismiss: { viewModel.isShowingVerificationCodes = false }
+            )
+        }
+    }
+
+    /// Opens the delete-folder confirmation.
+    ///
+    /// A method rather than an inline closure: multi-statement closures inside an initializer this size
+    /// are disproportionately expensive to infer, and this body is already near the checker's limit.
+    private func beginFolderDelete(_ folder: Folder) {
+        folderToDelete = folder
+        showDeleteFolderAlert = true
+    }
+
     private var revealGate: RevealGateBinding {
         guard let item = viewModel.itemSelection else { return .none }
-        return .gated(
-            isRevealed:     viewModel.isRevealed(item.id),
-            request:        { viewModel.toggleReveal(itemId: item.id) },
-            requiresPrompt: viewModel.needsPrompt(for: item),
-            copyGated:      { viewModel.copyGated(itemId: item.id, $0) }
-        )
+        return viewModel.revealGate(for: item)
     }
     @Environment(\.colorSchemeContrast) private var contrast
 
@@ -55,32 +246,46 @@ struct VaultBrowserView: View {
             sidebar: {
                 VStack(spacing: 0) {
                     SidebarView(
-                        selection: Binding(
-                            get: { viewModel.isGlobalSearch ? nil : viewModel.sidebarSelection },
-                            set: { newValue in
-                                if let value = newValue {
-                                    Task { @MainActor in viewModel.sidebarSelection = value }
-                                }
-                            }
-                        ),
+                        selection: sidebarSelectionBinding,
                         itemCounts: viewModel.itemCounts,
                         folders: viewModel.folders,
                         organizations: viewModel.organizations,
                         collections: viewModel.collections,
-                        onCreateFolder: { name in viewModel.createFolder(name: name) },
-                        onRenameFolder: { id, name in viewModel.renameFolder(id: id, name: name) },
-                        onDeleteFolder: { folder in
-                            folderToDelete = folder
-                            showDeleteFolderAlert = true
-                        },
-                        onDropItems: { ids, folderId in viewModel.moveItemsToFolder(itemIds: ids, folderId: folderId) },
-                        onCreateCollection: { name, orgId in viewModel.createCollection(name: name, organizationId: orgId) },
-                        onRenameCollection: { id, orgId, name in viewModel.renameCollection(id: id, organizationId: orgId, name: name) },
-                        onDeleteCollection: { id, orgId in viewModel.deleteCollection(id: id, organizationId: orgId) }
+                        actions: SidebarActions(
+                            createFolder: { viewModel.createFolder(name: $0) },
+                            renameFolder: { viewModel.renameFolder(id: $0, name: $1) },
+                            deleteFolder: beginFolderDelete,
+                            dropItems: { viewModel.moveItemsToFolder(itemIds: $0, folderId: $1) },
+                            createCollection: { viewModel.createCollection(name: $0, organizationId: $1) },
+                            renameCollection: { viewModel.renameCollection(id: $0, organizationId: $1, name: $2) },
+                            deleteCollection: { viewModel.deleteCollection(id: $0, organizationId: $1) },
+                            showVerificationCodes: { viewModel.isShowingVerificationCodes = true }
+                        )
                     )
-                    SyncStatusView(label: viewModel.syncStatusLabel, isSyncing: viewModel.isSyncing)
+                    SyncStatusView(
+                        label:           viewModel.syncStatusLabel,
+                        isSyncing:       viewModel.isSyncing,
+                        hasSynced:       viewModel.lastSyncedAt != nil,
+                        unreadableCount: viewModel.unreadableItemCount
+                    )
                 }
                 .navigationSplitViewColumnWidth(min: 180, ideal: 210)
+                // The vault search field, in the sidebar column.
+                //
+                // Moved here from the detail column: searching and choosing *where* to search belong
+                // in one place, and the sidebar is the column that says where. Only the placement
+                // changed — the binding, the focused state, the ⌘F activation and the global-search
+                // rules are the ones that were already here and tested.
+                //
+                // `settings-screen` requires the gear button to sit "next to the search field". It was
+                // already inaccurate — the gear is in this toolbar and the field was in the detail
+                // column's — and this is what makes it true.
+                .searchable(
+                    text: $viewModel.searchQuery,
+                    isPresented: $isSearchFieldFocused,
+                    placement: .sidebar,
+                    prompt: "Search vault"
+                )
                 .toolbar {
                     ToolbarItem(placement: .automatic) {
                         SettingsLink {
@@ -110,7 +315,6 @@ struct VaultBrowserView: View {
                             faviconLoader:  faviconLoader,
                             searchQuery:    viewModel.searchQuery.isEmpty ? nil : viewModel.searchQuery,
                             organizations:  viewModel.organizations,
-                            sortOrder:      viewModel.sortOrder,
                             onDelete:       { id in await viewModel.performSoftDelete(id: id) },
                             onToggleFavorite: { viewModel.toggleFavorite(item: $0) },
                             onDuplicate:    { viewModel.duplicateItem(id: $0.id) }
@@ -118,151 +322,13 @@ struct VaultBrowserView: View {
                     }
                 }
                 .toolbar {
-                    // Sort order. Lives next to `+` so the list's presentation controls sit
-                    // together; the checkmark shows which order is active.
-                    ToolbarItem(placement: .automatic) {
-                        Menu {
-                            ForEach(ItemSortOrder.allCases) { order in
-                                Button {
-                                    viewModel.sortOrder = order
-                                } label: {
-                                    if order == viewModel.sortOrder {
-                                        Label(order.displayName, systemImage: "checkmark")
-                                    } else {
-                                        Text(order.displayName)
-                                    }
-                                }
-                            }
-                        } label: {
-                            Image(systemName: "arrow.up.arrow.down")
-                        }
-                        .help(L("Sort Order"))
-                        .accessibilityLabel(L("Sort Order"))
-                        .accessibilityIdentifier(AccessibilityID.Vault.sortMenu)
-                    }
-
-                    // Manual sync (⌘R). Disabled and replaced by a spinner while a sync is running,
-                    // so the button cannot queue a second one.
-                    ToolbarItem(placement: .automatic) {
-                        Button {
-                            viewModel.performManualSync()
-                        } label: {
-                            if viewModel.isSyncing {
-                                ProgressView()
-                                    .controlSize(.small)
-                            } else {
-                                Image(systemName: "arrow.clockwise")
-                            }
-                        }
-                        .disabled(viewModel.isSyncing)
-                        .help(L("Sync Now (⌘R)"))
-                        .accessibilityLabel(L("Sync Now"))
-                        .accessibilityIdentifier(AccessibilityID.Vault.syncButton)
-                    }
-
-                    ToolbarItem(placement: .primaryAction) {
-                        Menu {
-                            ForEach(ItemType.allCases) { type in
-                                Button {
-                                    viewModel.createItemType = type
-                                } label: {
-                                    Label(type.displayName, systemImage: type.sfSymbol)
-                                }
-                            }
-                        } label: {
-                            Image(systemName: "plus")
-                        }
-                        .help("New Item (⌘N)")
-                        .accessibilityLabel("New Item")
-                        .accessibilityIdentifier(AccessibilityID.Create.newItemButton)
-                        .menuIndicator(.visible)
-                        .background {
-                            Button("") { viewModel.createItemType = .login }
-                                .keyboardShortcut("n", modifiers: .command)
-                                .frame(width: 0, height: 0)
-                                .opacity(0)
-                        }
-                    }
+                    sortOrderToolbarItem
+                    syncToolbarItem
+                    newItemToolbarItem
                 }
                 .navigationSplitViewColumnWidth(min: 220, ideal: 280)
             },
-            detail: {
-                ItemDetailView(
-                    item:                           viewModel.itemSelection,
-                    faviconLoader:                  faviconLoader,
-                    folders:                        viewModel.folders,
-                    organizations:                  viewModel.organizations,
-                    onCopy:                         { viewModel.copy($0) },
-                    makeEditViewModel:              makeEditViewModel,
-                    makeAddAttachmentViewModel:     makeAddAttachmentViewModel,
-                    makeBatchAttachmentViewModel:   makeBatchAttachmentViewModel,
-                    makeAttachmentRowViewModel:     makeAttachmentRowViewModel,
-                    makePasswordHistoryViewModel:   makePasswordHistoryViewModel,
-                    makePasskeysViewModel:          makePasskeysViewModel,
-                    makeTOTPCodeViewModel:          makeTOTPCodeViewModel,
-                    onAttachmentsChanged:           { viewModel.refreshItemSelection() },
-                    onEditSheetChanged:             { viewModel.handleEditSheetState($0) },
-                    onSoftDelete:                   { id in await viewModel.performSoftDelete(id: id) },
-                    onRestore:                      { id in await viewModel.performRestore(id: id) },
-                    onPermanentDelete:              { id in await viewModel.performPermanentDelete(id: id) },
-                    editTrigger:                    viewModel.editTrigger,
-                    saveTrigger:                    viewModel.saveTrigger,
-                    gate:                           revealGate
-                )
-                // The gate's own prompt. Driven by the view model rather than by local state so
-                // there is exactly one place that decides a master password is owed.
-                .sheet(isPresented: Binding(
-                    get: { viewModel.pendingReprompt != nil },
-                    set: { presented in if !presented { viewModel.cancelReprompt() } }
-                )) {
-                    RepromptSheet(viewModel: viewModel)
-                }
-                .toolbar {
-                    if let item = viewModel.itemSelection {
-                        if item.isDeleted {
-                            ToolbarItem(placement: .primaryAction) {
-                                Button("Restore") {
-                                    Task { await viewModel.performRestore(id: item.id) }
-                                }
-                                .accessibilityIdentifier(AccessibilityID.Trash.restoreButton)
-                            }
-                            ToolbarItem(placement: .destructiveAction) {
-                                Button("Delete Permanently", role: .destructive) {
-                                    showPermanentDeleteAlert = true
-                                }
-                                .foregroundStyle(.red)
-                                .accessibilityIdentifier(AccessibilityID.Trash.permanentDeleteButton)
-                            }
-                        } else {
-                            ToolbarItem(placement: .primaryAction) {
-                                Button {
-                                    viewModel.toggleFavorite(item: item)
-                                } label: {
-                                    Image(systemName: item.isFavorite ? "star.fill" : "star")
-                                        .foregroundStyle(item.isFavorite ? .yellow : .secondary)
-                                }
-                                .help(item.isFavorite ? L("Unfavorite") : L("Favorite"))
-                                .accessibilityLabel(item.isFavorite ? L("Unfavorite") : L("Favorite"))
-                                .accessibilityValue(item.isFavorite ? L("Favorited") : L("Not favorited"))
-                            }
-                            ToolbarItem(placement: .primaryAction) {
-                                Button("Edit") {
-                                    viewModel.triggerEdit()
-                                }
-                                .disabled(viewModel.editSheetOpen)
-                                .keyboardShortcut("e", modifiers: .command)
-                                .accessibilityIdentifier(AccessibilityID.Edit.editButton)
-                            }
-                        }
-                    }
-                }
-                .searchable(
-                    text: $viewModel.searchQuery,
-                    isPresented: $isSearchFieldFocused,
-                    placement: .toolbar,
-                    prompt: "Search vault"
-                )
-            }
+            detail: { detailColumn }
         )
         .navigationSplitViewStyle(.balanced)
         .alert("Action Failed", isPresented: Binding(
@@ -349,10 +415,14 @@ struct VaultBrowserView: View {
                     sheet: sheet,
                     itemCount: viewModel.itemCounts[.allItems] ?? 0,
                     onDismiss: { viewModel.dismissBackupSheet() },
-                    onConfirmExport: { viewModel.confirmExport() }
+                    onConfirmExport: { viewModel.confirmExport() },
+                    exportFormat: $viewModel.exportFormat
                 )
             }
         }
+        // Verification codes. A sheet, and built here rather than held, so the rows' timers exist only
+        // while it is up.
+        .sheet(isPresented: $viewModel.isShowingVerificationCodes) { verificationCodesSheet }
     }
 
     // MARK: - Sync Error Banner

@@ -16,6 +16,10 @@ struct ExportConsentSheet: View {
     /// How many items will be written. Shown so the number is concrete rather than "your vault".
     let itemCount: Int
 
+    /// The format to write. Bound so the choice is made here — the consent sheet is where the user is
+    /// already being told what the file will and will not contain, which is exactly what decides it.
+    @Binding var format: VaultExportFormat
+
     let onCancel: () -> Void
     let onConfirm: () -> Void
 
@@ -34,10 +38,24 @@ struct ExportConsentSheet: View {
             Text(L("%d items will be written to a file on this Mac.", itemCount))
                 .fixedSize(horizontal: false, vertical: true)
 
+            Picker(L("Format"), selection: $format) {
+                ForEach(VaultExportFormat.allCases) { option in
+                    Text(option.displayName).tag(option)
+                }
+            }
+            .pickerStyle(.radioGroup)
+            .accessibilityIdentifier(AccessibilityID.Vault.formatPicker)
+
             VStack(alignment: .leading, spacing: 8) {
                 bullet(L("The file is not encrypted. It contains every password, note, one-time-code seed and previous password in plain text."))
                 bullet(L("Anyone who can read the file can read your vault."))
                 bullet(L("Attachments and passkeys are not included. Items in Trash are not included."))
+                // Stated here rather than discovered by counting rows in the file. This is the
+                // official behaviour for the unencrypted formats — it is not a Prizm limitation — but
+                // it is still a surprise worth removing before the user commits.
+                if format == .csv {
+                    bullet(L("CSV holds logins only. Cards, identities, secure notes and SSH keys cannot be written to it — choose JSON to export everything."))
+                }
                 bullet(L("Store it somewhere safe and delete it when you are done."))
             }
 

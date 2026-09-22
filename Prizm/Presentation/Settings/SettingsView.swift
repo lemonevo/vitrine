@@ -163,6 +163,11 @@ struct SettingsView: View {
                 .onChange(of: timeoutAction) { _, action in
                     saveTimeout(interval: timeoutInterval, action: action)
                 }
+                // Outside the `switch biometry` above, deliberately: a PIN is most useful exactly
+                // when biometrics are not available — no sensor, a failed sensor, or a build without
+                // the entitlement. Nested inside that switch it would disappear in the case it exists for.
+                PinUnlockSection(authRepository: authRepository)
+
                 ServerTrustSection(
                     store:               serverTrustStore,
                     host:                serverHost,
