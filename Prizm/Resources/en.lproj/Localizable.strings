@@ -115,6 +115,7 @@
 "Could not read the vault: %@" = "Could not read the vault: %@";
 "Could not save file: %@" = "Could not save file: %@";
 "Country" = "Country";
+"Created" = "Created";
 "Created:" = "Created:";
 "Credentials" = "Credentials";
 "Custom Fields" = "Custom Fields";
@@ -254,6 +255,7 @@
 "Middle Name" = "Middle Name";
 "Missing two-factor" = "Missing two-factor";
 "Mode" = "Mode";
+"Modified" = "Modified";
 "Move down" = "Move down";
 "Move to Trash" = "Move to Trash";
 "Move to Trash?" = "Move to Trash?";

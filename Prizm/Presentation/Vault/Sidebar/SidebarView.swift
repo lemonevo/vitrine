@@ -36,6 +36,8 @@ struct SidebarView: View {
     /// Everything the sidebar can ask its owner to do.
     var actions = SidebarActions()
 
+    @Environment(\.colorSchemeContrast) private var contrast
+
     // Inline folder rename/create state
     @State private var renamingFolderId: String?
     @State private var renameText: String = ""
@@ -117,11 +119,16 @@ struct SidebarView: View {
                     // `voiceover-labels`. It was changed to `plus.circle` incidentally, inside the
                     // organisation-support PR, which never mentioned it — so it went unnoticed for
                     // months. Do not "tidy" this one.
+                    //
+                    // Sized and coloured as a caption affordance, not a headline. At `.title3` in the
+                    // primary colour it was the heaviest thing in the pane: a 20pt dark glyph beside an
+                    // 11pt muted caption, on a row it also made taller than every caption above it. It
+                    // read as a control that had landed on the heading rather than as part of it. Same
+                    // 12.5pt as the row glyphs, and the caption's own muted weight.
                     Image(systemName: "folder.badge.plus")
-                        .font(.title3)
+                        .font(.system(size: 12.5))
                         .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(.primary)
-                        .offset(y: -4)
+                        .foregroundStyle(Foreground.muted)
                         .alignmentGuide(.firstTextBaseline) { d in d[VerticalAlignment.center] }
                 }
                 .buttonStyle(.plain)
@@ -151,6 +158,11 @@ struct SidebarView: View {
             .font(Typography.sectionLabel)
             .tracking(Spacing.sectionLabelTracking)
             .foregroundStyle(Foreground.muted)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            // Only the gap *below* the caption is added here. `List` supplies its own space above a
+            // section header, and stacking the mock's 16pt on top of that produced a gap twice what the
+            // picture shows — the number in the pass describes a hand-built column, not a list.
+            .padding(.bottom, Spacing.sidebarSectionBottom)
             .accessibilityAddTraits(.isHeader)
     }
 
@@ -160,25 +172,41 @@ struct SidebarView: View {
     private func renderRows(for section: SidebarSection) -> some View {
         switch section {
         case .menu:
-            SidebarRowView(title: SidebarSelection.allItems.displayName, systemImage: "square.grid.2x2", selection: .allItems, count: itemCounts[.allItems] ?? 0, identifier: AccessibilityID.Sidebar.allItems)
-            SidebarRowView(title: SidebarSelection.favorites.displayName, systemImage: "star", selection: .favorites, count: itemCounts[.favorites] ?? 0, tint: Foreground.favorite, identifier: AccessibilityID.Sidebar.favorites)
+            SidebarRowView(title: SidebarSelection.allItems.displayName, systemImage: "square.grid.2x2", selection: .allItems, count: itemCounts[.allItems] ?? 0, isSelected: selection == .allItems, identifier: AccessibilityID.Sidebar.allItems)
+            SidebarRowView(title: SidebarSelection.favorites.displayName, systemImage: "star", selection: .favorites, count: itemCounts[.favorites] ?? 0, isSelected: selection == .favorites, tint: Foreground.favorite, identifier: AccessibilityID.Sidebar.favorites)
 
             // A view rather than a scope, so it is a button and carries no selection tag: opening a
             // sheet is not "being in" a category, and a highlighted row left behind afterwards would
             // say otherwise.
+            //
+            // Built to the same anatomy as `SidebarRowView` — icon column, title, trailing slot — plus
+            // the chevron the reference shows, because this row leads somewhere rather than selecting
+            // something. A `Label` here sat at a different indent from every row around it.
             Button(action: actions.showVerificationCodes) {
-                Label {
+                HStack(spacing: 0) {
+                    Image(systemName: "lock.shield")
+                        .font(.system(size: 12.5))
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(Foreground.muted)
+                        .padding(.leading, 6)
+                        .frame(width: Spacing.sidebarIconWidth, alignment: .leading)
+
                     Text(L("Verification Codes"))
                         .font(Typography.sidebarRow)
-                } icon: {
-                    Image(systemName: "lock.shield")
+                        .lineLimit(1)
+                        .padding(.leading, 8)
+
+                    Spacer(minLength: 4)
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 10, weight: .semibold))
                         .foregroundStyle(Foreground.muted)
-                        .frame(width: Spacing.sidebarIconWidth)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .sidebarRow(isSelected: false, contrast: contrast)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .listRowSeparator(.hidden)
             .accessibilityIdentifier(AccessibilityID.Vault.verificationCodesButton)
         case .folders:
             if isCreatingFolder {
@@ -197,6 +225,7 @@ struct SidebarView: View {
                 FolderTreeRow(
                     node: node,
                     itemCounts: itemCounts,
+                    selection: selection,
                     expandedIds: $expandedFolderIds,
                     renamingFolderId: $renamingFolderId,
                     renameText: $renameText,
@@ -215,13 +244,14 @@ struct SidebarView: View {
             }
         case .types:
             ForEach(ItemType.allCases, id: \.self) { type in
-                SidebarRowView(title: type.displayName, systemImage: type.sfSymbol, selection: .type(type), count: itemCounts[.type(type)] ?? 0, tint: type.tint, identifier: AccessibilityID.Sidebar.type(type.rawValue))
+                SidebarRowView(title: type.displayName, systemImage: type.sfSymbol, selection: .type(type), count: itemCounts[.type(type)] ?? 0, isSelected: selection == .type(type), tint: type.tint, identifier: AccessibilityID.Sidebar.type(type.rawValue))
             }
         case .organizations:
             ForEach(organizations) { org in
                 let orgCollections = collections.filter { $0.organizationId == org.id }
                 OrgDisclosureRow(
                     org: org,
+                    selection: selection,
                     collections: orgCollections,
                     itemCounts: itemCounts,
                     isExpanded: Binding(
@@ -244,7 +274,7 @@ struct SidebarView: View {
                 )
             }
         case .trash:
-            SidebarRowView(title: SidebarSelection.trash.displayName, systemImage: "trash", selection: .trash, count: itemCounts[.trash] ?? 0, tint: Foreground.muted, identifier: AccessibilityID.Sidebar.trash)
+            SidebarRowView(title: SidebarSelection.trash.displayName, systemImage: "trash", selection: .trash, count: itemCounts[.trash] ?? 0, isSelected: selection == .trash, tint: Foreground.muted, identifier: AccessibilityID.Sidebar.trash)
         }
     }
 
@@ -264,6 +294,9 @@ struct SidebarView: View {
 private struct FolderTreeRow: View {
     let node: FolderTreeNode
     let itemCounts: [SidebarSelection: Int]
+    /// Read down from the pane so each row can mark itself; the rows are built by this walker, which is
+    /// the only place that knows both the row's tag and the current selection.
+    let selection: SidebarSelection?
     @Binding var expandedIds: Set<String>
     @Binding var renamingFolderId: String?
     @Binding var renameText: String
@@ -285,6 +318,7 @@ private struct FolderTreeRow: View {
                     FolderTreeRow(
                         node: child,
                         itemCounts: itemCounts,
+                        selection: selection,
                         expandedIds: $expandedIds,
                         renamingFolderId: $renamingFolderId,
                         renameText: $renameText,
@@ -330,6 +364,7 @@ private struct FolderTreeRow: View {
                 folder: folder,
                 displayName: node.name,
                 count: itemCounts[.folder(folder.id)] ?? 0,
+                isSelected: selection == .folder(folder.id),
                 onRename: {
                     renameText = node.name
                     renamingFolderId = folder.id
@@ -354,6 +389,9 @@ private struct FolderRowLabel: View {
     let folder: Folder
     var displayName: String? = nil
     let count: Int
+    /// Whether this folder is the pane's current selection. Passed in rather than read, because the row
+    /// is built by the tree walker, which owns the binding.
+    let isSelected: Bool
     var onRename: () -> Void
     var onDelete: () -> Void
     var onDrop: ([String]) -> Void
@@ -371,6 +409,7 @@ private struct FolderRowLabel: View {
                 .frame(width: Spacing.sidebarIconWidth)
         }
             .badge(count)
+            .sidebarRow(isSelected: isSelected, contrast: contrast)
             .tag(SidebarSelection.folder(folder.id))
             .listRowBackground(isDropTargeted ? Color.accentColor.opacity(Opacity.dropTarget(contrast)) : Color.clear)
             .contextMenu {
@@ -415,6 +454,7 @@ enum SidebarSection: String, CaseIterable {
 /// The header optionally shows a `+` button when the user can manage collections.
 private struct OrgDisclosureRow: View {
     let org: Organization
+    let selection: SidebarSelection?
     let collections: [OrgCollection]
     let itemCounts: [SidebarSelection: Int]
     @Binding var isExpanded: Bool
@@ -458,6 +498,7 @@ private struct OrgDisclosureRow: View {
                     node: node,
                     org: org,
                     itemCounts: itemCounts,
+                    selection: selection,
                     renamingCollectionId: $renamingCollectionId,
                     renamingCollectionOrgId: $renamingCollectionOrgId,
                     collectionRenameText: $collectionRenameText,
@@ -531,6 +572,7 @@ private struct CollectionTreeRow: View {
     let node: CollectionTreeNode
     let org: Organization
     let itemCounts: [SidebarSelection: Int]
+    let selection: SidebarSelection?
     @Binding var renamingCollectionId: String?
     @Binding var renamingCollectionOrgId: String?
     @Binding var collectionRenameText: String
@@ -539,6 +581,7 @@ private struct CollectionTreeRow: View {
     var onDeleteCollection: (OrgCollection) -> Void
 
     @State private var isExpanded = false
+    @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
         if node.hasChildren {
@@ -548,6 +591,7 @@ private struct CollectionTreeRow: View {
                         node: child,
                         org: org,
                         itemCounts: itemCounts,
+                        selection: selection,
                         renamingCollectionId: $renamingCollectionId,
                         renamingCollectionOrgId: $renamingCollectionOrgId,
                         collectionRenameText: $collectionRenameText,
@@ -593,6 +637,7 @@ private struct CollectionTreeRow: View {
                     .frame(width: Spacing.sidebarIconWidth)
             }
                 .badge(itemCounts[.collection(col.id)] ?? 0)
+                .sidebarRow(isSelected: selection == .collection(col.id), contrast: contrast)
                 .tag(SidebarSelection.collection(col.id))
                 .contextMenu {
                     if org.canManageCollections {
@@ -623,6 +668,7 @@ private struct SidebarRowView: View {
     let systemImage: String
     let selection:   SidebarSelection
     let count:       Int
+    let isSelected:  Bool
     /// The icon's colour. Defaults to the accent colour — the menu rows.
     var tint:        Color = .accentColor
     /// The identifier a UI test reaches this row by.
@@ -632,19 +678,70 @@ private struct SidebarRowView: View {
     /// default would let the next row be added the same way.
     let identifier:  String
 
+    @Environment(\.colorSchemeContrast) private var contrast
+
     var body: some View {
-        Label {
+        HStack(spacing: 0) {
+            Image(systemName: systemImage)
+                .font(.system(size: 12.5))
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(tint)
+                // Clear of the 3pt selection bar, which sits at the row's own leading edge.
+                .padding(.leading, 6)
+                .frame(width: Spacing.sidebarIconWidth, alignment: .leading)
+
             Text(title)
                 .font(Typography.sidebarRow)
-        } icon: {
-            // `Label`'s two-argument form styles icon and text together, so the icon is built by hand
-            // to carry the type tint while the title stays in the primary text colour.
-            Image(systemName: systemImage)
-                .foregroundStyle(tint)
-                .frame(width: Spacing.sidebarIconWidth)
+                .lineLimit(1)
+                .padding(.leading, 8)
+
+            Spacer(minLength: 4)
+
+            // A fixed column, not `.badge`: with a badge the count sits wherever each label ended, so
+            // "86" and "1" do not line up down the same list.
+            Text(count > 0 ? "\(count)" : "")
+                .font(Typography.listSubtitle)
+                .monospacedDigit()
+                .foregroundStyle(Foreground.muted)
+                .frame(width: Spacing.sidebarCountColumn, alignment: .trailing)
         }
-        .badge(count)
+        .sidebarRow(isSelected: isSelected, contrast: contrast)
         .tag(selection)
         .accessibilityIdentifier(identifier)
+    }
+}
+
+// MARK: - Row chrome
+
+private extension View {
+    /// The sidebar's row shape and its selection marks: 30pt tall, a faint accent fill and a 3pt bar.
+    ///
+    /// Shared because the pane has four row kinds (menu/type/trash, folder, organisation, collection)
+    /// and a selection that looked different on two of them is worse than either style on its own.
+    func sidebarRow(isSelected: Bool, contrast: ColorSchemeContrast) -> some View {
+        self
+            .frame(height: Spacing.sidebarRowHeight)
+            // Every point here comes out of the label's width, and the pane is narrower than the pass's
+            // picture assumes. The first version of this added 10 + 24 + 6 = 40pt of chrome to each row
+            // and truncated "全部项目" to "全部…", which the previous `.badge` layout never did.
+            .padding(.leading, 2)
+            .padding(.trailing, 2)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: Spacing.selectionCornerRadius)
+                    .fill(isSelected
+                          ? Color.accentColor.opacity(Opacity.selectionFill(contrast))
+                          : Color.clear)
+            )
+            .overlay(alignment: .leading) {
+                RoundedRectangle(cornerRadius: Spacing.selectionBarRadius)
+                    .fill(isSelected ? Color.accentColor : Color.clear)
+                    .frame(width: Spacing.selectionBarWidth, height: Spacing.selectionBarHeight)
+            }
+            // The pane's rows are separated by their own alignment now; the list's rules cut through the
+            // selection fill, and the mock has no rules in the sidebar at all.
+            .listRowSeparator(.hidden)
+            .listRowInsets(EdgeInsets(top: 1, leading: 0, bottom: 1, trailing: 0))
+            .contentShape(Rectangle())
     }
 }

@@ -360,9 +360,14 @@ enum Spacing {
     /// bar and the label all sit on the same baseline down the list.
     static let sidebarRowHeight: CGFloat = 30
 
-    /// Space above a sidebar section caption, and below it. The caption belongs to what follows, so the
-    /// gap beneath it is a third of the gap above.
-    static let sidebarSectionTop: CGFloat = 16
+    /// Width reserved for a row's count, so every count ends at one x.
+    ///
+    /// Narrower than the pass drew (24 → 20): the pane is tighter than the picture assumes, and this
+    /// width comes straight out of the label's.
+    static let sidebarCountColumn: CGFloat = 20
+
+    /// Space below a sidebar section caption, down to its first row. The gap *above* is left to `List`,
+    /// which already spaces section headers — adding the pass's 16pt on top of that doubled it.
     static let sidebarSectionBottom: CGFloat = 5
 
     /// Letter-spacing on the uppercase section captions. At 11pt an uppercase run with default tracking

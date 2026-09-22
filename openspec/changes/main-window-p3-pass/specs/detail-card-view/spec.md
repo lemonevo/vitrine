@@ -79,10 +79,20 @@ the row it mirrors already does.
 
 ---
 
-## Deliberate deviation from the design pass
+### Requirement: A card is lighter than the pane it sits on
 
-The pass drew cards on a white (light) / `#212121` (dark) fill. This requirement set does **not** adopt
-it, and the existing `#FAFAFA` / `#2C2C2C` asset stays: in light aqua the pane's own background resolves
-to white, so a white card would be separated from its window by nothing but the hairline, and in dark the
-proposed fill is *closer* to the window than the current one, not further. The asset was measured against
-its surfaces; the mock's value was picked to look right in a picture.
+The card fill SHALL be white in light aqua and `#212121` in dark, against the window's own grey — the
+separation is the fill, and the hairline only refines it.
+
+An earlier cut of this change kept the previous asset values (`#FAFAFA` / `#2C2C2C`) on the grounds that a
+white card would be indistinguishable from its background. That argument was wrong, and wrong in a way
+worth recording: it measured the pane against `NSColor.windowBackgroundColor` resolved outside a drawing
+context, where it comes back **pure white**, and concluded the card would vanish. In the running app the
+window is grey and a white card is the clearest thing on the pane.
+
+#### Scenario: The card separates by its fill, not only by its edge
+
+- **WHEN** a card is drawn on the detail pane in either appearance
+- **THEN** its fill SHALL differ from the window's by more than the hairline alone
+- **AND** the hairline SHALL stay at `Opacity.cardBorder`, which Increase Contrast raises
+

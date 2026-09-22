@@ -78,12 +78,11 @@ nonisolated enum AccessibilityID {
         static let formatPicker     = "vault.backup.exportFormat"
         /// The line naming how many items the chosen format could not carry.
         static let omittedCount     = "vault.backup.omittedCount"
-        static let settingsButton    = "vault.settings"
         /// The toolbar button opening the vault-wide verification-codes list.
         static let verificationCodesButton = "vault.verificationCodes"
-        /// The manual sync button in the content toolbar (⌘R).
+        /// The manual sync button at the end of the sidebar's status row (⌘R).
         static let syncButton        = "vault.button.sync"
-        /// The sort-order menu in the content toolbar.
+        /// The sort-order menu at the window's trailing edge.
         static let sortMenu          = "vault.menu.sort"
     }
 

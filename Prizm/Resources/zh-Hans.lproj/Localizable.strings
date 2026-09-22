@@ -115,6 +115,7 @@
 "Could not read the vault: %@" = "无法读取保险库：%@";
 "Could not save file: %@" = "无法保存文件：%@";
 "Country" = "国家/地区";
+"Created" = "创建时间";
 "Created:" = "创建于：";
 "Credentials" = "凭据";
 "Custom Fields" = "自定义字段";
@@ -254,6 +255,7 @@
 "Middle Name" = "中间名";
 "Missing two-factor" = "缺少两步验证";
 "Mode" = "模式";
+"Modified" = "修改时间";
 "Move down" = "下移";
 "Move to Trash" = "移到废纸篓";
 "Move to Trash?" = "移到废纸篓？";

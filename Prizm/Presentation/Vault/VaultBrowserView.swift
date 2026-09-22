@@ -80,36 +80,50 @@ struct VaultBrowserView: View {
                     }
                 }
             } label: {
-                Image(systemName: "arrow.up.arrow.down")
+                // An `HStack`, not a `Label`. A toolbar is free to collapse a `Label` to its icon when it
+                // judges there is no room for the title, and that is what it did here: the word on the
+                // control — the whole point of the item — disappeared. Built by hand, it is drawn as
+                // written.
+                HStack(spacing: 4) {
+                    Image(systemName: "arrow.up.arrow.down")
+                    Text(viewModel.sortOrder.toolbarLabel)
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 8, weight: .semibold))
+                        .foregroundStyle(Foreground.muted)
+                }
+                .foregroundStyle(.primary)
             }
+            // `.borderlessButton`, not `.button`: the latter draws the label in a button's own chrome,
+            // and in a macOS 26 toolbar that chrome is the rounded capsule the reference does not have.
+            // `.buttonStyle(.plain)` was already applied when the capsule was still drawn, so the
+            // chrome comes from the menu style, not from the button style.
+            .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+            .buttonStyle(.plain)
             .help(L("Sort Order"))
             .accessibilityLabel(L("Sort Order"))
             .accessibilityIdentifier(AccessibilityID.Vault.sortMenu)
         }
+        // macOS 26 draws each toolbar item on its own shared capsule — the new chrome — which is the
+        // pill the reference does not have. Hiding it leaves the label itself, flat, which is what the
+        // picture shows: a sort label and, in the action colour, "New Item".
+        .sharedBackgroundVisibility(.hidden)
     }
 
-    /// Manual sync (⌘R). Disabled and replaced by a spinner while a sync is running, so the button
-    /// cannot queue a second one.
+    /// The browser's own controls, minus the ones a trashed item replaces.
     ///
-    /// Extracted for the same reason as `sortOrderToolbarItem`: `NavigationSplitView { } content: { }
-    /// detail: { }` is a single expression to the type checker, and this file has crossed its limit
-    /// more than once.
-    private var syncToolbarItem: some ToolbarContent {
-        ToolbarItem(placement: .automatic) {
-            Button {
-                viewModel.performManualSync()
-            } label: {
-                if viewModel.isSyncing {
-                    ProgressView()
-                        .controlSize(.small)
-                } else {
-                    Image(systemName: "arrow.clockwise")
-                }
-            }
-            .disabled(viewModel.isSyncing)
-            .help(L("Sync Now (⌘R)"))
-            .accessibilityLabel(L("Sync Now"))
-            .accessibilityIdentifier(AccessibilityID.Vault.syncButton)
+    /// `list-column-header` requires the create menu to be **absent from the view tree** in Trash
+    /// rather than merely disabled, because the ⌘N shortcut rides in a hidden companion button inside
+    /// the menu item — hide the item and the shortcut goes with it. The requirement was written when
+    /// this item lived on the content column, where the `List` swapped for `TrashView` and the item
+    /// was declared beside it; it has been unconditional since. Extracted into a builder because an
+    /// `if` written straight into the toolbar closure is enough to exceed the type checker on this
+    /// view — the same reason `trashToolbarItems` exists.
+    @ToolbarContentBuilder
+    private var browserToolbarItems: some ToolbarContent {
+        sortOrderToolbarItem
+        if viewModel.sidebarSelection != .trash {
+            newItemToolbarItem
         }
     }
 
@@ -153,12 +167,26 @@ struct VaultBrowserView: View {
                     }
                 }
             } label: {
-                Image(systemName: "plus")
+                // Same reason as the sort control: a `Label` here renders as a bare plus.
+                HStack(spacing: 4) {
+                    Image(systemName: "plus")
+                        .font(.system(size: 12, weight: .semibold))
+                    Text(L("New Item"))
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 8, weight: .semibold))
+                }
+                .foregroundStyle(Foreground.action)
             }
+            // `.borderlessButton`, not `.button`: the latter draws the label in a button's own chrome,
+            // and in a macOS 26 toolbar that chrome is the rounded capsule the reference does not have.
+            // `.buttonStyle(.plain)` was already applied when the capsule was still drawn, so the
+            // chrome comes from the menu style, not from the button style.
+            .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+            .buttonStyle(.plain)
             .help("New Item (⌘N)")
             .accessibilityLabel("New Item")
             .accessibilityIdentifier(AccessibilityID.Create.newItemButton)
-            .menuIndicator(.visible)
             .background {
                 Button("") { viewModel.createItemType = .login }
                     .keyboardShortcut("n", modifiers: .command)
@@ -166,6 +194,7 @@ struct VaultBrowserView: View {
                     .opacity(0)
             }
         }
+        .sharedBackgroundVisibility(.hidden)
     }
 
     /// The detail column, extracted from the `NavigationSplitView` expression.
@@ -206,7 +235,18 @@ struct VaultBrowserView: View {
         )) {
             RepromptSheet(viewModel: viewModel)
         }
-        .toolbar { trashToolbarItems }
+        .toolbar {
+            trashToolbarItems
+            // Everything after a flexible spacer is drawn against the window's trailing edge, and
+            // this is the only arrangement that does it. Measured in a window-sized probe of the
+            // three-column split: the same items declared on the content column land inside that
+            // column's span; on the split view itself (or with `placement: .primaryAction`, or as a
+            // `.primaryAction` group) they pack in behind the sidebar toggle. `placement` has no
+            // effect inside a column — the column owns the position — so the trailing edge has to be
+            // reached by pushing with a spacer from the column that is already last.
+            ToolbarSpacer(.flexible)
+            browserToolbarItems
+        }
     }
 
     /// The verification-codes sheet's content, extracted from the modifier chain.
@@ -262,14 +302,16 @@ struct VaultBrowserView: View {
                             showVerificationCodes: { viewModel.isShowingVerificationCodes = true }
                         )
                     )
+                    // The refresh control rides with the state it refreshes, at the end of the sidebar's
+                    // status row, rather than sitting in the titlebar beside the sort control.
                     SyncStatusView(
                         label:           viewModel.syncStatusLabel,
                         isSyncing:       viewModel.isSyncing,
                         hasSynced:       viewModel.lastSyncedAt != nil,
-                        unreadableCount: viewModel.unreadableItemCount
+                        unreadableCount: viewModel.unreadableItemCount,
+                        onSync:          { viewModel.performManualSync() }
                     )
                 }
-                .navigationSplitViewColumnWidth(min: 180, ideal: 210)
                 // The vault search field, in the sidebar column.
                 //
                 // Moved here from the detail column: searching and choosing *where* to search belong
@@ -277,24 +319,21 @@ struct VaultBrowserView: View {
                 // changed — the binding, the focused state, the ⌘F activation and the global-search
                 // rules are the ones that were already here and tested.
                 //
-                // `settings-screen` requires the gear button to sit "next to the search field". It was
-                // already inaccurate — the gear is in this toolbar and the field was in the detail
-                // column's — and this is what makes it true.
+                // No gear button beside it: the approved reference's strip holds nothing between the
+                // traffic lights and the sidebar toggle. Settings remains in the app menu (⌘,).
                 .searchable(
                     text: $viewModel.searchQuery,
                     isPresented: $isSearchFieldFocused,
                     placement: .sidebar,
                     prompt: "Search vault"
                 )
-                .toolbar {
-                    ToolbarItem(placement: .automatic) {
-                        SettingsLink {
-                            Image(systemName: "gearshape")
-                        }
-                        .accessibilityLabel("Settings")
-                        .accessibilityIdentifier(AccessibilityID.Vault.settingsButton)
-                    }
-                }
+                // Last in the chain on purpose, and the ordering is the point: measured against a
+                // saved-column readout, with `.searchable` and `.toolbar` applied *after* this
+                // preference the sidebar laid out at 144pt — below the 200pt minimum declared right
+                // here — while the content column, which applies the same modifier last, holds its
+                // 262pt ideal. The preference was being dropped for this column, not ignored by the
+                // API, so it now goes last.
+                .navigationSplitViewColumnWidth(min: 200, ideal: 216, max: 280)
             },
             content: {
                 VStack(spacing: 0) {
@@ -321,12 +360,7 @@ struct VaultBrowserView: View {
                         )
                     }
                 }
-                .toolbar {
-                    sortOrderToolbarItem
-                    syncToolbarItem
-                    newItemToolbarItem
-                }
-                .navigationSplitViewColumnWidth(min: 220, ideal: 280)
+                .navigationSplitViewColumnWidth(min: 240, ideal: 262, max: 340)
             },
             detail: { detailColumn }
         )

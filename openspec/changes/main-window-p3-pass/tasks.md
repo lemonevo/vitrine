@@ -48,21 +48,13 @@ its own; the mock is deleted only after cut ③, because until then it is the re
       replaced by one table over **all nine** functions — the five old ones covered five of eight and let
       `typeChip`, `hairline` and `authCardBorder` go unasserted while a contrast delta required them.
 
-### Deliberate deviations from the mock in cut ②
+### Cut ② deviations, later reversed by the user
 
-Three things §6 draws that the live sidebar does not need, each checked rather than assumed:
-
-- [x] **Counts stay on `.badge`.** The mock's complaint was "86 and 1 at two different x values". The
-      render shows `.badge` already right-aligns every count in a column; a fixed 24pt frame would be a
-      second mechanism doing what the first one already does.
-- [x] **No custom selection in the sidebar.** `.listStyle(.sidebar)` already draws a rounded accent fill,
-      which is the mock's own mark. Adding the bar there too would be a second signal for one state.
-      Caveat recorded honestly: the harness window is never key, so its screenshot shows the *inactive*
-      grey version of the native selection — what the live pane looks like in a key window is not
-      verifiable from here, and nobody should read the shot as confirming it.
-- [x] **No fixed sidebar row height.** §6 asks for one section rhythm and one indent; it does not ask for
-      a row height, and the mock's 30pt is incidental. Forcing it would risk clipping the folder rows'
-      badges for a goal the pass never stated.
+Cut ② declined three things the mock draws — the sidebar's fixed count column, its own selection marks,
+and a fixed row height — on the argument that the native equivalents already achieved the same result.
+The user's answer after seeing the running app was "我要的是全面仿造第一张做", so cut ④ implements all
+three. The reasoning that declined them was not unreasonable, but it was mine, and the picture was the
+spec.
 
 ## 3. Cut ③ — detail and controls (§1, §3, §4, §7)
 
@@ -99,18 +91,47 @@ Three things §6 draws that the live sidebar does not need, each checked rather 
   pane's own background resolves to white, so the mock's card would be separated from its window by
   nothing but the hairline. Recorded in the delta.
 
-## 4. Verification, per cut
+## 4. Cut ④ — match the picture everywhere (the user's override)
 
-- [x] 4.1 Full suite green after each cut, with the executed count equal to the `func test` declaration
-      count: cut ① 1557/0, cut ② 1553/0 (five opacity tests became one), cut ③ see 4.6.
-- [x] 4.2 Screenshots re-rendered and actually looked at, both appearances: `vault-login`,
+- [x] 4.1 Titlebar: the sort control carries the current order's short word ("Name" / "Modified" /
+      "Created") with its glyph, the refresh is a bare muted glyph, and the create menu reads
+      "New Item" in the action colour — flat, no circular chips. Two new keys in both tables
+      (`Modified`, `Created`); `Name` and `New Item` already existed.
+      `ItemSortOrder.toolbarLabel` is separate from `displayName` because the menu needs the full order
+      name and the titlebar would be the widest thing on the bar — and would change width on every
+      choice, shuffling its neighbours.
+- [x] 4.2 Column widths pinned to the pass: sidebar 216 ideal (max 280), list 262 ideal (max 340).
+- [x] 4.3 Sidebar rows: 30pt, `List` separators hidden, counts moved off `.badge` into a fixed 24pt
+      right-aligned `monospacedDigit` column, and the same selection marks as the list (accent fill +
+      3pt bar) shared through one `sidebarRow(isSelected:contrast:)` modifier so the pane's four row
+      kinds cannot disagree.
+      Two rendering bugs the first screenshot caught: the bar landed **on top of** the row icon until the
+      content got a 10pt leading inset, and stacking the pass's 16pt above a section header on top of the
+      `List`'s own spacing doubled the gap — the pass describes a hand-built column, not a list, so only
+      the 5pt below is applied.
+- [x] 4.4 Card fill adopted from the pass: white / `#212121`. The reason cut ③ declined it was measured
+      wrong — see the `detail-card-view` delta, which records the mistake.
+- [ ] 4.5 **Not verifiable from here, and the user is the check:** whether macOS 26 renders those toolbar
+      items flat. `.menuStyle(.button)` + `.buttonStyle(.plain)` is the standard route, but the toolbar is
+      window chrome and the render harness cannot draw it — so this one is confirmed only by looking at
+      the running app.
+- [ ] 4.6 The `»` control macOS adds at the top right of a three-column split is not in the picture and
+      is not ours to remove without a documented API. Flagged, not fixed.
+
+## 5. Verification, per cut
+
+- [x] 5.1 Full suite green after each cut, with the executed count equal to the `func test` declaration
+      count: cut ① 1557/0, cut ② 1553/0 (five opacity tests became one), cut ③ 1550/0 (the mock's three
+      tests left with it), cut ④ 1550/0.
+- [x] 5.2 Screenshots re-rendered and actually looked at, both appearances: `vault-login`,
       `vault-card`, `vault-identity`, `vault-ssh-key`, `sidebar`, `codes`, `auth-*`. The list selection,
       the 480pt column, the aligned action column and the filled CTA were confirmed from the render, not
-      from the code.
-- [ ] 4.3 **Still not verifiable from here:** hover, focus rings, the real `NSToolbar` chrome, a fetched
-      favicon (the harness always falls back offline), the *active* appearance of the native sidebar
-      selection, and Increase Contrast rendering. Each is a colour or a state a still image cannot show.
-- [x] 4.4 A race the suite surfaced while verifying cut ③ — not from it, and not a flake.
+      from the code. The sidebar's first render in cut ④ showed two bugs no code read would have caught —
+      the selection bar sitting on the icon, and doubled section gaps.
+- [ ] 5.3 **Still not verifiable from here:** whether macOS 26 draws the toolbar items flat (cut ④; the
+      harness cannot render window chrome, so the user's own look is the check), hover states, focus
+      rings, a fetched favicon, and Increase Contrast rendering.
+- [x] 5.4 A race the suite surfaced while verifying cut ③ — not from it, and not a flake.
       `TOTPCodeViewModel.scheduleNextRefresh` hands its work to the main actor with `Task { @MainActor }`,
       so a refresh queued just before `stop()` survives the stop and derives one more code.
       `test_timer_keepsTheCodeCurrentAndStopsWhenAsked` failed on it once in three full runs and then
@@ -118,7 +139,7 @@ Three things §6 draws that the live sidebar does not need, each checked rather 
       hopped-to task; the test's comment now says the guard is the fix so nobody stabilises the test by
       deleting the assertion.
 
-## 5. Close-out
+## 6. Close-out
 
 - [x] 5.1 The mock and its screenshot test left the tree. Deleted would have been irreversible — they were
       never committed, and the mock carries the account identifiers the pass was reviewed against — so they
@@ -127,3 +148,48 @@ Three things §6 draws that the live sidebar does not need, each checked rather 
 - [ ] 5.2 Remaining `.secondary` in sheets and edit forms (import/export, health report, attachment
       sheets, verification codes, the edit forms), and the yellow warning banner's icon-on-fill pair.
       Same defect class as cut ①, different screens; not swept in here so the numbers stay attributable.
+
+## 7. Cut ⑤ — the controls, where the picture and the user's follow-ups put them
+
+- [x] 7.1 The browser's controls are declared on the **detail column** with `ToolbarSpacer(.flexible)`
+      ahead of them, which is the only arrangement that draws them at the window's trailing edge.
+      Measured, in a window-sized probe of the three-column split, against four candidates: the content
+      column, the split view itself, a `.primaryAction` group, and the spacer. The first three all drew
+      at the leading edge within the content column's span; `placement` has no effect inside a column.
+      Two earlier attempts guessed instead and were rejected against the running app.
+- [x] 7.2 `folder.badge.plus` in the sidebar's FOLDERS caption is drawn at caption weight — 12.5pt and
+      `Foreground.muted` — instead of `.title3` in the primary colour, which made it the heaviest thing
+      in the pane and made the caption row taller than the captions above it. The symbol and its label
+      are untouched: `vault-folder-organization` and `voiceover-labels` pin them, and this is the only
+      place a folder can be created from (no menu item, no context menu).
+- [x] 7.3 The verification-codes row gained the trailing chevron the picture shows and now shares the
+      row anatomy of `SidebarRowView` (icon column, title, trailing slot), so it no longer sits at a
+      different indent from every row around it. Confirmed in the render.
+- [x] 7.4 Manual sync moved from the titlebar to the end of the sidebar's status row, where the state it
+      refreshes already lives. `SyncStatusView` takes an optional `onSync` and draws the control only
+      when given one. ⌘R is unchanged — it has always been the View menu's item. The control stays a
+      glyph while a sync runs rather than becoming a second spinner beside "Syncing…".
+- [x] 7.5 The settings gear is gone from the toolbar, with `AccessibilityID.Vault.settingsButton`
+      deleted and the UI test that reached it repointed at the sync control (the browser's remaining
+      icon-only button). Recorded as a `settings-screen` delta: the ⌘, route and the `Settings` scene
+      are untouched, and they are now the only route.
+- [x] 7.6 The create menu is now **absent from the view tree** in Trash, not merely disabled —
+      `list-column-header` asked for that from the start, so the ⌘N shortcut that rides in its hidden
+      companion button goes with it. It had been unconditional since the requirement was written.
+- [x] 7.7 The sidebar column's width: its `navigationSplitViewColumnWidth` was being dropped because
+      `.searchable` and `.toolbar` were applied after it, so the pane laid out at 144pt — below the
+      200pt minimum declared in the same expression — while the content column, which applies the same
+      modifier last, held its 262pt ideal. Moved last; the saved-column readout then gives 210/264pt
+      against the reference's 216/262. The first diagnosis blamed a stale autosaved split frame and was
+      wrong: the stale value (140) was the width the app picks by itself.
+- [x] 7.8 The remaining toolbar items hide the macOS 26 shared capsule with
+      `.sharedBackgroundVisibility(.hidden)`, so they read as flat labels. **Not verifiable from the
+      harness** — the toolbar is window chrome — so the running app is the check.
+- [x] 7.9 The app follows the device appearance again. Cut ④'s `NSApplication.shared.appearance = .aqua`
+      is removed; no spec ever required light-only, and the dark renders are the standing check.
+- [ ] 7.10 **Still open:** the `⌘F` hint inside the search field. The picture shows it, but the system
+      draws it and the shortcut here is a zero-size hidden button rather than a menu item, so the field
+      has no shortcut to display. The two routes both have costs — a hand-built field loses
+      `SearchJourneyTests`' `app.searchFields` matches and the native behaviours, and a real menu command
+      is not guaranteed to make AppKit draw the hint. Undecided, not silently dropped.
+

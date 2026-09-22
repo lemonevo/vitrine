@@ -34,6 +34,20 @@ nonisolated enum ItemSortOrder: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
+    /// The word on the toolbar's sort control.
+    ///
+    /// `displayName` is what the menu needs ("Last Modified (Newest First)"); in the titlebar it would
+    /// be the widest thing on the bar and it changes width every time the user picks another order,
+    /// which shuffles the controls beside it. This is the category, stable in width across the two orders
+    /// inside it.
+    var toolbarLabel: String {
+        switch self {
+        case .nameAscending, .nameDescending:             return L("Name")
+        case .modifiedNewestFirst, .modifiedOldestFirst:  return L("Modified")
+        case .createdNewestFirst, .createdOldestFirst:    return L("Created")
+        }
+    }
+
     /// Orders `items` according to this order.
     ///
     /// A pass-through for `.nameAscending` was tried here and is wrong. `VaultRepositoryImpl` does hand

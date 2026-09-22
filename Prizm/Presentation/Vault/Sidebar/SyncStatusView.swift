@@ -11,7 +11,9 @@ import SwiftUI
 /// "hidden when vault is locked" requirement without additional logic here.
 ///
 /// While a manual sync is in flight the timestamp is replaced by a spinner and "Syncing…", so the
-/// progress is visible next to the button that started it as well as in the toolbar.
+/// progress is visible right beside the control that started it. That control is the refresh button
+/// at the end of this row: it was a toolbar item until the reference's titlebar controls were pulled
+/// together, and a refresh belongs next to the state it refreshes rather than away from it.
 ///
 /// Below the timestamp it may also report how many items the last sync could not read. That line is
 /// deliberately not the dismissable error banner `syncErrorMessage` drives: a banner reports an
@@ -35,7 +37,25 @@ struct SyncStatusView: View {
     /// Items the last sync could not read. Zero renders nothing.
     var unreadableCount: Int = 0
 
+    /// Starts a manual sync. Nil draws no control at all, so the view stays a pure readout wherever
+    /// only the readout is wanted (the previews below, and any future caller).
+    var onSync: (() -> Void)? = nil
+
     var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            statusText
+            if let onSync {
+                Spacer(minLength: 0)
+                syncControl(onSync)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, Spacing.sidebarHorizontal)
+        .padding(.top, Spacing.rowVertical)
+        .padding(.bottom, Spacing.sidebarStatusBottom)
+    }
+
+    private var statusText: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 6) {
                 if isSyncing {
@@ -72,10 +92,21 @@ struct SyncStatusView: View {
                 .accessibilityIdentifier(AccessibilityID.Vault.unreadableItemsLabel)
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, Spacing.sidebarHorizontal)
-        .padding(.top, Spacing.rowVertical)
-        .padding(.bottom, Spacing.sidebarStatusBottom)
+    }
+
+    /// Always the glyph, never the spinner the toolbar item drew: this row already shows a spinner
+    /// and "Syncing…" while a sync runs, and two of them a few points apart read as two syncs.
+    /// Disabled, it still says the action is unavailable.
+    private func syncControl(_ action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: "arrow.clockwise")
+                .foregroundStyle(Foreground.muted)
+        }
+        .buttonStyle(.plain)
+        .disabled(isSyncing)
+        .help(L("Sync Now (⌘R)"))
+        .accessibilityLabel(L("Sync Now"))
+        .accessibilityIdentifier(AccessibilityID.Vault.syncButton)
     }
 }
 

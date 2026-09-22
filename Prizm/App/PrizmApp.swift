@@ -22,6 +22,11 @@ struct PrizmApp: App {
     @Environment(\.openWindow) private var openWindow
 
     init() {
+        // No application appearance is set here, on purpose: the app follows the device, light or dark.
+        // Everything the window draws is appearance-aware — the foreground and surface tokens resolve
+        // through `NSColor(name:)` closures and the card fill carries both appearances — so pinning an
+        // appearance here would only ever cost the user the one they chose.
+
         // Install the Bundle.main override before anything can resolve a string.
         // `@StateObject` would create the manager lazily on first body access, which
         // happens to be early enough today — this makes the ordering explicit rather

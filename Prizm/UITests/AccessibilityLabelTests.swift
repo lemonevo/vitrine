@@ -26,10 +26,13 @@ final class AccessibilityLabelTests: XCTestCase {
 
     // MARK: - 9.1 Icon-only buttons have non-empty accessibilityLabel
 
-    func testSettingsGearHasLabel() {
-        let gear = app.buttons["vault.settings"]
-        XCTAssertTrue(gear.waitForExistence(timeout: 5), "Settings button must exist")
-        XCTAssertFalse(gear.label.isEmpty, "Settings button must have a non-empty label")
+    /// The sync control, which is the browser's remaining icon-only button — the settings gear this
+    /// test used to reach is gone from the toolbar (see the `settings-screen` delta in
+    /// `openspec/changes/main-window-p3-pass`).
+    func testSyncButtonHasLabel() {
+        let sync = app.buttons["vault.button.sync"]
+        XCTAssertTrue(sync.waitForExistence(timeout: 5), "Sync button must exist")
+        XCTAssertFalse(sync.label.isEmpty, "Sync button must have a non-empty label")
     }
 
     func testNewItemButtonHasLabel() {

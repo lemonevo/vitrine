@@ -8,10 +8,10 @@ import SwiftUI
 ///
 /// Adapted from: https://danijelavrzan.com/posts/2023/02/card-view-swiftui/
 ///
-/// The background uses the `CardBackground` named colour asset — #FAFAFA in light, #2C2C2C in dark —
-/// with a hairline stroke and **no shadow**. The stroke is what separates a card from the pane: a black
-/// shadow is invisible on a dark background, and the asset's two values sit only a few levels off their
-/// window, so without the edge the card would not be a card.
+/// The background uses the `CardBackground` named colour asset — white in light aqua, `#212121` in
+/// dark — with a hairline stroke and **no shadow**. The stroke is what separates a card from the pane:
+/// a black shadow is invisible on a dark background, and the asset's two values sit only a few levels
+/// off their window, so without the edge the card would not be a card.
 ///
 /// The radius is `Spacing.cardCornerRadius`, the same value the detail header's chip uses, because a
 /// card and the chip above it disagreeing by 4pt is visible immediately.

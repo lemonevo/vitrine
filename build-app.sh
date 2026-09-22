@@ -86,7 +86,13 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
 </plist>
 PLIST
 
-# App icon (optional — skipped silently if actool cannot compile the .icon bundle)
+# App icon and asset catalog (optional — skipped silently if actool cannot compile them)
+#
+# Both inputs go to one actool call, and the catalog is not optional decoration: `CardBackground`
+# resolves through `Color("CardBackground")`, and a bundle whose Assets.car holds only the icon has no
+# such colour, so the card falls back to SwiftUI's default and the app the reviewer looks at is not the
+# app the design describes. The catalog also carries the accent colour. Two separate actool calls would
+# not work either: each writes `Assets.car` and the second would replace the first.
 mkdir -p "$APP/Contents/Resources"
 if /usr/bin/xcrun actool --version >/dev/null 2>&1; then
   /usr/bin/xcrun actool \
@@ -96,9 +102,10 @@ if /usr/bin/xcrun actool --version >/dev/null 2>&1; then
       --minimum-deployment-target 26.0 \
       --target-device mac \
       --output-partial-info-plist /tmp/prizm_actool.plist \
+      "$ROOT/Prizm/Prizm/Assets.xcassets" \
       "$ROOT/Prizm/Prizm/Prizm_V2.icon" >/dev/null 2>&1 \
-    && echo "==> App icon compiled" \
-    || echo "==> App icon skipped (actool could not compile Prizm_V2.icon)"
+    && echo "==> App icon and asset catalog compiled" \
+    || echo "==> actool skipped (icon and asset catalog are NOT in this bundle)"
 fi
 
 echo "==> Ad-hoc signing"
