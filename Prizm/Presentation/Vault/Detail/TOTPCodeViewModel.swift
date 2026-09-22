@@ -111,7 +111,11 @@ final class TOTPCodeViewModel: ObservableObject {
         let delay = Self.delayUntilNextRefresh(expiresAt: expiresAt, at: now())
         timer = Timer.scheduledTimer(withTimeInterval: delay, repeats: false) { [weak self] _ in
             Task { @MainActor [weak self] in
-                guard let self else { return }
+                // The re-check is the point. A timer fire hands its work to the main actor rather than
+                // doing it there, so a `stop()` that lands in between cannot retract this task — without
+                // this guard a stopped row derives and publishes one more code, which is harmless while
+                // the row is on screen and exactly the wrong thing when the stop was a vault lock.
+                guard let self, self.isRunning else { return }
                 self.refresh(at: self.now())
                 self.scheduleNextRefresh()
             }

@@ -92,16 +92,19 @@ enum Typography {
     static let sectionLabel: Font  = .system(size: 11, weight: .semibold)
 
     /// The item's name in the detail pane header.
-    static let detailTitle: Font   = .system(size: 20, weight: .semibold)
+    static let detailTitle: Font   = .system(size: 22, weight: .semibold)
 
     /// The line under the detail header that places the item (username · folder · organisation).
     static let breadcrumb: Font    = .system(size: 12)
 
     /// Field label inside a detail card — a fixed-width column, so every value starts at one x.
-    static let detailFieldLabel: Font = .system(size: 12)
+    ///
+    /// 11 rather than 12: at 14pt the value is the thing being read, and a label one point smaller is
+    /// what makes the pair read as label-then-value instead of two columns of text.
+    static let detailFieldLabel: Font = .system(size: 11)
 
     /// Field value inside a detail card. Proportional; secrets are set monospaced on top of it.
-    static let detailFieldValue: Font = .system(size: 13)
+    static let detailFieldValue: Font = .system(size: 14)
 
     /// Label on a detail header action button.
     static let actionButton: Font  = .system(size: 12, weight: .medium)
@@ -116,7 +119,8 @@ enum Typography {
     static let orgBadge: Font      = .system(size: 9, weight: .medium)
 
     /// The type symbol inside an item row's tinted chip.
-    static let chipIcon: Font      = .system(size: 14)
+    /// The glyph inside a control. `Typography.actionButton` is the word beside it.
+    static let controlGlyph: Font  = .system(size: 12, weight: .medium)
 
     /// Status banner text (e.g. "This item is in Trash.") — slightly larger than utility/caption.
     static let bannerText: Font    = .callout
@@ -254,8 +258,8 @@ enum Spacing {
     /// Vertical padding above a section card (between cards or from the top).
     static let cardTop:       CGFloat = 12
 
-    /// Vertical padding below a section card.
-    static let cardBottom:    CGFloat = 18
+    /// Vertical padding below a section card, and between the last card and the metadata line.
+    static let cardBottom:    CGFloat = 20
 
     /// Gap between a section header label and the card below it.
     static let headerGap:     CGFloat = 8
@@ -416,12 +420,6 @@ enum Spacing {
     /// Horizontal margin at the left and right edges of the detail pane's content.
     static let detailMargin: CGFloat = 24
 
-    /// The label column inside a detail card. Fixed, so values line down the card.
-    ///
-    /// Wide enough for the longest built-in label ("Verification Code"), and `DetailFieldLabel` wraps
-    /// rather than truncates so a user-authored custom-field name still arrives in full.
-    static let detailLabelWidth: CGFloat = 130
-
     /// Vertical padding inside a detail card field row.
     static let detailRowVertical: CGFloat = 9
 
@@ -432,22 +430,34 @@ enum Spacing {
     static let detailHeaderTop: CGFloat = 22
 
     /// Gap between the detail pane header and the action row.
-    static let detailHeaderBottom: CGFloat = 14
+    static let detailHeaderBottom: CGFloat = 16
 
     /// Gap between the action row and the first card.
-    static let detailActionsBottom: CGFloat = 18
+    static let detailActionsBottom: CGFloat = 20
+
+    /// Width the detail pane's content is capped at, then centred.
+    ///
+    /// Without it, a wide window turns the pane's own width into a gulf between a field's label and the
+    /// value that belongs to it — the distance grows and the relationship does not. Past this point the
+    /// extra width becomes margin, which is what a margin is for.
+    static let detailContentWidth: CGFloat = 480
 
     /// Side of the square type-tinted chip in the detail header.
     static let detailChip: CGFloat = 44
 
     /// Side of the favicon inside the detail header's chip.
-    static let detailChipIcon: CGFloat = 24
+    static let detailChipIcon: CGFloat = 22
 
-    /// Corner radius of the detail header's type chip.
+    /// Corner radius of the detail header's type chip, and of a card. One value, because they are the
+    /// same object at two sizes.
     static let detailChipCornerRadius: CGFloat = 10
 
+    /// Corner radius of a card. Was a literal in `CardBackground`, twice, which is how a card and the
+    /// chip above it could disagree.
+    static let cardCornerRadius: CGFloat = 10
+
     /// Gap between a detail card's section label and the card.
-    static let sectionLabelGap: CGFloat = 5
+    static let sectionLabelGap: CGFloat = 6
 
     /// Diameter of the one-time code's countdown ring.
     static let totpRing: CGFloat = 14
@@ -462,12 +472,32 @@ enum Spacing {
     /// Gap between a detail row's value and its trailing affordances.
     static let detailRowGap: CGFloat = 8
 
+    /// Gap across the detail header: chip, then the name block, then the item's own controls.
+    static let detailHeaderGap: CGFloat = 12
+
+    /// Width of a detail row's label column.
+    ///
+    /// 130 put the values a third of the way across a 480pt column, which read as two unrelated lists.
+    /// 100 is the longest label in the app ("Verification Code") plus a little.
+    static let detailLabelWidth: CGFloat = 100
+
+    /// Width reserved for a row's trailing affordances — the copy glyph, the reveal eye, the
+    /// open-in-browser square. One column, so the glyphs land on the same x in every card.
+    static let detailActionSlotWidth: CGFloat = 56
+
+    /// Minimum height of a detail row.
+    static let detailRowMinHeight: CGFloat = 42
+
+    // MARK: Controls
+
+    /// Height of every control in the detail header — the filled action, the bordered one, and the
+    /// icon-only glyph. They sit on one line, so one of them being a different height is visible
+    /// immediately.
+    static let controlHeight: CGFloat = 26
+
     /// Corner radius of a detail header action button.
     static let actionButtonCornerRadius: CGFloat = 6
 
     /// Horizontal padding inside a detail header action button.
     static let actionButtonHorizontal: CGFloat = 11
-
-    /// Vertical padding inside a detail header action button.
-    static let actionButtonVertical: CGFloat = 5
 }

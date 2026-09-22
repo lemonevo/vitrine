@@ -97,16 +97,16 @@ All Presentation layer typography and spacing is defined in one place:
 | `utility` | `.caption` | 10pt | COPY button, metadata |
 | `listTitle` | `.system(size: 13, weight: .medium)` | 13pt | Item name in the list pane |
 | `listSubtitle` | `.system(size: 11)` | 11pt | Secondary subtitle in list rows; sidebar sync status |
-| `sectionLabel` | `.system(size: 10, weight: .semibold)` | 10pt | Uppercase category label above a detail card and a sidebar section |
-| `detailTitle` | `.system(size: 20, weight: .semibold)` | 20pt | Item name in the detail header |
+| `sectionLabel` | `.system(size: 11, weight: .semibold)` | 11pt | Uppercase category label above a detail card and a sidebar section; add `.tracking(Spacing.sectionLabelTracking)` |
+| `detailTitle` | `.system(size: 22, weight: .semibold)` | 22pt | Item name in the detail header |
 | `breadcrumb` | `.system(size: 12)` | 12pt | The line placing the item (username · folder · org) |
-| `detailFieldLabel` | `.system(size: 12)` | 12pt | Fixed-width label column inside a detail card |
-| `detailFieldValue` | `.system(size: 13)` | 13pt | Value inside a detail card; secrets add `.monospaced()` |
+| `detailFieldLabel` | `.system(size: 11)` | 11pt | Fixed-width label column inside a detail card |
+| `detailFieldValue` | `.system(size: 14)` | 14pt | Value inside a detail card; secrets add `.monospaced()` |
 | `actionButton` | `.system(size: 12, weight: .medium)` | 12pt | Detail header action button label |
 | `totpCode` | `.system(size: 16, weight: .medium).monospaced()` | 16pt | The live one-time code |
 | `metaLine` | `.system(size: 11)` | 11pt | The created/updated line at the foot of the detail pane |
 | `orgBadge` | `.system(size: 9, weight: .medium)` | 9pt | Organisation badge on an item row |
-| `chipIcon` | `.system(size: 14)` | 14pt | Type symbol inside an item row's tinted chip |
+| `controlGlyph` | `.system(size: 12, weight: .medium)` | 12pt | Glyph inside a header control — see `ControlStyles.swift` |
 | `screenHeading` | `.title.bold()` | ~22pt | The "Vitrine" / "Vitrine Is Locked" heading on an entry screen |
 | `screenBody` | `.callout` | 13pt | The entry-screen subtitle, error banner, and sync message |
 | `fieldLabelProminent` | `.callout.weight(.medium)` | 13pt | A form label that must out-rank `fieldLabel` |
@@ -119,21 +119,29 @@ All Presentation layer typography and spacing is defined in one place:
 | `pageTop` | 28pt | Above the item title |
 | `pageHeaderBottom` | 12pt | Below the item title |
 | `cardTop` | 12pt | Above each section card |
-| `cardBottom` | 18pt | Below each section card |
+| `cardBottom` | 20pt | Below each section card, and above the metadata line |
+| `cardCornerRadius` | 10pt | A card, and the detail header's chip |
 | `headerGap` | 8pt | Between section header label and card |
 | `rowVertical` | 9pt | Generic row top/bottom padding |
 | `rowHorizontal` | 12pt | Generic row left/right padding |
-| `sidebarIconWidth` | 16pt | Reserved icon width in a sidebar row |
-| `listRowVertical` | 7pt | Inside an item row |
-| `listChip` / `listChipCornerRadius` | 30pt / 7pt | The type-tinted chip on an item row |
+| `sidebarIconWidth` | 18pt | Reserved icon width in a sidebar row |
+| `sectionLabelTracking` | 0.5pt | Letter-spacing on every uppercase section caption |
+| `listRowHeight` | 40pt | An item row, chip and text included |
+| `listChip` / `listChipIcon` / `listChipCornerRadius` | 26pt / 14pt / 7pt | The type-tinted chip on an item row |
+| `listRowHorizontal` / `listRowEdgeInset` | 10pt / 6pt | Inside an item row, and the fill's inset from the pane |
+| `listStarColumn` | 20pt | Reserved for the favourite star, favourited or not |
 | `listDividerInset` | 52pt | Leading inset of the hairline between item rows |
+| `detailContentWidth` | 480pt | The detail pane's content is capped here, then centred |
 | `detailMargin` | 24pt | Horizontal edges of the detail pane |
-| `detailLabelWidth` | 130pt | The label column inside a detail card |
+| `detailLabelWidth` | 100pt | The label column inside a detail card |
+| `detailActionSlotWidth` | 56pt | The trailing slot: copy glyphs and reveal eyes share one x |
+| `detailRowMinHeight` | 42pt | A detail card row, growing when a value wraps |
 | `detailRowVertical` / `detailRowHorizontal` | 9pt / 14pt | Inside a detail card field row |
-| `detailHeaderTop` / `detailHeaderBottom` | 22pt / 14pt | Around the detail header |
-| `detailActionsBottom` | 18pt | Between the action row and the first card |
-| `detailChip` / `detailChipCornerRadius` | 44pt / 10pt | The type-tinted chip in the detail header |
-| `actionButtonCornerRadius` / `actionButtonHorizontal` / `actionButtonVertical` | 6pt / 11pt / 5pt | Detail header action button |
+| `detailHeaderTop` / `detailHeaderBottom` | 22pt / 16pt | Around the detail header |
+| `detailHeaderGap` | 12pt | Across the header: chip, name block, controls |
+| `detailActionsBottom` | 20pt | Between the action row and the first card |
+| `detailChip` / `detailChipIcon` / `detailChipCornerRadius` | 44pt / 22pt / 10pt | The type-tinted chip in the detail header |
+| `controlHeight` / `actionButtonCornerRadius` / `actionButtonHorizontal` | 26pt / 6pt / 11pt | Every header control's height, and the chrome inside it |
 | `authCardWidth` / `authCardPadding` / `authCardCornerRadius` | 400pt / 24pt / 14pt | The card both entry screens are built inside |
 | `authCardShadowRadius` / `authCardShadowY` | 18pt / 6pt | That card's shadow |
 | `authIconSize` / `authHeaderBottom` | 56pt / 22pt | Application icon, and the gap below the entry header |
@@ -147,6 +155,21 @@ All Presentation layer typography and spacing is defined in one place:
 | `authProgressLabelGap` | 6pt | Between the spinner and the sync message |
 | `fieldLabelGap` | 5pt | Between a field's label, its control and its hint |
 | `bannerVertical` | 8pt | Vertical padding inside status banners |
+
+### Controls (`ControlStyles.swift`)
+
+One height — `Spacing.controlHeight`, 26pt — and three forms: `FilledControlStyle` (the pane's single
+most likely next action; never more than one on a line), `BorderedControlStyle` (a secondary action with
+a word on it), `GlyphControlStyle` (icon only). `GlyphControl` is the same square for an affordance that
+cannot be a `Button` because its row already owns the tap.
+
+The filled style's colour is drawn by hand rather than `.borderedProminent` for two reasons: a white label
+on `controlAccentColor` measures 4.02:1, under the floor for its own 12pt text, and `.borderedProminent`
+renders grey in any window that is not key — including every window the screenshot harness opens — so the
+fill under review would never be the fill that ships.
+
+`BorderedControlStyle` and `GlyphControlStyle` take `contrast` as a parameter. A `ButtonStyle` is not a
+`View`, so `@Environment` would not update inside one; call sites already have the value.
 
 ### Contrast-aware opacity (`Opacity.*`)
 
@@ -164,7 +187,12 @@ view.
 | `dropTarget` | 0.25 / 0.40 | Attachment drop target |
 | `typeChip` | 0.16 / 0.28 | Tinted chip behind a type icon |
 | `hairline` | 0.12 / 0.22 | Divider between item rows |
+| `selectionFill` | 0.12 / 0.22 | Accent fill behind a selected row, in the list and the sidebar |
+| `controlHover` | 0.08 / 0.14 | A control under the pointer or mid-press |
 | `authCardBorder` | 0.20 / 0.40 | Edge of the auth card — stronger, because it is the only thing marking the panel in dark mode |
+
+`AccessibilityTier2Tests` asserts the direction for **every** function in that list, in one table. It
+covered five of eight when the three unlisted ones were the ones a contrast delta required.
 
 ### Text foreground (`Foreground.*`)
 

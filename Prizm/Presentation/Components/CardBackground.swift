@@ -8,19 +8,22 @@ import SwiftUI
 ///
 /// Adapted from: https://danijelavrzan.com/posts/2023/02/card-view-swiftui/
 ///
-/// The background uses the `CardBackground` named color asset (white in light mode,
-/// dark gray #212121 in dark mode). A black shadow on a dark background is invisible,
-/// so shifting the card background ensures the shadow remains effective in both
-/// appearances without requiring `@Environment(\.colorScheme)` logic here.
+/// The background uses the `CardBackground` named colour asset — #FAFAFA in light, #2C2C2C in dark —
+/// with a hairline stroke and **no shadow**. The stroke is what separates a card from the pane: a black
+/// shadow is invisible on a dark background, and the asset's two values sit only a few levels off their
+/// window, so without the edge the card would not be a card.
+///
+/// The radius is `Spacing.cardCornerRadius`, the same value the detail header's chip uses, because a
+/// card and the chip above it disagreeing by 4pt is visible immediately.
 struct CardBackground: ViewModifier {
     @Environment(\.colorSchemeContrast) private var contrast
 
     func body(content: Content) -> some View {
         content
             .background(Color("CardBackground"))
-            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .clipShape(RoundedRectangle(cornerRadius: Spacing.cardCornerRadius))
             .overlay(
-                RoundedRectangle(cornerRadius: 10)
+                RoundedRectangle(cornerRadius: Spacing.cardCornerRadius)
                     .stroke(Color.primary.opacity(Opacity.cardBorder(contrast)), lineWidth: 0.5)
             )
     }
@@ -111,6 +114,7 @@ struct DetailSectionCard<Content: View>: View {
                 // primary colour it read as a heading and competed with the values beneath it.
                 Text(title!.uppercased())
                     .font(Typography.sectionLabel)
+                    .tracking(Spacing.sectionLabelTracking)
                     .foregroundStyle(Foreground.muted)
                     .accessibilityAddTraits(.isHeader)
                     .accessibilityIdentifier(

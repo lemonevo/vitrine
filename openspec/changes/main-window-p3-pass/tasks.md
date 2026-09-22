@@ -66,29 +66,64 @@ Three things §6 draws that the live sidebar does not need, each checked rather 
 
 ## 3. Cut ③ — detail and controls (§1, §3, §4, §7)
 
-- [ ] 3.1 Detail content capped at 480pt and centred, so a wide pane becomes margin rather than a gulf
-      between a label and its value.
-- [ ] 3.2 Rhythm: 16pt header→actions, 20pt between cards and to the footer.
-- [ ] 3.3 Card rows: 100pt label column, 56pt trailing action slot, 42pt minimum height — one x for the
-      copy glyphs across all three cards.
-- [ ] 3.4 Type scale: title 22/semibold, card values 14, labels and meta 11.
-- [ ] 3.5 Header controls as three styles at 26pt — filled, bordered, glyph — with hover and the
-      post-copy state. First real `ButtonStyle`s in this app.
-- [ ] 3.6 Measure white-on-fill for the prominent CTA's 12pt label and pick the fill from that
-      (the current accent is ~3.5:1, which fails; see proposal "Deliberate limits").
-- [ ] 3.7 Deltas: `detail-card-view` (card fill, caption size, column widths), `vault-browser-ui`
-      (row anatomy), `toggle-favorite` (the star).
+- [x] 3.1 Detail content capped at `Spacing.detailContentWidth` (480pt) and centred.
+- [x] 3.2 Rhythm: `detailHeaderBottom` 14→16, `detailActionsBottom` 18→20, `cardBottom` 18→20,
+      `sectionLabelGap` 5→6, header columns 8→12 apart with a 4pt name/breadcrumb gap.
+- [x] 3.3 Card rows: label column 130→100, a new reserved 56pt trailing slot, 42pt minimum height.
+      **The masked row's eye moved into the slot too** — it sat after the dots, so it was at a different
+      x from every copy glyph in the pane.
+- [x] 3.4 Type scale: `detailTitle` 20→22, `detailFieldValue` 13→14, `detailFieldLabel` 12→11,
+      `detailChipIcon` 24→22, card captions get the same 0.5pt tracking as the sidebar's.
+- [x] 3.5 `ControlStyles.swift` — the app's first `ButtonStyle`s: filled, bordered, glyph, all 26pt with
+      a 12pt glyph, plus `GlyphControl` for the affordances that cannot be buttons because their row
+      already owns the tap. The old hand-drawn `DetailActionLabel` is deleted, and with it
+      `Spacing.actionButtonVertical` and `Typography.chipIcon`, which nothing else used.
+- [x] 3.6 The filled action's white label measured against candidate fills: `controlAccentColor` 4.02:1
+      both appearances, `linkColor` 5.26:1 light but **2.83:1 dark**, so the fill is a hand-picked pair
+      at 6.37:1 / 4.81:1 and is deliberately accent-independent.
+- [x] 3.7 A header copy action now confirms for 0.8s with a checkmark and the word "Copied" (an existing
+      key in both tables), which the row already did and the header button did not.
+- [x] 3.8 Deltas: `detail-card-view` (column, slots, control roles, and the card fill this change
+      refuses to adopt, with the reason), `vault-browser-ui` (row anatomy), `toggle-favorite` (the star).
+
+### Verified from the render rather than assumed
+
+- `Link` **does** accept `.buttonStyle`, so "Open website" can share the bordered style with the two
+  buttons. The deleted `DetailActionLabel`'s comment claimed the two could not agree on a style; that
+  was why the label view existed, and it is not true.
+- The filled control draws its real colour in the harness, where `.borderedProminent` would have drawn
+  grey — the reason it is hand-drawn.
+- The reveal eye keeps `Color.accentColor`: `detail-card-view` pins it there. Making it match the muted
+  copy glyphs would have been a spec violation for a cosmetic gain.
+- The card fill stays `#FAFAFA` / `#2C2C2C` rather than the mock's white / `#212121`: in light aqua the
+  pane's own background resolves to white, so the mock's card would be separated from its window by
+  nothing but the hairline. Recorded in the delta.
 
 ## 4. Verification, per cut
 
-- [ ] 4.1 Full suite green, with the executed count equal to the `func test` declaration count.
-- [ ] 4.2 Screenshots re-rendered in both appearances and actually looked at: `vault-login`,
-      `vault-card`, `vault-identity`, `vault-ssh-key`, `sidebar`, `codes`, `auth-*`.
-- [ ] 4.3 The specific thing a still image cannot show: hover, focus rings, the real `NSToolbar`
-      chrome, and a fetched favicon (the harness always falls back offline).
+- [x] 4.1 Full suite green after each cut, with the executed count equal to the `func test` declaration
+      count: cut ① 1557/0, cut ② 1553/0 (five opacity tests became one), cut ③ see 4.6.
+- [x] 4.2 Screenshots re-rendered and actually looked at, both appearances: `vault-login`,
+      `vault-card`, `vault-identity`, `vault-ssh-key`, `sidebar`, `codes`, `auth-*`. The list selection,
+      the 480pt column, the aligned action column and the filled CTA were confirmed from the render, not
+      from the code.
+- [ ] 4.3 **Still not verifiable from here:** hover, focus rings, the real `NSToolbar` chrome, a fetched
+      favicon (the harness always falls back offline), the *active* appearance of the native sidebar
+      selection, and Increase Contrast rendering. Each is a colour or a state a still image cannot show.
+- [x] 4.4 A race the suite surfaced while verifying cut ③ — not from it, and not a flake.
+      `TOTPCodeViewModel.scheduleNextRefresh` hands its work to the main actor with `Task { @MainActor }`,
+      so a refresh queued just before `stop()` survives the stop and derives one more code.
+      `test_timer_keepsTheCodeCurrentAndStopsWhenAsked` failed on it once in three full runs and then
+      passed again, which is what a probabilistic test is for. Fixed by re-checking `isRunning` inside the
+      hopped-to task; the test's comment now says the guard is the fix so nobody stabilises the test by
+      deleting the assertion.
 
 ## 5. Close-out
 
-- [ ] 5.1 Delete `P3MainWindow.swift` and `P3MainWindowScreenshotTests.swift` — the mock's own header
-      says to, and leaving it means two definitions of the same palette in one repo.
-- [ ] 5.2 Remaining `.secondary` in sheets and edit forms, if that pass is taken up.
+- [x] 5.1 The mock and its screenshot test left the tree. Deleted would have been irreversible — they were
+      never committed, and the mock carries the account identifiers the pass was reviewed against — so they
+      are moved to `/tmp/prizm-design/mock-source/`, which is lost on reboot. The design record that has to
+      outlive that is this change's proposal and the four deltas.
+- [ ] 5.2 Remaining `.secondary` in sheets and edit forms (import/export, health report, attachment
+      sheets, verification codes, the edit forms), and the yellow warning banner's icon-on-fill pair.
+      Same defect class as cut ①, different screens; not swept in here so the numbers stay attributable.

@@ -93,11 +93,17 @@ struct FieldRowView: View {
 
             Spacer(minLength: Spacing.detailRowGap)
 
-            if !isMasked {
-                copyAffordance
+            // One reserved column for every trailing affordance, so the copy glyphs in all three cards
+            // of a pane land on the same x rather than wherever their value happened to end.
+            HStack(spacing: 2) {
+                if !isMasked {
+                    copyAffordance
+                }
+                browserLink
             }
-            browserLink
+            .frame(width: Spacing.detailActionSlotWidth, alignment: .trailing)
         }
+        .frame(minHeight: Spacing.detailRowMinHeight)
         .padding(.vertical, Spacing.detailRowVertical)
         .padding(.horizontal, Spacing.detailRowHorizontal)
         .contentShape(Rectangle())

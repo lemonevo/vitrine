@@ -42,6 +42,14 @@ enum Opacity {
         contrast == .increased ? 0.22 : 0.12
     }
 
+    /// The fill under a control's pointer or press.
+    ///
+    /// Faint at standard contrast because it is a response, not a state — the control's own shape says
+    /// what it is; this only says the pointer is on it.
+    static func controlHover(_ contrast: ColorSchemeContrast) -> Double {
+        contrast == .increased ? 0.14 : 0.08
+    }
+
     /// The accent fill behind the selected row, in the item list and the sidebar.
     ///
     /// The app draws its own selection because the accepted design marks it twice — a faint accent fill

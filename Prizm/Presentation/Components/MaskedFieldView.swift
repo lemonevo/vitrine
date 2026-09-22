@@ -100,10 +100,11 @@ struct MaskedFieldView: View {
     }
 
     var body: some View {
-        HStack {
+        HStack(spacing: 0) {
             Text(effectiveDisplayValue)
                 .font(Typography.detailFieldValue.monospaced())
                 .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .accessibilityIdentifier(AccessibilityID.Masked.value(label))
             Button {
                 if isGated {
@@ -122,6 +123,9 @@ struct MaskedFieldView: View {
             .help(showingValue ? L("Hide") : L("Reveal"))
             .accessibilityLabel(showingValue ? L("Hide %@", label) : L("Reveal %@", label))
             .accessibilityIdentifier(AccessibilityID.Masked.toggle(label))
+            // The same reserved column the unmasked rows put their copy glyph in, so the eye lands on
+            // the x every other affordance in the card already sits at instead of trailing the dots.
+            .frame(width: Spacing.detailActionSlotWidth, alignment: .trailing)
         }
         // Reset to masked whenever the parent item changes (FR-027).
         .onChange(of: itemId) { _, _ in

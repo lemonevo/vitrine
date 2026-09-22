@@ -62,6 +62,11 @@ struct ItemDetailView: View {
 
     @State private var batchAttachmentViewModel: AttachmentBatchViewModel?
 
+    /// Which header action last reported a copy, for the 0.8s the confirmation stands.
+    private enum CopiedAction: Equatable { case password, code }
+    @State private var copiedAction: CopiedAction?
+    @State private var copyConfirmation: Task<Void, Never>?
+
     @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
@@ -78,6 +83,12 @@ struct ItemDetailView: View {
                     Spacer(minLength: 20)
                     metadataFooter(for: item)
                 }
+                // The cap, then the centring. Without it a wide window turns the pane's own width into a
+                // gulf between a field's label and the value that belongs to it: the distance grows and
+                // the relationship does not. Past 480pt the extra width becomes margin, which is what a
+                // margin is for.
+                .frame(maxWidth: Spacing.detailContentWidth, alignment: .leading)
+                .frame(maxWidth: .infinity, alignment: .center)
             }
             .sheet(isPresented: $isEditSheetPresented, onDismiss: {
                 editViewModel = nil
@@ -120,7 +131,7 @@ struct ItemDetailView: View {
     @ViewBuilder
     private func itemHeader(for item: VaultItem) -> some View {
         let type = itemType(for: item)
-        HStack(spacing: Spacing.detailRowGap) {
+        HStack(spacing: Spacing.detailHeaderGap) {
             ZStack {
                 RoundedRectangle(cornerRadius: Spacing.detailChipCornerRadius)
                     .fill(type.tint.opacity(Opacity.typeChip(contrast)))
@@ -134,7 +145,7 @@ struct ItemDetailView: View {
             }
             .frame(width: Spacing.detailChip, height: Spacing.detailChip)
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(item.name.isEmpty ? " " : item.name)
                     .font(Typography.detailTitle)
                     .accessibilityIdentifier(AccessibilityID.Detail.itemName)
@@ -156,10 +167,13 @@ struct ItemDetailView: View {
             if !item.isDeleted {
                 favoriteToggle(for: item)
 
-                Button(L("Edit")) { openEditSheet(for: item) }
-                    .disabled(isEditSheetPresented)
-                    .keyboardShortcut("e", modifiers: .command)
-                    .accessibilityIdentifier(AccessibilityID.Edit.editButton)
+                Button { openEditSheet(for: item) } label: {
+                    Label(L("Edit"), systemImage: "pencil")
+                }
+                .buttonStyle(BorderedControlStyle(contrast: contrast))
+                .disabled(isEditSheetPresented)
+                .keyboardShortcut("e", modifiers: .command)
+                .accessibilityIdentifier(AccessibilityID.Edit.editButton)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -179,7 +193,7 @@ struct ItemDetailView: View {
             Image(systemName: item.isFavorite ? "star.fill" : "star")
                 .foregroundStyle(item.isFavorite ? Foreground.favorite : Foreground.muted)
         }
-        .buttonStyle(.borderless)
+        .buttonStyle(GlyphControlStyle(contrast: contrast))
         .help(item.isFavorite ? L("Unfavorite") : L("Favorite"))
         .accessibilityLabel(item.isFavorite ? L("Unfavorite") : L("Favorite"))
         .accessibilityValue(item.isFavorite ? L("Favorited") : L("Not favorited"))
@@ -231,37 +245,53 @@ struct ItemDetailView: View {
     private func actionButton(_ action: DetailAction, for item: VaultItem) -> some View {
         switch action {
         case .copyPassword:
+            let copied = copiedAction == .password
             Button {
                 // The value is read again here rather than carried in from the decision that drew the
                 // button: an edit can replace the password between one render and the next.
-                if let password = passwordValue(of: item) { deliver(password) }
+                guard let password = passwordValue(of: item) else { return }
+                deliver(password)
+                markCopied(.password)
             } label: {
-                DetailActionLabel(title: L("Copy password"),
-                                  systemImage: "doc.on.doc",
-                                  isProminent: true)
+                Label(copied ? L("Copied") : L("Copy password"),
+                      systemImage: copied ? "checkmark" : "doc.on.doc")
             }
-            .buttonStyle(.plain)
+            .buttonStyle(FilledControlStyle())
             .accessibilityIdentifier(AccessibilityID.Detail.copyPasswordButton)
 
         case .copyCode:
+            let copied = copiedAction == .code
             Button {
                 // Derived at the press, not at the render — a code copied from a stale computation is
                 // simply the wrong code.
-                if let code = codeValue(of: item) { deliver(code) }
+                guard let code = codeValue(of: item) else { return }
+                deliver(code)
+                markCopied(.code)
             } label: {
-                DetailActionLabel(title: L("Copy code"),
-                                  systemImage: "clock.arrow.circlepath")
+                Label(copied ? L("Copied") : L("Copy code"),
+                      systemImage: copied ? "checkmark" : "clock.arrow.circlepath")
             }
-            .buttonStyle(.plain)
+            .buttonStyle(BorderedControlStyle(contrast: contrast))
             .accessibilityIdentifier(AccessibilityID.Detail.copyCodeButton)
 
         case .openWebsite(let url):
             Link(destination: url) {
-                DetailActionLabel(title: L("Open website"),
-                                  systemImage: "arrow.up.right.square")
+                Label(L("Open website"), systemImage: "arrow.up.right.square")
             }
-            .buttonStyle(.plain)
+            .buttonStyle(BorderedControlStyle(contrast: contrast))
             .accessibilityIdentifier(AccessibilityID.Detail.openWebsiteButton)
+        }
+    }
+
+    /// The confirmation a row already gave and the header button did not: the value went to the
+    /// clipboard, and the control that sent it said nothing.
+    private func markCopied(_ which: CopiedAction) {
+        copiedAction = which
+        copyConfirmation?.cancel()
+        copyConfirmation = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(800))
+            guard !Task.isCancelled else { return }
+            copiedAction = nil
         }
     }
 
@@ -499,41 +529,3 @@ struct ItemDetailView: View {
     }
 }
 
-// MARK: - Detail action label
-
-/// The shared chrome for the detail header's actions, used by both the `Button`s and the `Link`.
-///
-/// A label view rather than a styled button, because `Link` and `Button` take different styles and
-/// the one thing they must agree on is how they look.
-private struct DetailActionLabel: View {
-
-    let title:       String
-    let systemImage: String
-    /// The item's single most likely next action, drawn filled. Exactly one header action is
-    /// prominent; more than one and the row stops pointing at anything.
-    var isProminent: Bool = false
-
-    @Environment(\.colorSchemeContrast) private var contrast
-
-    var body: some View {
-        HStack(spacing: Spacing.badgeHorizontal) {
-            Image(systemName: systemImage)
-                .font(Typography.chipIcon)
-            Text(title)
-                .font(Typography.actionButton)
-        }
-        .foregroundStyle(isProminent ? Color.white : Color.primary)
-        .padding(.horizontal, Spacing.actionButtonHorizontal)
-        .padding(.vertical, Spacing.actionButtonVertical)
-        .background {
-            if isProminent {
-                RoundedRectangle(cornerRadius: Spacing.actionButtonCornerRadius)
-                    .fill(Color.accentColor)
-            } else {
-                RoundedRectangle(cornerRadius: Spacing.actionButtonCornerRadius)
-                    .stroke(Color.primary.opacity(Opacity.hairline(contrast)))
-            }
-        }
-        .contentShape(Rectangle())
-    }
-}

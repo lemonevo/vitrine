@@ -230,6 +230,7 @@
 		C8D9E0F1A2B34895C9D0E1F2 /* SyncStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9E0F1A2B3C44895D0E1F2A3 /* SyncStatusView.swift */; };
 		C95CAFFEA54E4E66BED34362 /* DeleteVaultItemUseCaseImpl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42858B188901413C9FD6C6E6 /* DeleteVaultItemUseCaseImpl.swift */; };
 		CB1A2B3C4D5E6F7A8B9C0D1E /* CardBackground.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F7A8B9C0D1E2F /* CardBackground.swift */; };
+		CE1F00D1000000000000B0D1 /* ControlStyles.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE1F00D0000000000000F0D0 /* ControlStyles.swift */; };
 		CE4521A69D3C49298AAC03DF /* SecureNoteDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F78357C6C424765828B6185 /* SecureNoteDetailView.swift */; };
 		D034C4EF37844E88A91555A1 /* VaultItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF90E0F31DF248FB9D12F74D /* VaultItem.swift */; };
 		D3E4F5A6B7C84892D4E5F6A7 /* GetLastSyncDateUseCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2D3E4F5A6B74892C3D4E5F6 /* GetLastSyncDateUseCase.swift */; };
@@ -365,6 +366,7 @@
 		182C3D4E5F6070A0A0B1C2D3 /* CustomFieldsEditSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomFieldsEditSection.swift; sourceTree = "<group>"; };
 		19616C22B9CF495087EE1F17 /* UnlockView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnlockView.swift; sourceTree = "<group>"; };
 		1A2B3C4D5E6F7A8B9C0D1E2F /* CardBackground.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardBackground.swift; sourceTree = "<group>"; };
+		CE1F00D0000000000000F0D0 /* ControlStyles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlStyles.swift; sourceTree = "<group>"; };
 		212734E66AE74662AD28E6CB /* TrashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrashView.swift; sourceTree = "<group>"; };
 		226B2B19933B495DB3C4BD94 /* UnlockUseCaseImpl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnlockUseCaseImpl.swift; sourceTree = "<group>"; };
 		22F420DF3338449A8BDBACCD /* CreateCollectionUseCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateCollectionUseCase.swift; sourceTree = "<group>"; };
@@ -922,6 +924,7 @@
 				3E105187F1E54E0E91E82B14 /* FieldRowView.swift */,
 				87629CFF5CFE4B4FA41EFC3C /* FaviconView.swift */,
 				1A2B3C4D5E6F7A8B9C0D1E2F /* CardBackground.swift */,
+				CE1F00D0000000000000F0D0 /* ControlStyles.swift */,
 				CC10030000000000000000A1 /* AuthChrome.swift */,
 			);
 			path = Components;
@@ -1323,6 +1326,7 @@
 				A2B3C4D5E6F74718B9C0D1E2 /* KeychainService.swift in Sources */,
 				AA11BB22CC3344DD55EE66FF /* AccessibilityIdentifiers.swift in Sources */,
 				CB1A2B3C4D5E6F7A8B9C0D1E /* CardBackground.swift in Sources */,
+				CE1F00D1000000000000B0D1 /* ControlStyles.swift in Sources */,
 				EE11223344556677889900BB /* DesignSystem.swift in Sources */,
 				A1C2D3E4F506172839A4B56C /* DraftVaultItem.swift in Sources */,
 				C3D4E5F607182940B5C6D7E8 /* EditVaultItemUseCase.swift in Sources */,

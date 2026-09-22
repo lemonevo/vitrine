@@ -239,6 +239,13 @@ final class TOTPCodeViewModelTests: XCTestCase {
     /// Everything above drives `refresh(at:)` directly, which is the point of injecting the clock —
     /// but it leaves the timer itself untested, and the timer is what makes the row live. A
     /// one-second step keeps the wait short.
+    ///
+    /// **The last assertion catches a race, and can only catch it probabilistically.** A timer fire
+    /// hands its work to the main actor instead of doing it there, so a refresh queued just before
+    /// `stop()` runs after it — which this test sees only when the timing works out (it did, once in
+    /// three full-suite runs, and then passed again). The fix is the `isRunning` re-check in
+    /// `scheduleNextRefresh`, not a longer sleep here; do not "stabilise" this test by dropping that
+    /// assertion, because it is the only thing that notices if the guard comes back out.
     func test_timer_keepsTheCodeCurrentAndStopsWhenAsked() {
         let sut = TOTPCodeViewModel(itemId: "item",
                                     secret: "GEZDGNBV",

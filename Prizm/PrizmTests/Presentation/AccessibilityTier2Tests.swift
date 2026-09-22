@@ -24,6 +24,7 @@ final class AccessibilityTier2Tests: XCTestCase {
             ("typeChip",         Opacity.typeChip(.standard),         Opacity.typeChip(.increased)),
             ("hairline",         Opacity.hairline(.standard),         Opacity.hairline(.increased)),
             ("selectionFill",    Opacity.selectionFill(.standard),    Opacity.selectionFill(.increased)),
+            ("controlHover",     Opacity.controlHover(.standard),     Opacity.controlHover(.increased)),
             ("authCardBorder",   Opacity.authCardBorder(.standard),   Opacity.authCardBorder(.increased)),
         ]
 
