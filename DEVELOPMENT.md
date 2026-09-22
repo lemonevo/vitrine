@@ -70,7 +70,7 @@ xcodebuild test \
 
 All tests must pass before merging to `main`. The CI workflow enforces this on every push and pull request.
 
-The suite is green as of 2026-09-22 — 1505 tests, 0 failures, 0 skipped. The test target requires
+The suite is green as of 2026-09-22 — 1507 tests, 0 failures, 0 skipped. The test target requires
 `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor` (it matches the app target) and is held at
 `SWIFT_VERSION = 5.0`; changing either will stop the target compiling. See
 `openspec/changes/fix-test-target-buildability/` before touching those settings.

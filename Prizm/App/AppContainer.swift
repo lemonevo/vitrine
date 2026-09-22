@@ -318,7 +318,7 @@ final class AppContainer: ObservableObject {
 
     /// Creates an `UnlockViewModel` for a returning user with a stored session.
     func makeUnlockViewModel(account: Account) -> UnlockViewModel {
-        UnlockViewModel(auth: authRepository, sync: syncUseCase, account: account, embeddedBiometric: authRepository)
+        UnlockViewModel(auth: authRepository, sync: syncUseCase, account: account)
     }
 
     /// Creates a `VaultBrowserViewModel` backed by the live vault store.

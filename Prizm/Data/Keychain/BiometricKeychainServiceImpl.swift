@@ -162,21 +162,26 @@ final class BiometricKeychainServiceImpl: BiometricKeychainService {
 
     func readBiometric(key: String) async throws -> Data {
         // Evaluating here rather than letting `SecItemCopyMatching` delegate to the
-        // security-agent subprocess is what produces the inline Touch ID prompt (badge
-        // on the sensor, no modal) — the same behaviour as Passwords.app. In
-        // `.systemEnforced` mode the evaluated context is then handed to
-        // `SecItemCopyMatching` so it does not re-authenticate; in `.appEnforced` mode
-        // this evaluation *is* the gate.
-        let context = try await evaluator.evaluate(reason: L("unlock your Prizm vault"))
+        // security-agent subprocess keeps the prompt and the read on one context: in
+        // `.systemEnforced` mode that context is then handed to `SecItemCopyMatching` so
+        // it does not ask a second time. In `.appEnforced` mode this evaluation *is* the
+        // gate. Either way the dialog is the system's own, raised by `evaluatePolicy`.
+        let context = try await evaluator.evaluate(reason: Self.promptReason)
         return try read(key: key, context: context)
     }
 
-    func readBiometric(key: String, context: LAContext) async throws -> Data {
-        // Evaluate biometric policy on the provided context. If LAAuthenticationView
-        // was paired with this context before the call, the UI appears inline in the
-        // app window — no system modal dialog (see EmbeddedTouchIDView).
-        try await evaluator.evaluate(on: context, reason: L("unlock your Prizm vault"))
-        return try read(key: key, context: context)
+    /// The line the system prompt shows.
+    ///
+    /// Names the sensor, because the dialog appears over every other app and "Unlock" alone
+    /// does not say what is asking. Sensor names are Apple product names and stay untranslated.
+    static var promptReason: String {
+        let sensor: String
+        switch LAContext().biometryType {
+        case .touchID: sensor = "Touch ID"
+        case .faceID:  sensor = "Face ID"
+        default:       sensor = L("Biometrics")
+        }
+        return L("Open your Prizm vault with %@", sensor)
     }
 
     /// Shared read path. `context` has already been authenticated by the caller.

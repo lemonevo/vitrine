@@ -33,6 +33,7 @@ let package = Package(
                 "Prizm.xcodeproj",
                 "LocalConfig.xcconfig",
                 "LocalConfig.xcconfig.template",
+                "PrizmTests.xctestplan",
                 // Localizations are copied into Contents/Resources by build-app.sh so
                 // that Bundle.main finds them. Routing them through SwiftPM would put
                 // them in Prizm_Prizm.bundle, where Bundle.main lookups miss them.

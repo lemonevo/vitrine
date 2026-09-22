@@ -306,6 +306,7 @@
 "Offline — showing data from %@" = "Offline — showing data from %@";
 "On timeout" = "On timeout";
 "Only %d characters" = "Only %d characters";
+"Open your Prizm vault with %@" = "Open your Prizm vault with %@";
 "Open" = "Open";
 "Open %@" = "Open %@";
 "Open in browser" = "Open in browser";
@@ -476,6 +477,7 @@
 "Unfavorite" = "Unfavorite";
 "Unknown Field" = "Unknown Field";
 "Unknown date" = "Unknown date";
+"Unlock with %@" = "Unlock with %@";
 "Unlock your vault to change this setting" = "Unlock your vault to change this setting";
 "Unsecured websites" = "Unsecured websites";
 "Unsupported item." = "Unsupported item.";
@@ -521,7 +523,6 @@
 "save" = "save";
 "the directory could not be created" = "the directory could not be created";
 "the directory is not private to this user" = "the directory is not private to this user";
-"unlock your Prizm vault" = "unlock your Prizm vault";
 "“%@” asked Prizm to sign with the SSH key “%@”." = "“%@” asked Prizm to sign with the SSH key “%@”.";
 "“%@” is protected. Enter your master password to continue." = "“%@” is protected. Enter your master password to continue.";
 "“%@” will be moved to Trash." = "“%@” will be moved to Trash.";

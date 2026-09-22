@@ -51,7 +51,8 @@ nonisolated enum AccessibilityID {
         static let errorMessage      = "unlock.error"
         static let headerTitle       = "unlock.headerTitle"
         static let switchAccount     = "unlock.switchAccount"
-        static let biometricBadge    = "unlock.biometricBadge"
+        /// The button that raises the system Touch ID / Face ID prompt.
+        static let biometricButton   = "unlock.biometricButton"
         static let enrollmentPrompt  = "unlock.enrollmentPrompt"
     }
 

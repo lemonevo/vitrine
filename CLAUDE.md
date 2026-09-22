@@ -70,6 +70,7 @@ xcodebuild test \
 | auth-screens-redesign | `openspec/changes/auth-screens-redesign/` |
 | xcode-localisation-resources | `openspec/changes/xcode-localisation-resources/` |
 | item-actions-in-detail-header | `openspec/changes/item-actions-in-detail-header/` |
+| biometric-system-prompt | `openspec/changes/biometric-system-prompt/` |
 
 ## Change Workflow (openspec)
 

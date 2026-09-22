@@ -311,6 +311,7 @@
 "Open in browser" = "在浏览器中打开";
 "Open source — all crypto is publicly auditable" = "开源 —— 所有加密实现均可公开审计";
 "Open this item" = "打开此条目";
+"Open your Prizm vault with %@" = "使用 %@ 打开你的 Prizm 保险库";
 "Opens in browser" = "在浏览器中打开";
 "Opens this item in the vault" = "在保险库中打开此条目";
 "Options" = "选项";
@@ -476,6 +477,7 @@
 "Unfavorite" = "取消收藏";
 "Unknown Field" = "未知字段";
 "Unknown date" = "日期未知";
+"Unlock with %@" = "使用 %@ 解锁";
 "Unlock your vault to change this setting" = "解锁保险库后才能修改此设置";
 "Unsecured websites" = "不安全的网站";
 "Unsupported item." = "不支持的项目。";
@@ -521,7 +523,6 @@
 "save" = "保存";
 "the directory could not be created" = "目录无法创建";
 "the directory is not private to this user" = "目录不是此用户私有的";
-"unlock your Prizm vault" = "解锁你的 Prizm 保险库";
 "“%@” asked Prizm to sign with the SSH key “%@”." = "「%@」请求 Prizm 使用 SSH 密钥「%@」签名。";
 "“%@” is protected. Enter your master password to continue." = "“%@”已受保护。请输入主密码以继续。";
 "“%@” will be moved to Trash." = "「%@」将被移到废纸篓。";

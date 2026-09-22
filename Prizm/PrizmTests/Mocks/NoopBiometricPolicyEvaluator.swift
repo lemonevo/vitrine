@@ -14,14 +14,9 @@ final class NoopBiometricPolicyEvaluator: BiometricPolicyEvaluating {
     var error: Error?
 
     func evaluate(reason: String) async throws -> LAContext {
-        let context = LAContext()
-        try await evaluate(on: context, reason: reason)
-        return context
-    }
-
-    func evaluate(on context: LAContext, reason: String) async throws {
         evaluateCallCount += 1
         lastReason = reason
         if let error { throw error }
+        return LAContext()
     }
 }

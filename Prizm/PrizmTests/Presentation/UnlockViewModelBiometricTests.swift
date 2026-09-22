@@ -45,106 +45,121 @@ final class UnlockViewModelBiometricTests: XCTestCase {
         XCTAssertFalse(sut.biometricUnlockAvailable)
     }
 
-    // MARK: - unlockWithBiometrics: success
+    /// Lets the ViewModel's inner `Task` run to completion.
+    ///
+    /// Awaiting a sleep rather than spinning a `RunLoop`: an `async` test body occupies the main
+    /// actor, so continuations queued onto it do not resume while the run loop is turning.
+    private func settle() async {
+        try? await Task.sleep(for: .milliseconds(50))
+    }
 
-    func testUnlockWithBiometrics_success_callsAuth() {
+    // MARK: - requestBiometricUnlock: success
+
+    func testRequestBiometricUnlock_success_callsAuth() async {
         mockAuth.stubbedBiometricUnlockAvailable = true
-        sut.unlockWithBiometrics()
-        let exp = expectation(description: "task runs")
-        DispatchQueue.main.async { exp.fulfill() }
-        wait(for: [exp], timeout: 1.0)
+
+        sut.requestBiometricUnlock()
+        await settle()
+
         XCTAssertTrue(mockAuth.unlockWithBiometricsCalled)
     }
 
-    // MARK: - unlockWithBiometrics: cancellation
+    // MARK: - requestBiometricUnlock: availability
 
-    func testUnlockWithBiometrics_cancellation_noErrorShown() async {
-        let cancelError = NSError(
-            domain: NSOSStatusErrorDomain,
-            code: Int(errSecUserCanceled),
-            userInfo: nil
-        )
-        mockAuth.unlockWithBiometricsError = cancelError
-
-        let exp = expectation(description: "flow returns to unlock")
-        sut.$flowState
-            .filter { $0 == .unlock }
-            .dropFirst() // skip initial .unlock
-            .first()
-            .sink { _ in exp.fulfill() }
-            .store(in: &cancellables)
-
-        sut.unlockWithBiometrics()
-        await fulfillment(of: [exp], timeout: 2.0)
-        XCTAssertNil(sut.errorMessage)
-    }
-
-    // MARK: - unlockWithBiometrics: re-arm after cancellation
-
-    func testUnlockWithBiometrics_cancellation_rearmsImmediately() async {
-        // Cancellation should re-call triggerBiometricUnlockIfAvailable(), which
-        // calls unlockWithBiometrics() again — always-armed behaviour (design Decision 2).
-        mockAuth.stubbedBiometricUnlockAvailable = true
-
-        let cancelError = NSError(
-            domain: NSOSStatusErrorDomain,
-            code: Int(errSecUserCanceled),
-            userInfo: nil
-        )
-        // First call cancels; second call also cancels (avoids infinite loop in test).
-        // We just need to confirm the second call is made.
-        mockAuth.unlockWithBiometricsError = cancelError
-
-        let exp = expectation(description: "re-arm fires second call")
-        // Wait for callCount to reach 2.
-        var token: AnyCancellable?
-        token = Timer.publish(every: 0.05, on: .main, in: .common)
-            .autoconnect()
-            .sink { [weak self] _ in
-                guard let self else { return }
-                if self.mockAuth.unlockWithBiometricsCallCount >= 2 {
-                    exp.fulfill()
-                    token?.cancel()
-                }
-            }
-
-        sut.unlockWithBiometrics()
-        await fulfillment(of: [exp], timeout: 3.0)
-        XCTAssertGreaterThanOrEqual(mockAuth.unlockWithBiometricsCallCount, 2)
-    }
-
-    // MARK: - unlockWithBiometrics: invalidation
-
-    func testUnlockWithBiometrics_invalidated_showsErrorMessage() async {
-        mockAuth.unlockWithBiometricsError = AuthError.biometricInvalidated
-
-        let exp = expectation(description: "error message shown")
-        sut.$errorMessage
-            .compactMap { $0 }
-            .first()
-            .sink { _ in exp.fulfill() }
-            .store(in: &cancellables)
-
-        sut.unlockWithBiometrics()
-        await fulfillment(of: [exp], timeout: 2.0)
-        XCTAssertNotNil(sut.errorMessage)
-    }
-
-    // MARK: - triggerBiometricUnlockIfAvailable
-
-    func testTriggerBiometricUnlock_notAvailable_noOp() async {
+    func testRequestBiometricUnlock_notAvailable_noOp() async {
         mockAuth.stubbedBiometricUnlockAvailable = false
-        sut.triggerBiometricUnlockIfAvailable()
+
+        sut.requestBiometricUnlock()
+        await settle()
+
         XCTAssertFalse(mockAuth.unlockWithBiometricsCalled)
     }
 
-    func testTriggerBiometricUnlock_available_callsUnlock() {
+    // MARK: - requestBiometricUnlock: dismissal
+
+    func testRequestBiometricUnlock_cancelled_showsNoError() async {
         mockAuth.stubbedBiometricUnlockAvailable = true
-        sut.triggerBiometricUnlockIfAvailable()
-        let exp = expectation(description: "task runs")
-        DispatchQueue.main.async { exp.fulfill() }
-        wait(for: [exp], timeout: 1.0)
-        XCTAssertTrue(mockAuth.unlockWithBiometricsCalled)
+        mockAuth.unlockWithBiometricsError = NSError(
+            domain: NSOSStatusErrorDomain,
+            code: Int(errSecUserCanceled),
+            userInfo: nil
+        )
+
+        sut.requestBiometricUnlock()
+        await settle()
+
+        XCTAssertNil(sut.errorMessage)
+        XCTAssertEqual(sut.flowState, .unlock)
+    }
+
+    /// Dismissing the prompt must NOT raise another one.
+    ///
+    /// The old behaviour was "always armed": every cancellation triggered another evaluation. That was
+    /// tolerable while the prompt was an icon in this window. It is a modal now, and a modal that
+    /// reappears the moment it is dismissed is a loop the user cannot leave — so the retry belongs to
+    /// the button, not to the ViewModel.
+    func testRequestBiometricUnlock_cancelled_doesNotRePrompt() async {
+        mockAuth.stubbedBiometricUnlockAvailable = true
+        mockAuth.unlockWithBiometricsError = NSError(
+            domain: NSOSStatusErrorDomain,
+            code: Int(errSecUserCanceled),
+            userInfo: nil
+        )
+
+        sut.requestBiometricUnlock()
+        await settle()
+
+        XCTAssertEqual(mockAuth.unlockWithBiometricsCallCount, 1)
+    }
+
+    /// A second request while the system prompt is still up is dropped.
+    ///
+    /// Each `evaluatePolicy` raises its own dialog, so two clicks would mean two dialogs to dismiss.
+    func testRequestBiometricUnlock_whilePromptIsInFlight_ignoresSecondRequest() async {
+        mockAuth.stubbedBiometricUnlockAvailable = true
+        mockAuth.unlockWithBiometricsDelay = .milliseconds(200)
+
+        sut.requestBiometricUnlock()
+        sut.requestBiometricUnlock()
+        sut.requestBiometricUnlock()
+        await settle()
+
+        XCTAssertEqual(mockAuth.unlockWithBiometricsCallCount, 1)
+    }
+
+    /// The guard has to release once the attempt is over, or the button would answer only once per
+    /// launch.
+    func testRequestBiometricUnlock_afterAttemptCompletes_canAskAgain() async {
+        mockAuth.stubbedBiometricUnlockAvailable = true
+
+        sut.requestBiometricUnlock()
+        await settle()
+        sut.requestBiometricUnlock()
+        await settle()
+
+        XCTAssertEqual(mockAuth.unlockWithBiometricsCallCount, 2)
+    }
+
+    // MARK: - requestBiometricUnlock: invalidation
+
+    func testRequestBiometricUnlock_invalidated_showsErrorMessage() async {
+        mockAuth.stubbedBiometricUnlockAvailable = true
+        mockAuth.unlockWithBiometricsError = AuthError.biometricInvalidated
+
+        sut.requestBiometricUnlock()
+        await settle()
+
+        XCTAssertNotNil(sut.errorMessage)
+    }
+
+    func testRequestBiometricUnlock_itemNotFound_showsNoError() async {
+        mockAuth.stubbedBiometricUnlockAvailable = true
+        mockAuth.unlockWithBiometricsError = AuthError.biometricItemNotFound
+
+        sut.requestBiometricUnlock()
+        await settle()
+
+        XCTAssertNil(sut.errorMessage)
     }
 
     // MARK: - Enrollment prompt (modal sheet via showEnrollmentPrompt)

@@ -28,25 +28,18 @@ enum BiometricStorageMode: Equatable {
 /// Injected rather than called inline so the SecItem code paths stay exercisable
 /// without enrolled biometrics — a test runner must not raise a Touch ID prompt.
 protocol BiometricPolicyEvaluating {
-    /// Prompts on a fresh context and returns it, so the same evaluation can be handed
-    /// to `SecItemCopyMatching` via `kSecUseAuthenticationContext`.
+    /// Runs the system biometric prompt and returns the context that answered it, so the
+    /// same evaluation can be handed to `SecItemCopyMatching` via
+    /// `kSecUseAuthenticationContext` instead of being performed twice.
+    ///
+    /// - Parameter reason: The line the user reads in that system dialog.
     func evaluate(reason: String) async throws -> LAContext
-
-    /// Prompts on a caller-supplied context. `EmbeddedTouchIDView` pairs a context with
-    /// an inline `LAAuthenticationView`; evaluating on that same context routes the
-    /// prompt through the embedded view instead of a system modal.
-    func evaluate(on context: LAContext, reason: String) async throws
 }
 
 /// The system's own Touch ID / Face ID prompt.
 struct SystemBiometricPolicyEvaluator: BiometricPolicyEvaluating {
     func evaluate(reason: String) async throws -> LAContext {
         let context = LAContext()
-        try await evaluate(on: context, reason: reason)
-        return context
-    }
-
-    func evaluate(on context: LAContext, reason: String) async throws {
         try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
             context.evaluatePolicy(
                 .deviceOwnerAuthenticationWithBiometrics,
@@ -56,6 +49,7 @@ struct SystemBiometricPolicyEvaluator: BiometricPolicyEvaluating {
                 else { cont.resume() }
             }
         }
+        return context
     }
 }
 
@@ -81,14 +75,6 @@ protocol BiometricKeychainService {
     /// Read and return the data stored for `key`, triggering biometric authentication.
     /// - Throws: `KeychainError.itemNotFound` if no item exists.
     func readBiometric(key: String) async throws -> Data
-
-    /// Read and return the data stored for `key`, evaluating the biometric policy on
-    /// the provided `context`. If `LAAuthenticationView` was paired with `context`
-    /// before this call, `evaluatePolicy` routes through that embedded view — no
-    /// system modal appears. On success the evaluated context is passed to
-    /// `SecItemCopyMatching` via `kSecUseAuthenticationContext`.
-    /// - Throws: `KeychainError.itemNotFound` if no item exists.
-    func readBiometric(key: String, context: LAContext) async throws -> Data
 
     /// Delete the item for `key`. No-ops silently when the item does not exist.
     func deleteBiometric(key: String) throws

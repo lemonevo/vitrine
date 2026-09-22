@@ -54,13 +54,18 @@ final class BiometricKeychainServiceTests: XCTestCase {
         try sut.writeBiometric(data: Data(count: 64), key: testKey)
         _ = try await sut.readBiometric(key: testKey)
         XCTAssertEqual(evaluator.evaluateCallCount, 1)
-        XCTAssertEqual(evaluator.lastReason, L("unlock your Prizm vault"))
+        // The prompt is the system's own and appears over whatever app the user was in, so the line
+        // has to say who is asking.
+        XCTAssertNotNil(evaluator.lastReason?.range(of: "Prizm"))
     }
 
-    func testReadWithContextEvaluatesPolicyOnThatContext() async throws {
-        try sut.writeBiometric(data: Data(count: 64), key: testKey)
-        _ = try await sut.readBiometric(key: testKey, context: LAContext())
-        XCTAssertEqual(evaluator.evaluateCallCount, 1)
+    /// The prompt line names the sensor, so the button on the unlock card and the dialog agree about
+    /// what is being offered. Which sensor exists is the machine's business, so only the shape is
+    /// asserted here.
+    func testPromptReasonNamesASensor() {
+        let reason = BiometricKeychainServiceImpl.promptReason
+        XCTAssertTrue(reason.hasPrefix("Open your Prizm vault with "), reason)
+        XCTAssertFalse(reason.hasSuffix(" "), "\(reason) names no sensor")
     }
 
     /// A refused evaluation must surface, not fall through to the stored bytes.

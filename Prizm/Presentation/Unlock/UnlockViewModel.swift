@@ -1,6 +1,5 @@
 import Combine
 import Foundation
-import LocalAuthentication
 import os.log
 
 // MARK: - UnlockFlowState
@@ -39,34 +38,29 @@ final class UnlockViewModel: ObservableObject {
     private let auth:             any AuthRepository
     private let sync:             any SyncUseCase
     private let account:          Account
-    private let embeddedBiometric: (any EmbeddedBiometricUnlock)?
     private let logger = Logger(subsystem: "com.prizm", category: "UnlockViewModel")
 
     /// Tracks whether the last biometric attempt failed with invalidation,
     /// so the enrollment prompt can show the re-enroll copy.
     private var lastBiometricInvalidated = false
 
-    // MARK: - Biometric context (LAAuthenticationView re-arming)
-
-    /// The current `LAContext` shared with the embedded `LAAuthenticationView`.
-    /// Replaced with a fresh instance on each re-arm so the view can re-authenticate.
-    @Published private(set) var biometricContext = LAContext()
-
-    /// Incremented on every re-arm so SwiftUI recreates `EmbeddedTouchIDView` via `.id()`.
-    @Published private(set) var biometricContextVersion = 0
+    /// Whether a system biometric prompt is up right now.
+    ///
+    /// Not published, because the button that raises it does not change appearance: this exists to
+    /// swallow a second request, not to disable a control. Each `evaluatePolicy` raises its own
+    /// dialog, so two clicks would mean two dialogs dismissed one at a time.
+    private var isBiometricPromptInFlight = false
 
     // MARK: - Init
 
     init(
         auth: any AuthRepository,
         sync: any SyncUseCase,
-        account: Account,
-        embeddedBiometric: (any EmbeddedBiometricUnlock)? = nil
+        account: Account
     ) {
         self.auth              = auth
         self.sync              = sync
         self.account           = account
-        self.embeddedBiometric = embeddedBiometric
     }
 
     // MARK: - Derived properties
@@ -160,11 +154,23 @@ final class UnlockViewModel: ObservableObject {
         }
     }
 
-    /// Attempts biometric unlock. On success, proceeds to sync.
-    /// On cancellation, re-arms the sensor immediately (always-armed behaviour —
-    /// design Decision 2). On lockout or invalidation, shows an error and stops.
-    func unlockWithBiometrics() {
+    /// Raises the system biometric prompt once.
+    ///
+    /// Deliberately not repeated on cancellation. The sensor used to be kept "always armed" — every
+    /// cancel immediately triggered another evaluation — which was tolerable while the prompt was an
+    /// icon inside this window, and is not now that it is a modal: a modal that reappears the moment
+    /// the user dismisses it is a loop they cannot leave. The button is the retry, so retrying is the
+    /// user's call.
+    ///
+    /// A missing Keychain item degrades silently — the repository has already cleared the flag, so
+    /// `biometricUnlockAvailable` answers false and the button goes with it.
+    func requestBiometricUnlock() {
+        guard biometricUnlockAvailable, !isBiometricPromptInFlight else { return }
+        logger.info("Biometric unlock requested")
+        isBiometricPromptInFlight = true
+
         Task {
+            defer { isBiometricPromptInFlight = false }
             do {
                 _ = try await auth.unlockWithBiometrics()
                 lastBiometricInvalidated = false
@@ -172,75 +178,20 @@ final class UnlockViewModel: ObservableObject {
             } catch let err as AuthError where err == .biometricInvalidated {
                 lastBiometricInvalidated = true
                 errorMessage = err.errorDescription
-                flowState = .unlock
-                // Intentionally NOT re-arming — invalidation requires password entry.
+                flowState    = .unlock
             } catch let err as AuthError where err == .biometricItemNotFound {
-                // Keychain item deleted externally — degrade silently, no error shown.
-                // biometricUnlockAvailable will return false now (flag cleared in repo).
-                _ = err
                 flowState = .unlock
             } catch let err as NSError
                 where err.domain == NSOSStatusErrorDomain && err.code == Int(errSecUserCanceled) {
-                // User cancelled — re-arm immediately so the sensor is always ready.
-                // No error shown; password field stays available in parallel.
+                // Dismissed. No message — nothing went wrong — and the password field stays
+                // usable in parallel, which is the point of a prompt that can be declined.
                 flowState = .unlock
-                triggerBiometricUnlockIfAvailable()
             } catch {
-                // Lockout or other failure — show the error, stop re-arming.
-                errorMessage = error.localizedDescription
-                flowState = .unlock
-            }
-        }
-    }
-
-    /// Triggers biometric unlock via the embedded `LAAuthenticationView` path.
-    /// Called from `.task(id: biometricContextVersion)` in `UnlockView` so the
-    /// `LAAuthenticationView` is guaranteed to be in the window before
-    /// `evaluatePolicy` is called — no system modal appears.
-    func triggerEmbeddedBiometricIfAvailable() {
-        guard biometricUnlockAvailable, let provider = embeddedBiometric else { return }
-        Task {
-            do {
-                _ = try await provider.unlockWithBiometrics(context: biometricContext)
-                lastBiometricInvalidated = false
-                await checkEnrollmentOrSync()
-            } catch let err as AuthError where err == .biometricInvalidated {
-                lastBiometricInvalidated = true
-                errorMessage = err.errorDescription
-                flowState    = .unlock
-            } catch let err as AuthError where err == .biometricItemNotFound {
-                // Keychain item deleted externally — degrade silently, no error shown.
-                _ = err
-                flowState = .unlock
-            } catch let laError as LAError {
-                switch laError.code {
-                case .biometryLockout:
-                    // Locked out — show error, stop re-arming.
-                    errorMessage = laError.localizedDescription
-                    flowState    = .unlock
-                default:
-                    // Cancellation or transient failure — re-arm silently.
-                    rearmBiometrics()
-                }
-            } catch {
+                // Lockout or other failure.
                 errorMessage = error.localizedDescription
                 flowState    = .unlock
             }
         }
-    }
-
-    /// Triggers biometric unlock if available; no-op otherwise.
-    /// Kept for use when `embeddedBiometric` is nil (test/legacy path).
-    func triggerBiometricUnlockIfAvailable() {
-        guard biometricUnlockAvailable else { return }
-        unlockWithBiometrics()
-    }
-
-    /// Replaces `biometricContext` with a fresh `LAContext` and increments the version
-    /// counter so `UnlockView` recreates `EmbeddedTouchIDView` via `.id()`.
-    func rearmBiometrics() {
-        biometricContext        = LAContext()
-        biometricContextVersion += 1
     }
 
     /// Called when the user accepts the enrollment prompt.

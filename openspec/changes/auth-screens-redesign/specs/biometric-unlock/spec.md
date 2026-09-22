@@ -1,6 +1,13 @@
 ## MODIFIED Requirements
 
 ### Requirement: User can unlock the vault with biometrics
+
+> **Superseded the same day** by `openspec/changes/biometric-system-prompt/`. The biometric row below
+> and the rule "no separate Touch ID button SHALL be present" were both reversed: the embedded
+> `LAAuthenticationView` is what suppressed the system dialog, and the user asked for the dialog. The
+> always-armed re-prompting this text assumes was removed with it — correct for an inline glyph, a
+> loop when the prompt is modal. Left here as the record of what this change shipped.
+
 The system SHALL provide a biometric unlock path that re-opens the vault without requiring the master
 password, using the platform biometric authenticator (Touch ID on macOS, Face ID on iOS). The system
 SHALL store the derived vault symmetric key (`CryptoKeys`) in a Keychain item protected by

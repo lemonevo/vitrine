@@ -145,7 +145,8 @@ final class AuthScreenScreenshotTests: XCTestCase {
         try snapshot("auth-unlock", size: roomy) { UnlockView(viewModel: unlockVM()) }
     }
 
-    /// The path most returning users see: the sensor row, and the subtitle that names it.
+    /// The path most returning users see: the button that raises the system prompt, and the subtitle
+    /// that names the same sensor.
     func testUnlockWithBiometrics() throws {
         try snapshot("auth-unlock-biometric", size: roomy) {
             UnlockView(viewModel: unlockVM(biometrics: true))

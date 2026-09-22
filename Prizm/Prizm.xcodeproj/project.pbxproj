@@ -235,10 +235,7 @@
 		DACC17049E22446A8EBDF996 /* MoveItemToFolderUseCaseImpl.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE3F012437604C4281E27DC2 /* MoveItemToFolderUseCaseImpl.swift */; };
 		DB71D59F021648E1982C90FA /* UnlockView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19616C22B9CF495087EE1F17 /* UnlockView.swift */; };
 		DB95790F466448D78246B723 /* VaultRepositoryImpl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AED13455B194BB48EDC3459 /* VaultRepositoryImpl.swift */; };
-		DD1001000000000000000001 /* EmbeddedBiometricUnlock.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC1001000000000000000001 /* EmbeddedBiometricUnlock.swift */; };
-		DD1002000000000000000002 /* EmbeddedTouchIDView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC1002000000000000000002 /* EmbeddedTouchIDView.swift */; };
 		DD10030000000000000000A1 /* AuthChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC10030000000000000000A1 /* AuthChrome.swift */; };
-		DD1003000000000000000003 /* LocalAuthenticationEmbeddedUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CC1003000000000000000003 /* LocalAuthenticationEmbeddedUI.framework */; };
 		E0F1A2B3C4D54896E1F2A3B4 /* SyncLabelFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3C4D5E64896F2A3B4C5 /* SyncLabelFormatter.swift */; };
 		E17D4DA652374B49BC2CD6B1 /* VaultBrowserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7D9916B5072420494DE6F9F /* VaultBrowserView.swift */; };
 		E2AAA6708B2A46FA85BE5860 /* Presentation/Unlock/BiometricEnrollmentPromptView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F53A563DEF9F47329635DE6F /* Presentation/Unlock/BiometricEnrollmentPromptView.swift */; };
@@ -483,10 +480,7 @@
 		BE3F012437604C4281E27DC2 /* MoveItemToFolderUseCaseImpl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoveItemToFolderUseCaseImpl.swift; sourceTree = "<group>"; };
 		C2D3E4F5A6B74892C3D4E5F6 /* GetLastSyncDateUseCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GetLastSyncDateUseCase.swift; sourceTree = "<group>"; };
 		CAB323D45FF2440C95C0BA70 /* CustomField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomField.swift; sourceTree = "<group>"; };
-		CC1001000000000000000001 /* EmbeddedBiometricUnlock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmbeddedBiometricUnlock.swift; sourceTree = "<group>"; };
-		CC1002000000000000000002 /* EmbeddedTouchIDView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmbeddedTouchIDView.swift; sourceTree = "<group>"; };
 		CC10030000000000000000A1 /* AuthChrome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthChrome.swift; sourceTree = "<group>"; };
-		CC1003000000000000000003 /* LocalAuthenticationEmbeddedUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = LocalAuthenticationEmbeddedUI.framework; path = System/Library/Frameworks/LocalAuthenticationEmbeddedUI.framework; sourceTree = SDKROOT; };
 		CC2233445566778899001122 /* CollectionTreeNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionTreeNode.swift; sourceTree = "<group>"; };
 		CF2F621523214454973153CC /* Organization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Organization.swift; sourceTree = "<group>"; };
 		D4E3F400A1B2C06C60708090 /* SecureNoteEditForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecureNoteEditForm.swift; sourceTree = "<group>"; };
@@ -561,7 +555,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				23BDC74E5D1F47618262BE0D /* Argon2Swift in Frameworks */,
-				DD1003000000000000000003 /* LocalAuthenticationEmbeddedUI.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -828,7 +821,6 @@
 				AA1009000000000000000009 /* AttachmentRepositoryImpl.swift */,
 				AA100A00000000000000000A /* VaultKeyCache.swift */,
 				AA100B00000000000000000B /* VaultKeyServiceImpl.swift */,
-				CC1001000000000000000001 /* EmbeddedBiometricUnlock.swift */,
 			);
 			path = Repositories;
 			sourceTree = "<group>";
@@ -923,7 +915,6 @@
 				3E105187F1E54E0E91E82B14 /* FieldRowView.swift */,
 				87629CFF5CFE4B4FA41EFC3C /* FaviconView.swift */,
 				1A2B3C4D5E6F7A8B9C0D1E2F /* CardBackground.swift */,
-				CC1002000000000000000002 /* EmbeddedTouchIDView.swift */,
 				CC10030000000000000000A1 /* AuthChrome.swift */,
 			);
 			path = Components;
@@ -1079,7 +1070,6 @@
 		EE1001000000000000000001 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				CC1003000000000000000003 /* LocalAuthenticationEmbeddedUI.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -1400,8 +1390,6 @@
 				839B201DD1B0447FABC35E38 /* Presentation/Unlock/EnrollmentReason.swift in Sources */,
 				2939BF1A524B44458BD40B01 /* Presentation/Settings/SettingsView.swift in Sources */,
 				60067C5087C547F4B96C3493 /* Presentation/Settings/BiometricUnlockToggle.swift in Sources */,
-				DD1001000000000000000001 /* EmbeddedBiometricUnlock.swift in Sources */,
-				DD1002000000000000000002 /* EmbeddedTouchIDView.swift in Sources */,
 				DD10030000000000000000A1 /* AuthChrome.swift in Sources */,
 				FD8B7C520CEBB28118EE5564 /* AppLanguage.swift in Sources */,
 				11F92917BA7B80CC07DDBB6D /* LocalizationManager.swift in Sources */,

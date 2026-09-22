@@ -6,9 +6,9 @@ import SwiftUI
 
 /// The vault unlock screen shown to returning users (User Story 2, FR-003, FR-039).
 ///
-/// Modelled after the macOS Passwords lock screen: app icon with the biometric sensor beneath it,
-/// title "Prizm Is Locked", email inline in the subtitle, and the password field. Biometric unlock
-/// auto-triggers on appearance.
+/// Modelled after the macOS Passwords lock screen: the app icon, title "Prizm Is Locked", email inline
+/// in the subtitle, and the password field. A biometric unlock raises the **system** prompt — once
+/// automatically when this screen appears, and afterwards whenever the user asks with the button.
 ///
 /// **Built inside the same card as `LoginView`.** The two screens used to disagree about what they
 /// looked like — login drew a stock `lock.shield.fill`, unlock drew the real application icon — for an
@@ -57,25 +57,30 @@ struct UnlockView: View {
                     // **This button was not here.** Return was the only way to submit, and
                     // `isUnlockDisabled` was computed and then never shown to anyone — so the screen
                     // gave no indication that anything could be pressed, or that it was waiting for
-                    // something. `biometric-unlock` forbids a *Touch ID* button, because the sensor is
-                    // always armed and a button would imply a press; a submit control for the password
-                    // path is a different thing, and its absence was simply a gap.
+                    // something. A form with a disabled-looking field and no visible commit control is
+                    // a dead end until someone guesses the keyboard.
                     AuthPrimaryButton(title: L("Unlock"), isBusy: false, action: unlockIfReady)
                         .disabled(isUnlockDisabled)
                         .accessibilityIdentifier(AccessibilityID.Unlock.unlockButton)
-                }
-            }
 
-            // MARK: Biometric sensor
-            //
-            // Its own row, not a badge over the icon: `LAAuthenticationView` has an intrinsic size the
-            // SwiftUI `.frame` does not constrain, so overlaying it produced a fingerprint sticking out
-            // past the shield. Not a button either — see the note above about the always-armed sensor.
-            if viewModel.biometricUnlockAvailable {
-                EmbeddedTouchIDView(context: viewModel.biometricContext)
-                    .id(viewModel.biometricContextVersion)
-                    .padding(.top, 14)
-                    .accessibilityIdentifier(AccessibilityID.Unlock.biometricBadge)
+                    // MARK: Biometric unlock
+                    //
+                    // A button, not a live sensor. The prompt is the system's own dialog now, so the
+                    // card needs only a way to raise it — and a button is honest about that, where the
+                    // fingerprint glyph invited a finger that would have done nothing.
+                    if viewModel.biometricUnlockAvailable {
+                        Button {
+                            viewModel.requestBiometricUnlock()
+                        } label: {
+                            Label(L("Unlock with %@", biometricMethodName),
+                                  systemImage: biometricSystemImage)
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.large)
+                        .accessibilityIdentifier(AccessibilityID.Unlock.biometricButton)
+                    }
+                }
             }
 
             // MARK: Error message
@@ -103,16 +108,17 @@ struct UnlockView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(.vertical, 24)
-        // Tall enough for the card with the PIN field, the sensor row and an error banner all showing
-        // at once — the state a locked out user actually lands in. `.windowResizability(.contentSize)`
-        // turns this into the window's minimum size.
+        // Tall enough for the card with the PIN field, the Touch ID button and an error banner all
+        // showing at once — the state a locked out user actually lands in.
+        // `.windowResizability(.contentSize)` turns this into the window's minimum size.
         .frame(minWidth: 480, minHeight: 560)
         .onAppear { passwordFocused = true }
-        // .task(id:) re-fires whenever biometricContextVersion changes (re-arm).
-        // By the time the task runs, SwiftUI has re-rendered EmbeddedTouchIDView
-        // with the new LAContext — so evaluatePolicy routes inline, not to a modal.
-        .task(id: viewModel.biometricContextVersion) {
-            viewModel.triggerEmbeddedBiometricIfAvailable()
+        // Ask once, when the screen appears, so a returning user's fingerprint still opens the vault
+        // without a click. `.task` rather than `.onAppear` so the prompt is raised after the view is
+        // on screen, and once only — it has no `id:` to re-fire it, because re-arming a *modal* on
+        // every dismissal is a loop. The button below is the retry.
+        .task {
+            viewModel.requestBiometricUnlock()
         }
         .sheet(isPresented: $viewModel.showEnrollmentPrompt) {
             BiometricEnrollmentPromptView(
@@ -171,12 +177,24 @@ struct UnlockView: View {
         }
     }
 
-    // Sensor names are Apple product names and stay untranslated.
+    /// The sensor this device reports, read once per render so the subtitle and the button cannot end
+    /// up naming different things.
+    private var biometryType: LABiometryType { LAContext().biometryType }
+
+    /// Sensor names are Apple product names and stay untranslated.
     private var biometricMethodName: String {
-        switch LAContext().biometryType {
+        switch biometryType {
         case .touchID: return "Touch ID"
         case .faceID:  return "Face ID"
         default:       return L("Biometrics")
+        }
+    }
+
+    private var biometricSystemImage: String {
+        switch biometryType {
+        case .touchID: return "touchid"
+        case .faceID:  return "faceid"
+        default:       return "person.badge.key"
         }
     }
 }

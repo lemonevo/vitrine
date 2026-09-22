@@ -138,6 +138,9 @@ final class MockAuthRepository: AuthRepository {
     private(set) var unlockWithBiometricsCallCount: Int = 0
     var enableBiometricUnlockError: Error?
     var unlockWithBiometricsError: Error?
+    /// Set to hold an attempt open, so a second request can be made while the first prompt is
+    /// still up. Mirrors `lockVaultDelay`.
+    var unlockWithBiometricsDelay: Duration?
 
     var deviceBiometricCapable: Bool { stubbedDeviceBiometricCapable }
     var biometricUnlockAvailable: Bool { stubbedBiometricUnlockAvailable }
@@ -189,6 +192,7 @@ final class MockAuthRepository: AuthRepository {
     func unlockWithBiometrics() async throws -> Account {
         unlockWithBiometricsCalled = true
         unlockWithBiometricsCallCount += 1
+        if let delay = unlockWithBiometricsDelay { try? await Task.sleep(for: delay) }
         if let err = unlockWithBiometricsError { throw err }
         guard case .success(let account) = stubbedLoginResult else {
             throw AuthError.biometricUnavailable
