@@ -94,7 +94,11 @@ is from the run named beside it — they are not one run's numbers reused.
       failed, 0 skipped in 178 s. 1549 is also the number of `func test` declarations in `PrizmTests`
       (there are no `@Test` cases), so the executed set is the whole set. That includes 3 tests from
       `P3MainWindowScreenshotTests` — another session's untracked work in this tree, not this change's.
-- [ ] 6.5 CI green on the pushed commit.
+- [x] 6.5 CI green on the pushed commit — run 35740555391 on `b56367f`, every step including
+      `Test (no signing)`. **CI executed 1546 tests, 0 failures**; the 3-test difference from the local
+      1549 is `P3MainWindowScreenshotTests`, which is not in the pushed tree. Both build and test steps
+      run under `set -o pipefail`, so a failure fails the job — see `fix(ci): make a failed build
+      actually fail the job`.
 - [ ] 6.6 **Still unknown:** the favicon flake was never reproduced, so the diagnosis in
       `proposal.md` remains an inference. If a count assertion in that file fails again, the tagged
       request log now says whose request the extra one was — that is the observation this session
