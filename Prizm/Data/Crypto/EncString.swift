@@ -33,8 +33,6 @@ nonisolated enum EncStringError: Error, Equatable {
     case decryptionFailed
     /// AES encryption or IV generation failed.
     case encryptionFailed
-    /// Encrypted data is shorter than the required IV length (16 bytes).
-    case invalidIVLength
 }
 
 // MARK: - EncString

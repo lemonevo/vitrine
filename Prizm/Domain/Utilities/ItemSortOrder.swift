@@ -21,18 +21,6 @@ nonisolated enum ItemSortOrder: String, CaseIterable, Identifiable, Sendable {
 
     var id: String { rawValue }
 
-    /// Whether this order is derived from the item name.
-    ///
-    /// Only name orders may be grouped under letter headings. An A–Z grouping over a
-    /// date-ordered list describes nothing and reads as a rendering bug, so `ItemListView`
-    /// falls back to a flat list for every other order.
-    var isNameBased: Bool {
-        switch self {
-        case .nameAscending, .nameDescending: return true
-        default:                              return false
-        }
-    }
-
     /// Label shown in the sort menu. Resolved through `L(…)` at call time so it follows the
     /// interface language.
     var displayName: String {
@@ -47,6 +35,12 @@ nonisolated enum ItemSortOrder: String, CaseIterable, Identifiable, Sendable {
     }
 
     /// Orders `items` according to this order.
+    ///
+    /// A pass-through for `.nameAscending` was tried here and is wrong. `VaultRepositoryImpl` does hand
+    /// over buckets already in that order, but this is a public function on a value type and cannot know
+    /// its caller's state — `ItemSortOrderTests` and the view model's own test both feed it an unsorted
+    /// array, and both went red. The per-keystroke cost is real; it is also a sort of a few hundred
+    /// short strings, which is not what makes this app feel slow.
     func sort(_ items: [VaultItem]) -> [VaultItem] {
         items.sorted(by: areInIncreasingOrder)
     }

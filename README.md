@@ -52,9 +52,12 @@ Prizm exists to give macOS users a native, auditable, trustworthy interface to t
 - **Password & passphrase generator** — configurable length, character sets, and word separators
 - **Touch ID / Face ID unlock** — unlock your vault with biometrics; auto-prompts on lock; graceful re-enrollment when fingerprints change
 - **Auto-lock** — locks on sleep and screensaver; sync status always visible in the sidebar
-- **TOTP codes** — shows the current 6-digit code with a live countdown for any login carrying a TOTP secret
+- **Background refresh** — while the vault is unlocked, Prizm re-syncs every five minutes and whenever you come back to the app or wake the machine, so an item changed elsewhere shows up without pressing anything. It never syncs while locked, and a refresh that fails stays out of your way: no banner, just a last-sync label that visibly ages
+- **TOTP codes** — shows the current code with a ring and a seconds countdown for any login carrying a TOTP secret, and lists every code in the vault in one place (**Verification Codes**, from the sidebar) so signing in somewhere does not mean hunting for the item first. Codes are derived from the stored key; the key itself is never shown or copied
+- **PIN unlock** — a short code that opens the vault on this Mac, wrapped cryptographically rather than stored as a gate flag. Five wrong attempts remove it and sign you out; the remaining count is shown only after you have spent a try, because a limit you cannot see is a trap
 - **Two-factor login** — authenticator app (TOTP), YubiKey OTP, and email challenges, plus a per-account public-key fingerprint you can verify out of band
-- **Vault import & export** — Bitwarden-compatible unencrypted JSON, with a per-item report of what was imported and what was skipped
+- **Vault import & export** — Bitwarden-compatible unencrypted JSON, or CSV for logins only, with a per-item report of what was imported and what was skipped. The CSV warning names exactly what it cannot carry rather than exporting a silently smaller vault
+- **Password, passphrase and username generator** — configurable length, character sets and word separators, plus a memorable-username mode
 - **Vault health report** — flags weak, reused, and old passwords, and items with no second factor
 - **Password strength & history** — per-item strength estimate, and the previous passwords kept on a login
 - **Master-password re-prompt** — per-item gate that asks for the master password before revealing or copying a protected field
@@ -62,6 +65,7 @@ Prizm exists to give macOS users a native, auditable, trustworthy interface to t
 - **Passkey viewer** — passkeys attached to a vault item are listed, read-only
 - **SSH agent** — serves SSH keys from the vault over a local socket. Requires a build without the App Sandbox; see [Known Limitations](#known-limitations)
 - **Accessible** — VoiceOver labels and hints on all controls, keyboard navigable, respects Reduce Motion and Increase Contrast; targets WCAG 2.1 AA. See [ACCESSIBILITY.md](ACCESSIBILITY.md)
+- **English and 简体中文** — switchable at runtime in Settings, or follow macOS. Nothing is machine-translated; the strings are written for both
 
 ## Install
 
@@ -139,11 +143,13 @@ Any shortcut can be remapped in **System Settings → Keyboard → Keyboard Shor
 
 | Now | Next | Later |
 |---|---|---|
-| Background sync | Offline vault read / write | Browser auto-fill extension |
-| Multiple accounts | Bitwarden cloud login | Full support for KDBX 4 (KeePass) |
+| Offline vault write | Multiple accounts | Browser auto-fill extension |
+| | Bitwarden cloud login | Full support for KDBX 4 (KeePass) |
 | | Passkey creation & login | |
 
 **Now** — actively in development. **Next** — planned for the following 3–6 months. **Later** — on the list with no fixed timeline.
+
+Shipped since this table was last written, and now simply part of the app: reading the vault offline from a cached copy of the last sync, background re-sync while unlocked, file attachments, the vault health report, PIN unlock, and the full interface redesign.
 
 > **Breach checking is deliberately not on this list.** Telling you whether a password appears in a breach dump means sending part of that password to a third party. For a client whose whole premise is that your secrets stay on your own server, that is not a trade worth making.
 
@@ -156,7 +162,7 @@ Want to shift something up the list? [Open an issue](https://github.com/lemonevo
 - **macOS 26 required** — The app uses SwiftUI features only available in macOS 26.
 - **Passkeys are read-only** — Passkeys attached to a vault item are listed, but Prizm cannot create one or use one to log in.
 - **SSH agent needs an unsandboxed build** — The agent listens on a Unix socket that `ssh` has to be able to reach, which a build with the App Sandbox enabled cannot create. In that case Prizm reports the agent as unavailable rather than failing silently. Builds produced by `./build-app.sh` disable the sandbox and can run it.
-- **No offline vault creation** — Creating or editing items requires an active server connection.
+- **No offline vault creation** — Reading the vault works offline, from a cached copy of the last successful sync; the app says so and reports how old that copy is. Creating or editing items still requires an active server connection.
 - **Attachment size limit** — Files larger than 500 MB are rejected. Bitwarden-hosted servers require a premium subscription for attachments; Vaultwarden is unaffected.
 
 ## Contributing

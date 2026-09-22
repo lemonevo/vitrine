@@ -70,6 +70,21 @@ xcodebuild test \
 
 All tests must pass before merging to `main`. The CI workflow enforces this on every push and pull request.
 
+The suite is green as of 2026-09-22 — 1505 tests, 0 failures, 0 skipped. The test target requires
+`SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor` (it matches the app target) and is held at
+`SWIFT_VERSION = 5.0`; changing either will stop the target compiling. See
+`openspec/changes/fix-test-target-buildability/` before touching those settings.
+
+**The run is pinned to English** by `Prizm/PrizmTests.xctestplan`, which the shared scheme references —
+`⌘U` and `xcodebuild test -scheme` both pick it up. That matters because the app bundle carries `en` and
+`zh-Hans` translations: without a pinned language, string assertions resolve against the Mac's own
+System Settings language and the same suite passes here and fails there. See
+`openspec/changes/xcode-localisation-resources/` before removing the plan or pointing the scheme
+somewhere else.
+
+Without a signing identity configured, add the same flags CI uses — `CODE_SIGN_IDENTITY=""
+CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO` — to the command above.
+
 ## Architecture
 
 Three-layer Clean Architecture with strict dependency direction:

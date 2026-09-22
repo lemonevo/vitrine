@@ -11,8 +11,6 @@ import os.log
 nonisolated enum PrizmCryptoServiceError: Error, Equatable {
     /// PBKDF2 or Argon2id key derivation failed.
     case kdfFailed
-    /// HKDF key expansion failed.
-    case hkdfFailed
     /// The encUserKey EncString could not be parsed or decrypted.
     case invalidEncUserKey
     /// The decrypted user key is not 64 bytes (encKey + macKey).
@@ -61,6 +59,15 @@ protocol PrizmCryptoService: Actor {
     /// - Parameter masterKey: 32-byte master key.
     /// - Returns: `CryptoKeys` with a 32-byte `encryptionKey` and 32-byte `macKey`.
     func stretchKey(masterKey: Data) async throws -> CryptoKeys
+
+    /// Derives a 64-byte key pair from a short code and a salt.
+    ///
+    /// Used only by PIN unlock, and deliberately separate from `makeMasterKey`/`stretchKey`: those are
+    /// sized for a master password, where the derivation is part of the defence. For a PIN the
+    /// derivation is a speed bump and the real protection is where the wrapped key lives and how many
+    /// attempts are allowed — see `PinUnlockService`. Reusing PBKDF2 here keeps the primitive in one
+    /// place rather than adding a second KDF to the codebase.
+    func derivePinKeys(pin: String, salt: Data, iterations: UInt32) async throws -> CryptoKeys
 
     /// Computes the server authentication hash sent to the identity server during login.
     ///
@@ -361,6 +368,19 @@ actor PrizmCryptoServiceImpl: PrizmCryptoService {
     }
 
     // MARK: - stretchKey
+
+    func derivePinKeys(pin: String, salt: Data, iterations: UInt32) async throws -> CryptoKeys {
+        let derived = try pbkdf2SHA256(
+            password: Data(pin.utf8),
+            salt:     salt,
+            rounds:   max(1, iterations),
+            keyLen:   64
+        )
+        guard let keys = CryptoKeys(data: derived) else {
+            throw PrizmCryptoServiceError.kdfFailed
+        }
+        return keys
+    }
 
     func stretchKey(masterKey: Data) async throws -> CryptoKeys {
         // Bitwarden Key Stretching (Security Whitepaper §4):

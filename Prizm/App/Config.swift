@@ -16,12 +16,7 @@ extension Notification.Name {
     static let vaultDidLock = Notification.Name("com.prizm.vaultDidLock")
 }
 
-// MARK: - App config
-
-enum Config {
-    static let clientName = "desktop"
-    static let deviceType = 7
-}
+// MARK: - Debug logging
 
 /// Gates verbose debug logging throughout the Data layer.
 ///

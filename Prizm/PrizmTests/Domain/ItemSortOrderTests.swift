@@ -121,15 +121,6 @@ final class ItemSortOrderTests: XCTestCase {
 
     // MARK: - Metadata
 
-    func test_isNameBased_trueOnlyForNameOrders() {
-        XCTAssertTrue(ItemSortOrder.nameAscending.isNameBased)
-        XCTAssertTrue(ItemSortOrder.nameDescending.isNameBased)
-        XCTAssertFalse(ItemSortOrder.modifiedNewestFirst.isNameBased)
-        XCTAssertFalse(ItemSortOrder.modifiedOldestFirst.isNameBased)
-        XCTAssertFalse(ItemSortOrder.createdNewestFirst.isNameBased)
-        XCTAssertFalse(ItemSortOrder.createdOldestFirst.isNameBased)
-    }
-
     func test_allCases_haveDistinctRawValuesAndNonEmptyLabels() {
         let raws = ItemSortOrder.allCases.map(\.rawValue)
         XCTAssertEqual(Set(raws).count, raws.count, "raw values must be unique")
@@ -194,4 +185,124 @@ final class ItemSortPreferenceTests: XCTestCase {
         defaults.set(42, forKey: ItemSortPreference.key)
         XCTAssertEqual(ItemSortPreference.load(from: defaults), .nameAscending)
     }
+}
+
+// MARK: - The view model's use of the preference domain
+
+/// The sort order the view model persists must land in the domain it was given, and nowhere else.
+///
+/// The second assertion is the one that matters. Two suites used to read and clear the sort key in
+/// `UserDefaults.standard` — and because Xcode runs test classes in parallel *processes*, one of them
+/// deleted the key the other had just written, so a sort test failed at random. Asserting on
+/// `.standard` is what stops that write being moved back.
+@MainActor
+final class VaultBrowserViewModelSortPreferenceDomainTests: XCTestCase {
+
+    private var defaults: UserDefaults!
+    private var suiteName: String!
+    private var vault: MockVaultRepository!
+
+    override func setUp() async throws {
+        try await super.setUp()
+        suiteName = "VaultBrowserViewModelSortPreferenceDomainTests-\(UUID().uuidString)"
+        defaults  = UserDefaults(suiteName: suiteName)
+        vault     = MockVaultRepository()
+    }
+
+    override func tearDown() async throws {
+        defaults.removePersistentDomain(forName: suiteName)
+        defaults = nil
+        vault = nil
+        suiteName = nil
+        try await super.tearDown()
+    }
+
+    private func makeViewModel() -> VaultBrowserViewModel {
+        VaultBrowserViewModel(
+            vault:           vault,
+            search:          SearchVaultUseCaseImpl(vault: vault),
+            delete:          HoldableDeleteUseCase(),
+            permanentDelete: StubSortPermanentDeleteUseCase(),
+            restore:         StubSortRestoreUseCase(),
+            duplicate:       NoopDuplicateUseCase(),
+            emptyTrash:      StubEmptyTrashUseCase(),
+            sync:            MockSyncUseCase(),
+            createFolder:     StubSortCreateFolder(),
+            renameFolder:     StubSortRenameFolder(),
+            deleteFolder:     StubSortDeleteFolder(),
+            moveItem:         StubSortMoveItem(),
+            createCollection: StubSortCreateCollection(),
+            renameCollection: StubSortRenameCollection(),
+            deleteCollection: StubSortDeleteCollection(),
+            syncTimestamp:    MockSyncTimestampRepository(storedDate: nil),
+            getLastSyncDate:  GetLastSyncDateUseCaseImpl(repository: MockSyncTimestampRepository(storedDate: nil)),
+            export:           MockExportVaultUseCase(),
+            importVault:      MockImportVaultUseCase(),
+            verifyMasterPassword: VerifyMasterPasswordUseCaseImpl(auth: MockAuthRepository()),
+            fileSaver:        { _, _ in nil },
+            filePicker:       { nil },
+            userDefaults:     defaults
+        )
+    }
+
+    func testSortOrder_isPersistedInTheInjectedDomain() {
+        let sut = makeViewModel()
+
+        sut.sortOrder = .nameDescending
+
+        XCTAssertEqual(ItemSortPreference.load(from: defaults), .nameDescending)
+    }
+
+    func testSortOrder_doesNotTouchTheSharedDomain() {
+        let before = UserDefaults.standard.string(forKey: ItemSortPreference.key)
+        let sut = makeViewModel()
+
+        sut.sortOrder = .modifiedNewestFirst
+
+        XCTAssertEqual(
+            UserDefaults.standard.string(forKey: ItemSortPreference.key), before,
+            "a test must not write the application's preference domain"
+        )
+    }
+
+    func testSortOrder_isReadFromTheInjectedDomainOnInit() {
+        ItemSortPreference.save(.createdOldestFirst, to: defaults)
+
+        let sut = makeViewModel()
+
+        XCTAssertEqual(sut.sortOrder, .createdOldestFirst)
+    }
+}
+
+private final class StubSortPermanentDeleteUseCase: PermanentDeleteVaultItemUseCase {
+    func execute(id: String) async throws {}
+}
+private final class StubSortRestoreUseCase: RestoreVaultItemUseCase {
+    func execute(id: String) async throws {}
+}
+private struct StubSortCreateFolder: CreateFolderUseCase {
+    func execute(name: String) async throws -> Folder { Folder(id: "stub", name: name) }
+}
+private struct StubSortRenameFolder: RenameFolderUseCase {
+    func execute(id: String, name: String) async throws -> Folder { Folder(id: id, name: name) }
+}
+private struct StubSortDeleteFolder: DeleteFolderUseCase {
+    func execute(id: String) async throws {}
+}
+private struct StubSortMoveItem: MoveItemToFolderUseCase {
+    func execute(itemId: String, folderId: String?) async throws {}
+    func execute(itemIds: [String], folderId: String?) async throws {}
+}
+private struct StubSortCreateCollection: CreateCollectionUseCase {
+    func execute(name: String, organizationId: String) async throws -> OrgCollection {
+        OrgCollection(id: "stub", organizationId: organizationId, name: name)
+    }
+}
+private struct StubSortRenameCollection: RenameCollectionUseCase {
+    func execute(collectionId: String, name: String, organizationId: String) async throws -> OrgCollection {
+        OrgCollection(id: collectionId, organizationId: organizationId, name: name)
+    }
+}
+private struct StubSortDeleteCollection: DeleteCollectionUseCase {
+    func execute(collectionId: String, organizationId: String) async throws {}
 }
