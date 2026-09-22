@@ -19,8 +19,12 @@ final class MockLoginUseCase: LoginUseCase {
 
     // MARK: - Stubs
 
-    var stubbedResult: LoginResult = .success(
-        Account(
+    /// The sync outcome carried by `LoginOutcome.signedIn`. Left nil by default so a test that does
+    /// not care about the vault payload does not have to build one.
+    var stubbedSyncResult: SyncResult?
+
+    var stubbedResult: LoginOutcome = .signedIn(
+        account: Account(
             userId:            "stub-user",
             email:             "stub@example.com",
             name:              nil,
@@ -28,7 +32,8 @@ final class MockLoginUseCase: LoginUseCase {
                 base:      URL(string: "https://stub.example.com")!,
                 overrides: nil
             )
-        )
+        ),
+        sync: nil
     )
     var executeError: Error?
     var completeTwoFactorError: Error?
@@ -36,20 +41,23 @@ final class MockLoginUseCase: LoginUseCase {
 
     // MARK: - LoginUseCase
 
-    func execute(serverURL: String, email: String, masterPassword: Data) async throws -> LoginResult {
+    func execute(serverURL: String, email: String, masterPassword: Data) async throws -> LoginOutcome {
         executeCallCount += 1
         if let err = executeError { throw err }
         return stubbedResult
     }
 
-    func completeTwoFactor(code: String, rememberDevice: Bool) async throws -> Account {
+    func completeTwoFactor(
+        code: String,
+        rememberDevice: Bool
+    ) async throws -> (account: Account, sync: SyncResult?) {
         completeTwoFactorCalled = true
         submittedCode = code
         if let err = completeTwoFactorError { throw err }
-        guard case .success(let account) = stubbedResult else {
+        guard case .signedIn(let account, let sync) = stubbedResult else {
             throw AuthError.invalidTwoFactorCode
         }
-        return account
+        return (account, sync ?? stubbedSyncResult)
     }
 
     func sendEmailTwoFactorCode() async throws {

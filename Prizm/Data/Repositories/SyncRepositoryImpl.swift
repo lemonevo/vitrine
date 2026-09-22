@@ -28,6 +28,23 @@ actor SyncRepositoryImpl: SyncRepository {
     private let vaultKeyCache:   VaultKeyCache
     private let orgKeyCache:     OrgKeyCache
     private let accountKeyCache: AccountKeyCache
+    private let vaultCache:      any VaultCacheStore
+
+    /// The signed-in account's user id, or `nil` when there is no session.
+    ///
+    /// A closure rather than an `AuthRepository` reference, and resolved at the moment it is needed
+    /// rather than remembered here. The answer is read from the Keychain, which is the one place
+    /// that knows which account is signed in — caching it in a second place would create a value
+    /// that can disagree with the session it describes.
+    private let currentUserId:   @Sendable () async -> String?
+
+    /// Identifies the session this sync belongs to.
+    ///
+    /// A sync is the longest-running thing the app does, so it is the most likely to still be in
+    /// flight when the user locks. Without this, it returns and writes — into the key caches, into
+    /// the store, into the view model — resurrecting a session whose keys the lock has already
+    /// zeroed.
+    private let sessionEpoch:    SessionEpoch
 
     private let logger = Logger(subsystem: "com.prizm", category: "SyncRepository")
 
@@ -43,7 +60,10 @@ actor SyncRepositoryImpl: SyncRepository {
         vaultRepository: any VaultRepository,
         vaultKeyCache:   VaultKeyCache,
         orgKeyCache:     OrgKeyCache = OrgKeyCache(),
-        accountKeyCache:  AccountKeyCache = AccountKeyCache()
+        accountKeyCache:  AccountKeyCache = AccountKeyCache(),
+        vaultCache:      any VaultCacheStore,
+        sessionEpoch:    SessionEpoch = SessionEpoch(),
+        currentUserId:   @escaping @Sendable () async -> String?
     ) {
         self.apiClient       = apiClient
         self.crypto          = crypto
@@ -51,6 +71,9 @@ actor SyncRepositoryImpl: SyncRepository {
         self.vaultKeyCache   = vaultKeyCache
         self.orgKeyCache     = orgKeyCache
         self.accountKeyCache  = accountKeyCache
+        self.vaultCache      = vaultCache
+        self.sessionEpoch    = sessionEpoch
+        self.currentUserId   = currentUserId
     }
 
     // MARK: - SyncRepository
@@ -63,22 +86,23 @@ actor SyncRepositoryImpl: SyncRepository {
         isSyncing = true
         defer { isSyncing = false }
 
-        // Phase 1: Fetch encrypted vault from server.
+        // Captured before the first `await`, so a lock that happens at any point during this sync
+        // invalidates it. Everything below is either a read or is preceded by `requireLiveSession`.
+        let epochToken = await sessionEpoch.current()
+
+        // Phase 1: Fetch encrypted vault from server, or from the cache when it cannot be reached.
         progress(L("Syncing vault…"))
         logger.info("Starting vault sync")
 
-        let syncResponse: SyncResponse
-        do {
-            syncResponse = try await apiClient.fetchSync()
-        } catch let err as APIError {
-            switch err {
-            case .httpError(statusCode: 401, _):
-                throw SyncError.unauthorized
-            default:
-                throw SyncError.networkUnavailable
-            }
-        } catch {
-            throw SyncError.networkUnavailable
+        let fetched = try await fetchVault()
+
+        // The network call is the longest window, and the common case: the user pressed ⌘L while the
+        // request was out. Checked before any decryption so a dead session does no work at all.
+        try await requireLiveSession(epochToken)
+
+        let syncResponse = fetched.response
+        if fetched.source == .cache {
+            progress(L("Using the offline copy of your vault…"))
         }
 
         let totalCiphers = syncResponse.ciphers.count
@@ -92,7 +116,10 @@ actor SyncRepositoryImpl: SyncRepository {
                 acc[c.type, default: 0] += 1
             }
             let orgCount = syncResponse.ciphers.filter { $0.organizationId != nil }.count
-            let typeNames = [1: "login", 2: "identity", 3: "note", 4: "card", 5: "sshKey"]
+            // Must match `RawCipher.type`'s documented mapping and `CipherMapper.mapContent`:
+            // 2 is a secure note, 3 a card, 4 an identity. It did not, so the breakdown a person
+            // reads while diagnosing a bad sync named the wrong types.
+            let typeNames = [1: "login", 2: "secureNote", 3: "card", 4: "identity", 5: "sshKey"]
             let breakdown = typeCounts
                 .sorted(by: { $0.key < $1.key })
                 .map { "\(typeNames[$0.key] ?? "type\($0.key)")=\($0.value)" }
@@ -112,6 +139,7 @@ actor SyncRepositoryImpl: SyncRepository {
         // Phase 2b: Populate the per-cipher key cache from keys collected during decryptList.
         // Only ciphers with a per-item key are included; vault-key-only ciphers are handled
         // by VaultKeyServiceImpl's fallback path.
+        try await requireLiveSession(epochToken)
         await vaultKeyCache.populate(keys: cipherKeyMap)
         logger.info("VaultKeyCache populated with \(cipherKeyMap.count, privacy: .public) per-item key(s)")
 
@@ -159,6 +187,12 @@ actor SyncRepositoryImpl: SyncRepository {
         // Reference: Bitwarden Security Whitepaper §4 — "Organization Key Wrapping".
         var organizations: [Organization] = []
         var collections: [OrgCollection] = []
+        /// Per-item keys for org ciphers that carry their own. Filled during the org phase and
+        /// merged into the key cache in the commit phase, so every write happens in one place.
+        var orgCipherKeyMap: [String: Data] = [:]
+        /// Org ciphers the org pass could not produce. Hoisted out of the block below because the
+        /// result counts them together with the personal failures.
+        var orgCipherFailedCount = 0
 
         if !syncResponse.organizations.isEmpty,
            let encPrivateKey = syncResponse.profile.privateKey {
@@ -177,6 +211,7 @@ actor SyncRepositoryImpl: SyncRepository {
 
                 // Unwrap each org key into OrgKeyCache.
                 // Failure for a single org is logged and skipped; other orgs proceed.
+                try await requireLiveSession(epochToken)
                 await orgKeyCache.clear()  // Fresh slate for this sync.
                 for rawOrg in syncResponse.organizations {
                     do {
@@ -215,7 +250,11 @@ actor SyncRepositoryImpl: SyncRepository {
                             logger.error("Collection name not valid UTF-8 for collection \(raw.id.prefix(8), privacy: .public)")
                             return nil
                         }
-                        return OrgCollection(id: raw.id, organizationId: raw.organizationId, name: name)
+                        // `preserved` carries the collection's members, groups and external id. Dropping them
+                        // here is what made a later rename send empty arrays — see
+                        // `PreservedCollectionFields`.
+                        return OrgCollection(id: raw.id, organizationId: raw.organizationId, name: name,
+                                             preserved: raw.preserved)
                     } catch {
                         logger.error("Failed to decrypt collection name for \(raw.id.prefix(8), privacy: .public): \(error, privacy: .public)")
                         return nil
@@ -227,7 +266,6 @@ actor SyncRepositoryImpl: SyncRepository {
                 // were skipped there because org keys were not yet available at that point.
                 // We do a second pass here, using the same CipherMapper with the org key snapshot.
                 let orgMapper = CipherMapper()
-                var orgCipherFailedCount = 0
                 for (index, cipher) in syncResponse.ciphers.enumerated() {
                     guard cipher.organizationId != nil else { continue }
                     do {
@@ -235,7 +273,7 @@ actor SyncRepositoryImpl: SyncRepository {
                             raw: cipher, vaultKeys: vaultKeys, orgKeys: orgKeysSnapshot
                         )
                         items.append(item)
-                        if cipher.key != nil { cipherKeyMap[cipher.id] = cipherKey }
+                        if cipher.key != nil { orgCipherKeyMap[cipher.id] = cipherKey }
                     } catch CipherMapperError.organisationCipherSkipped {
                         // Org key not in snapshot — org key unwrap failed for this org.
                         orgCipherFailedCount += 1
@@ -247,9 +285,10 @@ actor SyncRepositoryImpl: SyncRepository {
                         logger.error("Org cipher decryption failed at index \(index, privacy: .public): \(error, privacy: .public)")
                     }
                 }
-                // Refresh the VaultKeyCache to include per-item keys from org ciphers.
-                await vaultKeyCache.populate(keys: cipherKeyMap)
-
+                // Keys for ciphers that carry their own are merged into the cache in the commit
+                // phase below, together with the personal ones — so every write this sync makes
+                // happens in one place, behind one liveness check, rather than being scattered
+                // through the phases it belongs to.
                 logger.info("Org sync: \(organizations.count) org(s), \(collections.count) collection(s), \(orgCipherFailedCount, privacy: .public) org cipher(s) skipped")
             } catch {
                 logger.error("Org key sync failed — org ciphers unavailable this session: \(error, privacy: .public)")
@@ -257,7 +296,18 @@ actor SyncRepositoryImpl: SyncRepository {
             }
         }
 
-        // Phase 3: Populate the in-memory vault store.
+        // Phase 3: Commit. Everything this sync writes is here, behind a single liveness check.
+        //
+        // Placing the check at the top of the commit — rather than only after the fetch — closes
+        // the window in which a session ends during the decryption of a large vault, which is
+        // hundreds of milliseconds of work. A write that passes this check and then lands while a
+        // lock is clearing the same store is still possible in principle; it is microseconds of
+        // synchronous code, and what would remain is key bytes in a cache that no unlocked code
+        // path can read, since the crypto service refuses to hand out keys once locked.
+        try await requireLiveSession(epochToken)
+
+        await vaultKeyCache.populate(keys: cipherKeyMap.merging(orgCipherKeyMap) { _, new in new })
+
         let syncedAt = Date()
         await vaultRepository.populate(
             items:         items,
@@ -267,10 +317,140 @@ actor SyncRepositoryImpl: SyncRepository {
             syncedAt:      syncedAt
         )
 
+        // Phase 4: Keep the payload for the next unlock without a network.
+        //
+        // Only a server response is written, and only after the populate above has succeeded. A
+        // cache-sourced run has nothing new to store, and a failed run — which has already thrown
+        // by this point — must never overwrite a good cache with a partial one. That ordering is
+        // what makes "a failed sync does not damage the cache" true by construction rather than by
+        // remembering to check.
+        if fetched.source == .server, let body = fetched.body {
+            await persistPayload(body, writtenAt: syncedAt)
+        }
+
         return SyncResult(
             syncedAt:              syncedAt,
             totalCiphers:          totalCiphers,
-            failedDecryptionCount: failedCount
+            // Personal and organisation failures, summed. They are counted by different code paths —
+            // the personal pass skips org ciphers outright, and the org pass keeps its own local
+            // tally — and only the total is honest: the user sees one list, so a number that covers
+            // half of it would under-report exactly the thing it exists to report.
+            failedDecryptionCount: failedCount + orgCipherFailedCount,
+            source:                fetched.source,
+            payloadTimestamp:      fetched.payloadTimestamp
+        )
+    }
+
+    // MARK: - Private
+
+    /// Refuses to go further if the session this sync belongs to has ended.
+    ///
+    /// Called before each group of writes. The alternative — checking once — cannot cover a sync
+    /// that spans a vault lock, because the check would have to be either before the work (too
+    /// early to catch a lock during it) or after (too late: the writes have happened).
+    ///
+    /// - Throws: `SyncError.sessionEnded`, which is not a failure to report: it is the correct
+    ///   outcome of a race that the teardown won, and naming it keeps it out of the log as a fake
+    ///   network problem.
+    private func requireLiveSession(_ token: Int) async throws {
+        guard await sessionEpoch.isCurrent(token) else {
+            logger.info("Sync abandoned: the session ended while it was in flight")
+            throw SyncError.sessionEnded
+        }
+    }
+
+    /// A vault payload to populate from, and where it came from.
+    private struct FetchedVault {
+        let response:         SyncResponse
+        /// The server's bytes. Present only for a live fetch; there is nothing to re-cache when
+        /// the payload came out of the cache.
+        let body:             Data?
+        let source:           SyncSource
+        /// When the data was fetched from the server.
+        let payloadTimestamp: Date
+    }
+
+    /// Fetches the vault, falling back to the cached payload when the server cannot be reached.
+    ///
+    /// The split that matters: fall back when the request **could not be completed**, never when
+    /// the server **answered**. A rejection or an unreadable response is information about the
+    /// session or the client, and substituting cached data for it would replace that information
+    /// with a screen that looks like a normal offline unlock.
+    private func fetchVault() async throws -> FetchedVault {
+        do {
+            let (response, body) = try await apiClient.fetchSyncPayload()
+            return FetchedVault(
+                response: response, body: body, source: .server, payloadTimestamp: Date()
+            )
+        } catch let err as APIError {
+            switch err {
+            case .httpError(statusCode: 401, _):
+                throw SyncError.unauthorized
+
+            case .httpError(let statusCode, _) where (400..<500).contains(statusCode):
+                // The server decided something about this request. Report it; do not paper over it.
+                logger.error("Sync request rejected with HTTP \(statusCode, privacy: .public)")
+                throw SyncError.networkUnavailable
+
+            case .httpError:
+                // 5xx: the server answered, but it could not serve the vault. Indistinguishable to
+                // the user from an outage, which is the case the cache is for.
+                return try await loadFromCache(replacing: SyncError.networkUnavailable)
+
+            case .decodingFailed, .baseURLNotSet, .serverTrustRefused:
+                // A trust refusal is deliberately in this group. It is the one failure where
+                // quietly serving last week's vault could hide an active interception, and the app
+                // already has a screen for resolving it.
+                throw SyncError.networkUnavailable
+            }
+        } catch {
+            // No response at all: offline, DNS, connection refused, timeout.
+            return try await loadFromCache(replacing: SyncError.networkUnavailable)
+        }
+    }
+
+    /// Populates from the cached payload for the signed-in account, or rethrows `originalError`.
+    ///
+    /// `originalError` is what the user is told when there is nothing usable to fall back to. The
+    /// network failure is the reason the cache was needed, so it is the honest thing to report —
+    /// an empty vault is not.
+    private func loadFromCache(replacing originalError: SyncError) async throws -> FetchedVault {
+        guard let userId = await currentUserId(), let serverURL = await apiClient.baseURL else {
+            logger.error("Vault unreachable and no account identity to look up a cache for")
+            throw originalError
+        }
+
+        let identity = VaultCacheIdentity(userId: userId, serverURL: serverURL)
+        guard let payload = await vaultCache.read(identity: identity) else {
+            logger.error("Vault unreachable and no cached payload is available")
+            throw originalError
+        }
+
+        let response: SyncResponse
+        do {
+            // Same decoder configuration as `PrizmAPIClientImpl.decode`: a plain `JSONDecoder`
+            // with no key or date strategies. `SyncResponse` handles the casing variants itself.
+            response = try JSONDecoder().decode(SyncResponse.self, from: payload.body)
+        } catch {
+            logger.error("Cached payload could not be decoded; treating it as absent")
+            throw originalError
+        }
+
+        logger.info("Populating from the cached vault payload written \(payload.writtenAt, privacy: .public)")
+        return FetchedVault(
+            response: response, body: nil, source: .cache, payloadTimestamp: payload.writtenAt
+        )
+    }
+
+    /// Stores the server's bytes for the signed-in account. Best-effort — see `VaultCacheStore`.
+    private func persistPayload(_ body: Data, writtenAt: Date) async {
+        guard let userId = await currentUserId(), let serverURL = await apiClient.baseURL else {
+            logger.error("No account identity available; vault payload not cached")
+            return
+        }
+        await vaultCache.write(
+            identity: VaultCacheIdentity(userId: userId, serverURL: serverURL),
+            payload:  VaultCachePayload(body: body, writtenAt: writtenAt)
         )
     }
 }

@@ -25,10 +25,19 @@ final class VaultBrowserViewModelBackupTests: XCTestCase {
 
     // MARK: - Setup
 
+    /// A preference domain private to this test instance.
+    ///
+    /// Not `.standard`: Xcode runs test classes in parallel *processes*, which share the host app's
+    /// preference domain, so clearing a key here deleted it for whichever other suite was running at
+    /// the same time. `ItemSortPreferenceTests` already used a per-instance suite; this suite now
+    /// does too, and `UserDefaults.standard` is never touched.
+    private var defaults: UserDefaults!
+
     override func setUp() async throws {
         try await super.setUp()
-        UserDefaults.standard.removeObject(forKey: ItemSortPreference.key)
-        UserDefaults.standard.removeObject(forKey: ClipboardClearInterval.key)
+        defaults = UserDefaults(suiteName: "\(String(describing: Self.self))-\(UUID().uuidString)")
+        defaults.removeObject(forKey: ItemSortPreference.key)
+        defaults.removeObject(forKey: ClipboardClearInterval.key)
 
         vault         = MockVaultRepository()
         export        = MockExportVaultUseCase()
@@ -40,8 +49,10 @@ final class VaultBrowserViewModelBackupTests: XCTestCase {
     }
 
     override func tearDown() async throws {
-        UserDefaults.standard.removeObject(forKey: ItemSortPreference.key)
-        UserDefaults.standard.removeObject(forKey: ClipboardClearInterval.key)
+        // The same instance's suite, not a new one — recreating it here would clear a domain nothing
+        // had written to. Clearing is belt and braces: the suite is per instance and discarded with it.
+        defaults.removeObject(forKey: ItemSortPreference.key)
+        defaults.removeObject(forKey: ClipboardClearInterval.key)
         vault = nil
         export = nil
         importUseCase = nil
@@ -141,7 +152,7 @@ final class VaultBrowserViewModelBackupTests: XCTestCase {
                        "the suggested name is what the panel is offered")
         XCTAssertEqual(files.savedData, Data("{}".utf8))
         XCTAssertEqual(sut.backupSheet,
-                       .exportDone(url: savedURL, itemCount: 1, organisationItemCount: 0))
+                       .exportDone(url: savedURL, itemCount: 1, organisationItemCount: 0, omittedItemCount: 0))
         XCTAssertNil(sut.actionError)
     }
 
@@ -157,7 +168,7 @@ final class VaultBrowserViewModelBackupTests: XCTestCase {
         await waitUntil { self.sut.backupSheet != .exportConsent }
 
         XCTAssertEqual(sut.backupSheet,
-                       .exportDone(url: savedURL, itemCount: 7, organisationItemCount: 3))
+                       .exportDone(url: savedURL, itemCount: 7, organisationItemCount: 3, omittedItemCount: 0))
     }
 
     /// Dismissing the done sheet leaves no error behind — the export succeeded.
@@ -373,7 +384,7 @@ final class VaultBrowserViewModelBackupTests: XCTestCase {
         XCTAssertFalse(VaultBackupSheet.exportConsent.isImporting)
         XCTAssertFalse(VaultBackupSheet.importReport(ImportSummary()).isImporting)
         XCTAssertFalse(
-            VaultBackupSheet.exportDone(url: savedURL, itemCount: 1, organisationItemCount: 0)
+            VaultBackupSheet.exportDone(url: savedURL, itemCount: 1, organisationItemCount: 0, omittedItemCount: 0)
                 .isImporting
         )
     }
@@ -382,7 +393,7 @@ final class VaultBrowserViewModelBackupTests: XCTestCase {
     func test_sheetStates_areDistinct() {
         let states: [VaultBackupSheet] = [
             .exportConsent,
-            .exportDone(url: savedURL, itemCount: 1, organisationItemCount: 0),
+            .exportDone(url: savedURL, itemCount: 1, organisationItemCount: 0, omittedItemCount: 0),
             .importing(done: 0, total: 0),
             .importReport(ImportSummary())
         ]

@@ -36,6 +36,14 @@ actor MockPrizmAPIClient: PrizmAPIClientProtocol {
     nonisolated(unsafe) var syncShouldThrow: Error?
     nonisolated(unsafe) var syncDelay: TimeInterval = 0
 
+    /// The bytes `fetchSyncPayload()` reports as "exactly what the server sent".
+    ///
+    /// Kept separate from `syncResponse` because the two are genuinely separate in production: the
+    /// body is an artefact of the wire, and `SyncResponse` is a lossy model of it. A test that cares
+    /// about the bytes (the cache round-trip) sets both; one that does not gets an empty body.
+    nonisolated(unsafe) var syncPayloadBody: Data = Data()
+    nonisolated(unsafe) var fetchSyncPayloadShouldThrow: Error?
+
     // MARK: - Stubs: refreshAccessToken
 
     nonisolated(unsafe) var refreshResponse: String?
@@ -129,6 +137,11 @@ actor MockPrizmAPIClient: PrizmAPIClientProtocol {
             ciphers: [],
             folders: []
         )
+    }
+
+    func fetchSyncPayload() async throws -> (response: SyncResponse, body: Data) {
+        if let err = fetchSyncPayloadShouldThrow { throw err }
+        return (try await fetchSync(), syncPayloadBody)
     }
 
     func refreshAccessToken(refreshToken: String) async throws -> (accessToken: String, refreshToken: String?) {
@@ -313,8 +326,19 @@ actor MockPrizmAPIClient: PrizmAPIClientProtocol {
     nonisolated(unsafe) var renameCollectionShouldThrow: Error?
     nonisolated(unsafe) var renameCollectionCallCount: Int = 0
 
-    func renameCollection(id: String, organizationId: String, encryptedName: String) async throws -> RawCollection {
+    /// The membership the last rename carried.
+    ///
+    /// Recorded because the defect this guards against was *in the request body*: a test that only
+    /// checked the response, or the local entity, would pass against the code that revoked everyone's
+    /// access on the server.
+    nonisolated(unsafe) var lastRenamePreserved: PreservedCollectionFields?
+
+    func renameCollection(
+        id: String, organizationId: String, encryptedName: String,
+        preserved: PreservedCollectionFields
+    ) async throws -> RawCollection {
         renameCollectionCallCount += 1
+        lastRenamePreserved = preserved
         if let err = renameCollectionShouldThrow { throw err }
         return renameCollectionResponse ?? RawCollection(
             id: id, organizationId: organizationId, name: encryptedName

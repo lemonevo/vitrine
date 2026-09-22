@@ -114,10 +114,20 @@ nonisolated struct RawCollection: Codable, Equatable {
     let organizationId: String
     let name:           String  // EncString, encrypted with org key
 
-    init(id: String, organizationId: String, name: String) {
+    /// Membership and the external id, carried rather than modelled.
+    ///
+    /// Vaultwarden stores the collection object verbatim, so a rename that omits these deletes them.
+    /// Before this existed the client sent `groups: []` and `users: []` literally, which revoked
+    /// every other member's and group's access to a renamed collection. See
+    /// `PreservedCollectionFields`.
+    let preserved: PreservedCollectionFields
+
+    init(id: String, organizationId: String, name: String,
+         preserved: PreservedCollectionFields = .empty) {
         self.id             = id
         self.organizationId = organizationId
         self.name           = name
+        self.preserved      = preserved
     }
 
     init(from decoder: Decoder) throws {
@@ -125,12 +135,27 @@ nonisolated struct RawCollection: Codable, Equatable {
         id             = try (try? c.decode(String.self, forKey: .id))             ?? c.decode(String.self, forKey: .idUpper)
         organizationId = try (try? c.decode(String.self, forKey: .organizationId)) ?? c.decode(String.self, forKey: .organizationIdUpper)
         name           = try (try? c.decode(String.self, forKey: .name))           ?? c.decode(String.self, forKey: .nameUpper)
+
+        // Decoded leniently: older servers omit both arrays, and a collection with no membership is
+        // represented by absence as often as by an empty array. A decode failure here would drop the
+        // collection entirely over a field this build does not even read.
+        preserved = PreservedCollectionFields(
+            groups:     (try? c.decode([JSONValue].self, forKey: .groups))
+                            ?? (try? c.decode([JSONValue].self, forKey: .groupsUpper)) ?? [],
+            users:      (try? c.decode([JSONValue].self, forKey: .users))
+                            ?? (try? c.decode([JSONValue].self, forKey: .usersUpper)) ?? [],
+            externalId: (try? c.decodeIfPresent(String.self, forKey: .externalId))
+                            ?? (try? c.decodeIfPresent(String.self, forKey: .externalIdUpper))
+        )
     }
 
     private enum FlexCollKeys: String, CodingKey {
         case id             = "id",             idUpper             = "Id"
         case organizationId = "organizationId", organizationIdUpper = "OrganizationId"
         case name           = "name",           nameUpper           = "Name"
+        case groups         = "groups",         groupsUpper         = "Groups"
+        case users          = "users",          usersUpper          = "Users"
+        case externalId     = "externalId",     externalIdUpper     = "ExternalId"
     }
 }
 

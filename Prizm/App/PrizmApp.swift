@@ -287,7 +287,11 @@ struct PrizmApp: App {
                 },
                 makeTOTPCodeViewModel: { itemId, secret in
                     container.makeTOTPCodeViewModel(itemId: itemId, secret: secret)
-                }
+                },
+                makeVerificationCodesViewModel: { [vaultBrowserVM = rootVM.vaultBrowserVM] in
+                    container.makeVerificationCodesViewModel(browser: vaultBrowserVM)
+                },
+                totpGenerator: container.totpGenerator
             )
             // Installed here rather than on the app's root: the generator only exists inside the
             // vault, and a value generated before unlock is not something that can happen.
@@ -340,6 +344,10 @@ protocol RootViewModelDependencies: AnyObject {
     func makeLoginViewModel() -> LoginViewModel
     func makeUnlockViewModel(account: Account) -> UnlockViewModel
     func makeVaultBrowserViewModel() -> VaultBrowserViewModel
+    /// Creates the verification-codes list. A factory rather than a stored instance because the rows own
+    /// one timer each, and they must be built when the sheet opens and released when it closes.
+    @MainActor
+    func makeVerificationCodesViewModel(browser: VaultBrowserViewModel) -> VerificationCodesViewModel
     /// Creates the health report view model. A factory rather than a stored instance because the
     /// report is per-presentation: each time the sheet opens it runs the checks again, and a cached
     /// report would show the vault as it was the first time.
@@ -353,6 +361,10 @@ protocol RootViewModelDependencies: AnyObject {
     /// Idle-timeout observation. Injected so `RootViewModel` can be tested without installing a
     /// real `NSEvent` monitor, which is the one part of the feature a unit test cannot exercise.
     var idleMonitor: any VaultIdleMonitoring { get }
+    /// Periodic vault refresh while unlocked, and on reactivation or wake. Injected for the same
+    /// reason as `idleMonitor`: the timer and the notification observers are not test material, but
+    /// the wiring that starts and stops them is.
+    var backgroundSyncMonitor: any BackgroundSyncMonitoring { get }
     /// The session's generator history. Cleared on lock and sign-out so a value that was generated
     /// but never saved cannot outlive the session that produced it (design D9).
     var generatorHistory: GeneratorHistory { get }
@@ -364,6 +376,9 @@ protocol RootViewModelDependencies: AnyObject {
     /// screen is the only thing that knows when the vault became usable, and the coordinator has no
     /// business knowing about screens.
     var sshAgentCoordinator: SSHAgentCoordinator { get }
+    /// The identity of the current unlocked session. Advanced on lock and on sign-out, so that a
+    /// sync still in flight cannot write into a session that has ended.
+    var sessionEpoch: SessionEpoch { get }
 }
 
 extension AppContainer: RootViewModelDependencies {
@@ -463,6 +478,12 @@ final class RootViewModel: ObservableObject, RepromptGating {
     let sshAgentCoordinator: SSHAgentCoordinator
     /// Drives the configurable idle timeout. Started only while the vault is unlocked.
     private let idleMonitor: any VaultIdleMonitoring
+    /// Refreshes the vault on a timer, and when the app or the machine comes back. Started and
+    /// stopped by the same transition as `idleMonitor`, so the two cannot get out of step.
+    private let backgroundSyncMonitor: any BackgroundSyncMonitoring
+    /// The identity of the current session. Advanced as the *first* step of both teardowns, so a
+    /// sync completing while they run already sees that its session is over.
+    private let sessionEpoch: SessionEpoch
     /// Combine subscriptions — held for the lifetime of this object.
     /// Using Combine (not SwiftUI .onChange) so transitions fire regardless
     /// of whether the source view is currently in the view hierarchy.
@@ -477,6 +498,8 @@ final class RootViewModel: ObservableObject, RepromptGating {
         self.loginVM        = container.makeLoginViewModel()
         self.vaultBrowserVM = container.makeVaultBrowserViewModel()
         self.idleMonitor    = container.idleMonitor
+        self.backgroundSyncMonitor = container.backgroundSyncMonitor
+        self.sessionEpoch    = container.sessionEpoch
         self.sshAgentAuthorizer  = container.sshAgentAuthorizer
         self.sshAgentCoordinator = container.sshAgentCoordinator
 
@@ -493,6 +516,12 @@ final class RootViewModel: ObservableObject, RepromptGating {
         // locks use, so the idle timeout introduces no third way to destroy or retain key material.
         idleMonitor.onTimeout = { [weak self] action in
             self?.handleIdleTimeout(action)
+        }
+
+        // A tick is only a *fact* that the interval elapsed or the app came back; whether that means
+        // "sync now" is decided here, where the session's state is known.
+        backgroundSyncMonitor.onTick = { [weak self] trigger in
+            self?.handleBackgroundTick(trigger)
         }
 
         // The browser presents the re-prompt sheet and holds the reveal state, but must not be
@@ -525,7 +554,7 @@ final class RootViewModel: ObservableObject, RepromptGating {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] screen in
                 guard let self else { return }
-                self.updateIdleMonitoring(for: screen)
+                self.updateSessionMonitoring(for: screen)
                 self.menuBarCanSync = self.isVaultUnlocked && !self.vaultBrowserVM.isSyncing
             }
             .store(in: &cancellables)
@@ -600,13 +629,19 @@ final class RootViewModel: ObservableObject, RepromptGating {
         ) { [weak self] _ in MainActor.assumeIsolated { self?.lockVault() } }
     }
 
-    /// Re-scopes the sync timestamp to the current account and records a successful sync,
+    /// Re-scopes the sync timestamp to the current account and records the sync that got us here,
     /// then transitions to the vault screen.
     ///
     /// Called from both `handleLoginFlow` and `handleUnlockFlow` — the vault transition
     /// logic is identical in both flows. `caller` is included in the error log so the
     /// originating flow is identifiable when the account is unexpectedly missing.
-    private func transitionToVault(caller: String) {
+    ///
+    /// `syncResult` is the outcome of the sync that preceded this transition, and it is the reason
+    /// this method takes an argument at all: the timestamp shown to the user has to come from the
+    /// data on screen. An earlier version passed `Date()` here, which reported a fresh successful
+    /// sync on a launch where the vault had not been fetched at all. `nil` means exactly that — the
+    /// fetch did not happen — and is passed through as such rather than filled in.
+    private func transitionToVault(caller: String, syncResult: SyncResult?) {
         // Re-scope before recording: on first login the AppContainer was initialised without
         // a known email; this corrects the UserDefaults key before handleSyncCompleted writes to it.
         if let email = container.authRepo.storedAccount()?.email {
@@ -641,7 +676,11 @@ final class RootViewModel: ObservableObject, RepromptGating {
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
             MainActor.assumeIsolated {
-                self.vaultBrowserVM.handleSyncCompleted(syncedAt: Date())
+                if let syncResult {
+                    self.vaultBrowserVM.handleSyncCompleted(syncResult)
+                } else {
+                    self.vaultBrowserVM.handleVaultEnteredWithoutSync()
+                }
             }
         }
     }
@@ -652,7 +691,7 @@ final class RootViewModel: ObservableObject, RepromptGating {
         case .loading:     screen = .loading
         case .twoFactorPrompt(let provider):  screen = .twoFactorPrompt(provider)
         case .syncing(let msg): screen = .syncing(message: msg)
-        case .vault:       transitionToVault(caller: "handleLoginFlow")
+        case .vault:       transitionToVault(caller: "handleLoginFlow", syncResult: loginVM.lastSyncResult)
         }
         logger.info("Screen transition → \(String(describing: state))")
     }
@@ -684,6 +723,9 @@ final class RootViewModel: ObservableObject, RepromptGating {
     /// Clears all session data and returns to the login screen.
     func signOut() {
         Task {
+            // Before anything else: a sync still in flight must see that its session is over, or it
+            // will repopulate the store and the key caches while this teardown is clearing them.
+            sessionEpoch.advance()
             do {
                 try await container.authRepo.signOut()
             } catch {
@@ -709,7 +751,11 @@ final class RootViewModel: ObservableObject, RepromptGating {
             // still blocked on a prompt — after `revokeAll()` those requests are answered false,
             // so the client sees a refusal rather than a hang.
             sshAgentCoordinator.vaultDidLock()
-            vaultBrowserVM.discardReveals()
+            // The view model holds its own copy of everything the store just dropped — the item
+            // list, the selection, the decrypted folder and organisation names. Leaving it there
+            // kept the copy commands enabled on the unlock screen: `selectedLogin` is derived from
+            // the selection, and nothing was clearing the selection.
+            vaultBrowserVM.clearSessionState()
             unlockVM = nil
             screen   = .login
             logger.info("Sign out completed")
@@ -723,6 +769,11 @@ final class RootViewModel: ObservableObject, RepromptGating {
     func lockVault() {
         guard isVaultUnlocked else { return }
         Task {
+            // Before anything else, and specifically before the first `await` of the teardown: a
+            // sync completing mid-teardown must already see this session as over. Advancing at the
+            // end would let a sync land between `clearVault()` and the advance, and repopulate a
+            // store that had just been cleared.
+            sessionEpoch.advance()
             await container.authRepo.lockVault()
             await container.vaultRepo.clearVault()
             // Clear all key caches in the same lock path as the vault store.
@@ -744,7 +795,10 @@ final class RootViewModel: ObservableObject, RepromptGating {
             // still blocked on a prompt — after `revokeAll()` those requests are answered false,
             // so the client sees a refusal rather than a hang.
             sshAgentCoordinator.vaultDidLock()
-            vaultBrowserVM.discardReveals()
+            // See `signOut()`: the store is cleared above, and this is the second copy of the same
+            // plaintext. Both paths call the same method so a property added later cannot be cleared
+            // on one and missed on the other.
+            vaultBrowserVM.clearSessionState()
             if let account = container.authRepo.storedAccount() {
                 unlockVM = container.makeUnlockViewModel(account: account)
                 screen = .unlock
@@ -763,17 +817,43 @@ final class RootViewModel: ObservableObject, RepromptGating {
         }
     }
 
-    // MARK: - Idle timeout
+    // MARK: - Session monitoring
 
-    /// Starts idle observation while the vault is unlocked and stops it otherwise.
+    /// Starts idle observation and background refresh while the vault is unlocked, and stops both
+    /// otherwise.
     ///
-    /// A locked vault has nothing to lock, and a timer running against the unlock screen would be
-    /// pure overhead.
-    private func updateIdleMonitoring(for screen: Screen) {
+    /// A locked vault has nothing to lock and nothing to refresh — and a refresh in particular would
+    /// have to keep the user key resident to decrypt the response, which is the state `lockVault()`
+    /// exists to destroy. A timer running against the unlock screen would be pure overhead.
+    ///
+    /// One method for both so a new transition cannot start one and forget the other.
+    private func updateSessionMonitoring(for screen: Screen) {
         switch screen {
-        case .vault, .syncing: idleMonitor.start()
-        case .login, .loading, .twoFactorPrompt(_), .unlock: idleMonitor.stop()
+        case .vault, .syncing:
+            idleMonitor.start()
+            backgroundSyncMonitor.start()
+        case .login, .loading, .twoFactorPrompt(_), .unlock:
+            idleMonitor.stop()
+            backgroundSyncMonitor.stop()
         }
+    }
+
+    /// Decides whether a background tick becomes a sync, and starts one if so.
+    private func handleBackgroundTick(_ trigger: BackgroundSyncTrigger) {
+        // The monitor is stopped whenever the vault is not unlocked, so this is a second lock on the
+        // same door — kept because "never refresh a locked vault" is a security property, and a
+        // security property should not rest solely on start/stop having been called correctly.
+        guard isVaultUnlocked else { return }
+
+        let vm = vaultBrowserVM
+        let allowed = backgroundSyncMonitor.shouldSync(
+            trigger:             trigger,
+            isUnlocked:          isVaultUnlocked,
+            isBusy:              vm.editSheetOpen || vm.isMutating,
+            lastSuccessfulSyncAt: vm.lastSyncedAt
+        )
+        guard allowed else { return }
+        vm.backgroundSync()
     }
 
     /// Applies the configured timeout action.
@@ -795,7 +875,7 @@ final class RootViewModel: ObservableObject, RepromptGating {
         case .unlock:       screen = .unlock
         case .loading:      screen = .unlock   // stay on unlock screen with spinner
         case .syncing(let msg): screen = .syncing(message: msg)
-        case .vault:        transitionToVault(caller: "handleUnlockFlow")
+        case .vault:        transitionToVault(caller: "handleUnlockFlow", syncResult: unlockVM?.lastSyncResult)
         case .login:
             // "Sign in with a different account" — reset to login.
             unlockVM = nil
@@ -855,8 +935,15 @@ final class RootViewModel: ObservableObject, RepromptGating {
         vaultBrowserVM.copy(value)
     }
 
+    /// Whether the selected item can currently supply `field` to a copy command.
+    ///
+    /// Requires an unlocked vault, in addition to the selection holding the field. `clearSessionState()`
+    /// already clears the selection on lock, which would make this redundant — it is kept because
+    /// this is the gate the user actually touches, and "a locked vault yields no secrets" should not
+    /// rest on a state-clearing routine having been called correctly at some earlier point.
     func selectedFieldAvailable(_ field: CopyableField) -> Bool {
-        selectedFieldValue(field) != nil
+        guard isVaultUnlocked else { return false }
+        return selectedFieldValue(field) != nil
     }
 
     private func selectedFieldValue(_ field: CopyableField) -> String? {

@@ -622,6 +622,19 @@ private keys (`SSHKeyContent.privateKey`); what is missing is everything that ma
   `Package.swift` is reverted before committing — the Xcode project remains the source of truth —
   so this recipe is recorded here to save the next person the experiment.
 
+  **Superseded on 2026-09-21.** The workaround is no longer needed and this recipe should not be
+  followed. The Xcode test target now compiles: it was missing `SWIFT_DEFAULT_ACTOR_ISOLATION =
+  MainActor`, which the app target already carried, so app-module types were implicitly main-actor
+  isolated and unreachable from nonisolated test code. With that setting added, `xcodebuild test`
+  reaches the test phase and the suite runs green — **1210 tests, 0 failures**. The failure counts
+  recorded throughout this change (9–10, always the same `Bundle.main` family) were an artefact of
+  running through `swift test`, where `Bundle.main` is the xctest runner and `Assets.car` and the
+  EFF wordlist are absent. Hosted by the Xcode project the test bundle runs inside `Prizm.app`, so
+  those resources are present and those tests pass.
+
+  See `openspec/changes/fix-test-target-buildability/` for the configuration, the settings
+  comparison and the captured baseline.
+
 - **A6 — the first localisation pass was incomplete, and the audit was the reason.** Auditing only
   `L("…")` calls found 26 missing keys and looked finished. It was not: SwiftUI's
   `Button("Export Vault…")` and `L("Export Vault")` are two *different* keys, and the File menu and

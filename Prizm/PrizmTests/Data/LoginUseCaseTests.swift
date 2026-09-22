@@ -34,10 +34,11 @@ final class LoginUseCaseTests: XCTestCase {
             masterPassword: masterPassword
         )
 
-        guard case .success(let account) = result else {
-            return XCTFail("Expected .success, got \(result)")
+        guard case .signedIn(let account, let sync) = result else {
+            return XCTFail("Expected .signedIn, got \(result)")
         }
         XCTAssertEqual(account.email, email)
+        XCTAssertEqual(sync?.source, .server, "The sync that ran after login should be reported as server-sourced")
         XCTAssertTrue(mockAuth.setServerEnvironmentCalled, "Expected setServerEnvironment to be called")
         XCTAssertTrue(mockAuth.loginWithPasswordCalled,    "Expected loginWithPassword to be called")
         XCTAssertTrue(mockSync.syncCalled,                 "Expected sync to be called after login")
@@ -98,8 +99,11 @@ final class LoginUseCaseTests: XCTestCase {
         XCTAssertFalse(mockSync.syncCalled, "Sync must not be called on failed login")
     }
 
-    /// A sync failure after successful login is non-fatal — result is still .success (FR-049).
-    func testExecute_syncFailure_throws() async throws {
+    /// A sync failure after successful login is non-fatal — the credentials were right, and failing
+    /// here would send the user back to a login screen that cannot succeed either. The outcome
+    /// carries no sync result, which is how the caller knows not to report a sync that never
+    /// happened (FR-049).
+    func testExecute_syncFailure_returnsSignedInWithoutSyncResult() async throws {
         mockAuth.stubbedLoginResult = .success(makeAccount())
         mockSync.syncShouldThrow    = SyncError.networkUnavailable
 
@@ -108,10 +112,11 @@ final class LoginUseCaseTests: XCTestCase {
             email:          email,
             masterPassword: masterPassword
         )
-        guard case .success = result else {
-            XCTFail("Expected .success despite sync failure")
+        guard case .signedIn(_, let sync) = result else {
+            XCTFail("Expected .signedIn despite sync failure")
             return
         }
+        XCTAssertNil(sync, "A failed sync must not be reported as a successful one")
         XCTAssertTrue(mockSync.syncCalled, "Sync should still be attempted")
     }
 

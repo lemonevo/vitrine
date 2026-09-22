@@ -102,7 +102,10 @@ nonisolated struct DraftLoginContent: Equatable {
     /// made the one place a seed can be recorded unreachable.
     var totp: String?
     var notes: String?
-    /// Custom field values are editable; adding/removing/reordering is out of scope.
+    /// Custom fields are fully editable: values, adding, deleting and reordering all happen in
+    /// `CustomFieldsEditSection`. This line used to say the last three were "out of scope", which was
+    /// written before they were built and would now send a reader looking for a limitation that is
+    /// not there.
     var customFields: [DraftCustomField]
 
     init(_ source: LoginContent) {
@@ -195,21 +198,29 @@ nonisolated struct DraftIdentityContent: Equatable {
 nonisolated struct DraftSecureNoteContent: Equatable {
     var notes: String?
     var customFields: [DraftCustomField]
+    /// Mutable, so it can be chosen in the form. It is round-tripped to the server like every other
+    /// field — the previous hardcoded write of `0` reset every note to Generic on save.
+    var subtype: SecureNoteSubtype
 
     init(_ source: SecureNoteContent) {
         self.notes = source.notes
         self.customFields = source.customFields.map(DraftCustomField.init)
+        self.subtype = source.subtype
     }
 }
 
 /// Mutable mirror of `SSHKeyContent` used exclusively within the edit flow.
 ///
-/// `keyFingerprint` is excluded because it is auto-derived from the private key and is
-/// not sent to the API — showing it as editable would be misleading.
+/// `keyFingerprint` is read-only in the form because it is *derived* from the key, not because it is
+/// unsent: it is round-tripped to the server like every other field, and the server stores it as an
+/// `EncString` it cannot read. Showing it as editable would invite a value that disagrees with the
+/// key.
 nonisolated struct DraftSSHKeyContent: Equatable {
     var privateKey: String?
     var publicKey: String?
-    /// Read-only display value. Auto-derived from `privateKey`; never sent to the API.
+    /// Read-only display value, carried through so a save does not erase it. Derived by whichever
+    /// client created the item; never recomputed here, so replacing the key leaves it describing the
+    /// previous one.
     let keyFingerprint: String?
     var notes: String?
     var customFields: [DraftCustomField]
@@ -465,7 +476,8 @@ extension VaultItem {
                     notes: c.notes,
                     customFields: c.customFields.map {
                         CustomField(name: $0.name, value: $0.value, type: $0.type, linkedId: $0.linkedId)
-                    }
+                    },
+                    subtype: c.subtype
                 ))
             case .card(let c):
                 return .card(CardContent(

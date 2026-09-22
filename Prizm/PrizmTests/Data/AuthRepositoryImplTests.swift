@@ -11,6 +11,7 @@ final class AuthRepositoryImplTests: XCTestCase {
     private var mockCrypto: MockPrizmCryptoService!
     private var mockKeychain: MockKeychainService!
     private var mockBiometricKeychain: MockBiometricKeychainService!
+    private var mockVaultCache: MockVaultCacheStore!
 
     override func setUp() async throws {
         try await super.setUp()
@@ -18,11 +19,14 @@ final class AuthRepositoryImplTests: XCTestCase {
         mockCrypto   = MockPrizmCryptoService()
         mockKeychain = MockKeychainService()
         mockBiometricKeychain = MockBiometricKeychainService()
+        mockVaultCache = MockVaultCacheStore()
         sut = AuthRepositoryImpl(
             apiClient:  mockAPI,
             crypto:     mockCrypto,
             keychain:   mockKeychain,
-            biometricKeychain: mockBiometricKeychain
+            biometricKeychain: mockBiometricKeychain,
+            vaultCache: mockVaultCache,
+            pinUnlock: KeychainPinUnlockService(keychain: mockKeychain, crypto: mockCrypto)
         )
     }
 
@@ -348,6 +352,33 @@ final class AuthRepositoryImplTests: XCTestCase {
         try await sut.signOut()
         let isUnlocked = mockCrypto.isUnlocked
         XCTAssertFalse(isUnlocked, "Vault should be locked after signOut")
+    }
+
+    /// signOut deletes the cached vault payload for the account being signed out.
+    ///
+    /// The sign-out alert promises "all local data will be cleared", and the cached ciphertext is
+    /// the largest piece of it. Deleting it here rather than at each call site is what keeps that
+    /// promise true for every entry point, including the unlock screen's "use a different account".
+    func testSignOut_deletesCachedVaultPayload() async throws {
+        let userId = "user-001"
+        mockKeychain.seed(key: "bw.macos:activeUserId", value: userId)
+
+        try await sut.signOut()
+
+        XCTAssertEqual(mockVaultCache.deletedUserIds, [userId])
+    }
+
+    /// A lock must NOT delete the cache. Locking zeroes the keys; the ciphertext is what makes an
+    /// offline unlock possible afterwards, and "tidying up" the lock path would remove the feature.
+    func testLockVault_doesNotDeleteCachedVaultPayload() async throws {
+        mockKeychain.seed(key: "bw.macos:activeUserId", value: "user-001")
+
+        await sut.lockVault()
+
+        XCTAssertTrue(
+            mockVaultCache.deletedUserIds.isEmpty,
+            "Locking must leave the cached payload in place — it is the offline vault"
+        )
     }
 }
 

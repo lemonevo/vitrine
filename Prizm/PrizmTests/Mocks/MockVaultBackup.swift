@@ -12,6 +12,8 @@ import Foundation
 final class MockExportVaultUseCase: ExportVaultUseCase {
 
     private(set) var callCount = 0
+    /// The format the last call asked for, so a suite can assert the sheet's choice reached here.
+    private(set) var lastFormat: VaultExportFormat?
 
     /// The result to return. Defaults to a one-item export so a suite that only wants the sheet to
     /// advance does not have to configure anything.
@@ -24,7 +26,8 @@ final class MockExportVaultUseCase: ExportVaultUseCase {
 
     var stubbedError: Error?
 
-    func execute() async throws -> VaultExport {
+    func execute(format: VaultExportFormat) async throws -> VaultExport {
+        lastFormat = format
         callCount += 1
         if let stubbedError { throw stubbedError }
         return stubbedResult
@@ -37,6 +40,8 @@ final class MockExportVaultUseCase: ExportVaultUseCase {
 final class MockImportVaultUseCase: ImportVaultUseCase {
 
     private(set) var callCount = 0
+    /// The format the last call asked for, so a suite can assert the sheet's choice reached here.
+    private(set) var lastFormat: VaultExportFormat?
     private(set) var lastData: Data?
 
     var stubbedSummary = ImportSummary()

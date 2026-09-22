@@ -16,6 +16,13 @@ final class MockVaultRepository: VaultRepository {
     private(set) var populatedCollections: [OrgCollection] = []
     private(set) var clearVaultCalled: Bool = false
 
+    /// How many times `populate` was called.
+    ///
+    /// Distinct from the arrays being empty: "publish an empty vault" and "publish nothing at all"
+    /// look identical in the contents but mean opposite things to the user, and the difference is
+    /// the whole point of the offline-cache failure path.
+    private(set) var populateCallCount: Int = 0
+
     // MARK: - update(_:) stubbing
 
     var stubbedUpdateResult: VaultItem?
@@ -27,6 +34,7 @@ final class MockVaultRepository: VaultRepository {
 
     func populate(items: [VaultItem], folders: [Folder], organizations: [Organization],
                   collections: [OrgCollection], syncedAt: Date) async {
+        populateCallCount     += 1
         populatedItems         = items
         populatedFolders       = folders
         populatedOrganizations = organizations
@@ -90,7 +98,18 @@ final class MockVaultRepository: VaultRepository {
         return base.filter { $0.name.localizedCaseInsensitiveContains(query) }
     }
 
-    func itemCounts() async throws -> [SidebarSelection: Int] { [:] }
+    /// Real counts derived from `populatedItems`, rather than an empty dictionary.
+    ///
+    /// A double that always answers `[:]` cannot show "the counts were loaded and then cleared",
+    /// which is what the session-teardown suite needs to assert. Nothing here mirrors the real
+    /// per-selection index — the selections the sidebar shows are enough.
+    func itemCounts() async throws -> [SidebarSelection: Int] {
+        var counts: [SidebarSelection: Int] = [:]
+        counts[.allItems]  = populatedItems.filter { !$0.isDeleted }.count
+        counts[.favorites] = populatedItems.filter { $0.isFavorite && !$0.isDeleted }.count
+        counts[.trash]     = populatedItems.filter(\.isDeleted).count
+        return counts
+    }
 
     func itemDetail(id: String) async throws -> VaultItem {
         guard let item = populatedItems.first(where: { $0.id == id }) else {

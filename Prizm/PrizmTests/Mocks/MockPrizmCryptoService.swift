@@ -25,6 +25,12 @@ actor MockPrizmCryptoService: PrizmCryptoService {
     nonisolated(unsafe) var stubbedDecryptList:  [VaultItem] = []
     nonisolated(unsafe) var stubbedFailedCount:  Int = 0
     nonisolated(unsafe) var stubbedFolders:      [Folder] = []
+    /// Per-item keys returned alongside the decrypted items.
+    ///
+    /// Stubbable rather than hardcoded empty, because "the key cache was populated" is a distinct
+    /// observable from "the store was populated" — and a lock race can populate one without the
+    /// other.
+    nonisolated(unsafe) var stubbedCipherKeys:   [String: Data] = [:]
 
     // MARK: - PrizmCryptoService
 
@@ -34,6 +40,15 @@ actor MockPrizmCryptoService: PrizmCryptoService {
 
     func stretchKey(masterKey: Data) async throws -> CryptoKeys {
         stubbedStretchedKeys
+    }
+
+    /// Real PBKDF2 rather than a stub: a PIN test that ran against a fake derivation would prove only
+    /// that the fake is self-consistent, and the property under test is that the stored bytes cannot
+    /// be turned back into the vault's key without the right PIN.
+    func derivePinKeys(pin: String, salt: Data, iterations: UInt32) async throws -> CryptoKeys {
+        try await PrizmCryptoServiceImpl().derivePinKeys(
+            pin: pin, salt: salt, iterations: iterations
+        )
     }
 
     func makeServerHash(masterKey: Data, password: Data) async throws -> String {
@@ -61,7 +76,7 @@ actor MockPrizmCryptoService: PrizmCryptoService {
     nonisolated(unsafe) private(set) var decryptSymmetricKeyCallCount: Int = 0
 
     func decryptList(ciphers: [RawCipher]) async throws -> (items: [VaultItem], failedCount: Int, cipherKeys: [String: Data]) {
-        (items: stubbedDecryptList, failedCount: stubbedFailedCount, cipherKeys: [:])
+        (items: stubbedDecryptList, failedCount: stubbedFailedCount, cipherKeys: stubbedCipherKeys)
     }
 
     func decryptFolders(folders: [RawFolder]) async throws -> (folders: [Folder], failedCount: Int) {

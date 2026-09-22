@@ -661,9 +661,29 @@ actor VaultRepositoryImpl: VaultRepository {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { throw VaultError.decryptionFailed("empty collection name") }
         let encName = try await encryptCollectionName(trimmed, organizationId: organizationId)
+
+        // Whatever the store already knew about this collection's membership goes back with the
+        // rename. Rebuilding the entity from three fields — which is what this did — discarded it
+        // locally as well, so the client agreed with the server's loss.
+        // Refused rather than defaulted. Vaultwarden deletes and re-creates a collection's access
+        // rows from the request, so sending empty arrays is not "no change" — it is a revocation.
+        // Having no source for the membership therefore means the rename cannot be done safely, and
+        // failing is the only outcome that does not destroy something.
+        //
+        // Unreachable from the UI today (a collection missing from the store is not in the sidebar
+        // either — this is the path for one dropped when its name failed to decrypt), which is an
+        // argument for the cheap guard, not for leaving the fallback.
+        guard let existing = collectionStore.first(where: { $0.id == id }) else {
+            logger.error("Refusing to rename collection \(id, privacy: .public): its membership is unknown, and sending an empty one would revoke access")
+            throw VaultError.itemNotFound(id)
+        }
+        let preserved = existing.preserved
+
         _ = try await apiClient.renameCollection(id: id, organizationId: organizationId,
-                                                  encryptedName: encName)
-        let collection = OrgCollection(id: id, organizationId: organizationId, name: trimmed)
+                                                  encryptedName: encName,
+                                                  preserved: preserved)
+        let collection = OrgCollection(id: id, organizationId: organizationId, name: trimmed,
+                                       preserved: preserved)
         if let idx = collectionStore.firstIndex(where: { $0.id == id }) {
             collectionStore[idx] = collection
         }

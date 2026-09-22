@@ -29,6 +29,24 @@ final class MockRootDependencies: RootViewModelDependencies {
     /// point here, because `fire(_:)` is a test-only affordance that the protocol does not declare.
     let mockIdleMonitor = MockVaultIdleMonitor()
     var idleMonitor: any VaultIdleMonitoring { mockIdleMonitor }
+    /// Same shape as the idle monitor above, and for the same reason: the real monitor's `Timer` and
+    /// notification observers have no place in a unit test, but the wiring that starts and stops it
+    /// does.
+    let mockBackgroundSyncMonitor = MockBackgroundSyncMonitor()
+    var backgroundSyncMonitor: any BackgroundSyncMonitoring { mockBackgroundSyncMonitor }
+
+    /// The real epoch, not a double: it has no I/O and no dependencies, the suite asserts on the
+    /// lock paths advancing it, and a stub would only be asked the same question it was told to
+    /// answer.
+    let sessionEpoch = SessionEpoch()
+
+    /// The search used to build the browser view model.
+    ///
+    /// Defaults to a stub that returns nothing, which is what most suites want: they assert on
+    /// commands and lock behaviour, not on the item list. A suite that *does* need the list — the
+    /// session-teardown tests, which assert that loaded items are cleared — sets a real one here
+    /// **before** constructing `RootViewModel`, since that is what builds the view model.
+    var searchUseCase: any SearchVaultUseCase = StubSearchUseCase()
 
     private let mockLoginUseCase = MockLoginUseCase()
     /// Not private: a suite can set `stubbedDelay` to hold a sync in flight.
@@ -38,6 +56,10 @@ final class MockRootDependencies: RootViewModelDependencies {
     /// Handed to the browser view model and exposed so a suite can assert *which* id was duplicated.
     /// Created once rather than inline in `makeVaultBrowserViewModel()` for that reason.
     let duplicateUseCase = NoopDuplicateUseCase()
+
+    /// Same reasoning, plus one: a suite can hold a delete open to observe the browser's `isMutating`
+    /// state, which is what the background decision reads as "busy".
+    let deleteUseCase = HoldableDeleteUseCase()
 
     /// Same reasoning as `duplicateUseCase`: a suite needs to set the stubbed outcome and read back
     /// whether it was invoked.
@@ -106,8 +128,8 @@ final class MockRootDependencies: RootViewModelDependencies {
         let syncRepo = MockSyncTimestampRepository(storedDate: nil)
         return VaultBrowserViewModel(
             vault:           mockVault,
-            search:          StubSearchUseCase(),
-            delete:          StubDeleteUseCase(),
+            search:          searchUseCase,
+            delete:          deleteUseCase,
             permanentDelete: StubPermanentDeleteUseCase(),
             restore:         StubRestoreUseCase(),
             duplicate:       duplicateUseCase,
@@ -126,7 +148,8 @@ final class MockRootDependencies: RootViewModelDependencies {
             importVault:      MockImportVaultUseCase(),
             verifyMasterPassword: verifyMasterPasswordUseCase,
             fileSaver:        { _, _ in nil },
-            filePicker:       { nil }
+            filePicker:       { nil },
+            sessionEpoch:     sessionEpoch
         )
     }
 
@@ -136,6 +159,16 @@ final class MockRootDependencies: RootViewModelDependencies {
     /// from a use case double of its own.
     func makeHealthReportViewModel() -> HealthReportViewModel {
         HealthReportViewModel(useCase: GenerateVaultHealthReportUseCaseImpl(vault: mockVault))
+    }
+
+    /// A real list over the mock vault, so a suite that opens it sees whatever items it put there.
+    /// The browser is passed in so the gate is the browser's own — the same reason production passes it.
+    func makeVerificationCodesViewModel(browser: VaultBrowserViewModel) -> VerificationCodesViewModel {
+        VerificationCodesViewModel(
+            vault:     mockVault,
+            generator: StubTOTPGenerator(),
+            gateFor:   { [weak browser] item in browser?.revealGate(for: item) ?? .none }
+        )
     }
 
     func makeSyncTimestampDependencies(for email: String) -> (repository: any SyncTimestampRepository, useCase: any GetLastSyncDateUseCase) {
@@ -155,9 +188,6 @@ final class MockRootDependencies: RootViewModelDependencies {
 
 @MainActor private final class StubSearchUseCase: SearchVaultUseCase {
     func execute(query: String, in selection: SidebarSelection) throws -> [VaultItem] { [] }
-}
-@MainActor private final class StubDeleteUseCase: DeleteVaultItemUseCase {
-    func execute(id: String) async throws {}
 }
 @MainActor private final class StubPermanentDeleteUseCase: PermanentDeleteVaultItemUseCase {
     func execute(id: String) async throws {}

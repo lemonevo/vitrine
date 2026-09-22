@@ -23,7 +23,7 @@ final class LoginUseCaseImpl: LoginUseCase {
         self.sync = sync
     }
 
-    func execute(serverURL: String, email: String, masterPassword: Data) async throws -> LoginResult {
+    func execute(serverURL: String, email: String, masterPassword: Data) async throws -> LoginOutcome {
         // Step 1: Validate URL (throws AuthError.invalidURL on failure).
         try auth.validateServerURL(serverURL)
 
@@ -38,39 +38,46 @@ final class LoginUseCaseImpl: LoginUseCase {
         let result = try await auth.loginWithPassword(email: email, masterPassword: masterPassword)
 
         switch result {
-        case .success:
+        case .success(let account):
             // Step 4: Sync vault immediately after successful login.
             // Sync is best-effort: if the server is temporarily unreachable the user
             // still lands in the vault browser showing items from the last sync.
             // Failing the entire login on a sync error would lock users out even when
             // the server is degraded — unacceptable for a password manager.
             logger.info("Login succeeded — starting vault sync")
+            var syncResult: SyncResult?
             do {
-                _ = try await sync.sync(progress: { _ in })
+                syncResult = try await sync.sync(progress: { _ in })
             } catch {
                 logger.error("Post-login sync failed (non-fatal): \(error.localizedDescription, privacy: .public)")
             }
-            return result
+            return .signedIn(account: account, sync: syncResult)
 
-        case .requiresTwoFactor:
+        case .requiresTwoFactor(let method):
             // Sync is deferred until the challenge is answered. At this point we have derived the
             // master key but do not yet have an access token, so a sync request would be
             // rejected with 401. The vault populates after completeTwoFactor succeeds below.
             logger.info("Login requires 2FA")
-            return result
+            return .requiresTwoFactor(method)
         }
     }
 
-    func completeTwoFactor(code: String, rememberDevice: Bool) async throws -> Account {
+    func completeTwoFactor(
+        code: String,
+        rememberDevice: Bool
+    ) async throws -> (account: Account, sync: SyncResult?) {
         logger.info("Completing two-factor")
         let account = try await auth.loginWithTwoFactorCode(code, rememberDevice: rememberDevice)
-        // Sync failure is non-fatal — show vault with whatever was synced (FR-049).
+        // Sync failure is non-fatal — the challenge was answered correctly, and failing here would
+        // send the user back to a code that is now spent. The caller is told the vault was not
+        // fetched so it does not report a sync that did not happen (FR-049).
+        var syncResult: SyncResult?
         do {
-            _ = try await sync.sync(progress: { _ in })
+            syncResult = try await sync.sync(progress: { _ in })
         } catch {
             logger.error("Post-2FA sync failed (non-fatal): \(error.localizedDescription, privacy: .public)")
         }
-        return account
+        return (account, syncResult)
     }
 
     func sendEmailTwoFactorCode() async throws {

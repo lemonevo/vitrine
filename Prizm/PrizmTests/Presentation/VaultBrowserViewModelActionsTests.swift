@@ -35,14 +35,20 @@ final class VaultBrowserViewModelActionsTests: XCTestCase {
 
     // MARK: - Setup
 
+    /// A preference domain private to this test instance.
+    ///
+    /// Not `.standard`: Xcode runs test classes in parallel *processes*, which share the host app's
+    /// preference domain, so clearing a key here deleted it for whichever other suite was running at
+    /// the same time. `ItemSortPreferenceTests` already used a per-instance suite; this suite now
+    /// does too, and `UserDefaults.standard` is never touched.
+    private var defaults: UserDefaults!
+
     override func setUp() async throws {
         try await super.setUp()
 
-        // `VaultBrowserViewModel` reads its sort order and clipboard interval from `.standard`, so
-        // these keys are cleared before and after each test to keep this suite from leaking a
-        // preference into every other suite.
-        UserDefaults.standard.removeObject(forKey: ItemSortPreference.key)
-        UserDefaults.standard.removeObject(forKey: ClipboardClearInterval.key)
+        defaults = UserDefaults(suiteName: "\(String(describing: Self.self))-\(UUID().uuidString)")
+        defaults.removeObject(forKey: ItemSortPreference.key)
+        defaults.removeObject(forKey: ClipboardClearInterval.key)
 
         vault        = MockVaultRepository()
         duplicate    = NoopDuplicateUseCase()
@@ -53,8 +59,10 @@ final class VaultBrowserViewModelActionsTests: XCTestCase {
     }
 
     override func tearDown() async throws {
-        UserDefaults.standard.removeObject(forKey: ItemSortPreference.key)
-        UserDefaults.standard.removeObject(forKey: ClipboardClearInterval.key)
+        // The same instance's suite, not a new one — recreating it here would clear a domain nothing
+        // had written to. Clearing is belt and braces: the suite is per instance and discarded with it.
+        defaults.removeObject(forKey: ItemSortPreference.key)
+        defaults.removeObject(forKey: ClipboardClearInterval.key)
         vault = nil
         duplicate = nil
         emptyTrash = nil
@@ -87,7 +95,8 @@ final class VaultBrowserViewModelActionsTests: XCTestCase {
             importVault:      MockImportVaultUseCase(),
             verifyMasterPassword: VerifyMasterPasswordUseCaseImpl(auth: MockAuthRepository()),
             fileSaver:        { _, _ in nil },
-            filePicker:       { nil }
+            filePicker:       { nil },
+            userDefaults:     defaults
         )
     }
 
@@ -329,7 +338,7 @@ final class VaultBrowserViewModelActionsTests: XCTestCase {
         sut.sortOrder = .nameDescending
 
         await waitForItems(["2", "1"])
-        XCTAssertEqual(ItemSortPreference.load(), .nameDescending, "the choice must survive relaunch")
+        XCTAssertEqual(ItemSortPreference.load(from: defaults), .nameDescending, "the choice must survive relaunch")
     }
 
     func test_sortOrder_byModificationDate() async throws {
@@ -349,7 +358,7 @@ final class VaultBrowserViewModelActionsTests: XCTestCase {
     }
 
     func test_sortOrder_isRestoredOnANewViewModel() async throws {
-        ItemSortPreference.save(.createdNewestFirst)
+        ItemSortPreference.save(.createdNewestFirst, to: defaults)
 
         let restored = makeSUT()
 
@@ -359,7 +368,7 @@ final class VaultBrowserViewModelActionsTests: XCTestCase {
     // MARK: - Clipboard clear
 
     func test_copy_putsTheValueOnThePasteboardAndSchedulesAClear() async throws {
-        ClipboardClearInterval.save(.tenSeconds)
+        ClipboardClearInterval.save(.tenSeconds, to: defaults)
 
         sut.copy("hunter2")
 
@@ -370,7 +379,7 @@ final class VaultBrowserViewModelActionsTests: XCTestCase {
     /// "Never" must schedule nothing at all — not a very long timer, which would still depend on
     /// the process outliving it.
     func test_copy_withNever_schedulesNoClear() async throws {
-        ClipboardClearInterval.save(.never)
+        ClipboardClearInterval.save(.never, to: defaults)
 
         sut.copy("hunter2")
 
@@ -379,7 +388,7 @@ final class VaultBrowserViewModelActionsTests: XCTestCase {
     }
 
     func test_copy_secondCopyReplacesThePendingClear() async throws {
-        ClipboardClearInterval.save(.tenSeconds)
+        ClipboardClearInterval.save(.tenSeconds, to: defaults)
 
         sut.copy("first")
         XCTAssertTrue(sut.isClipboardClearPending)
@@ -393,11 +402,11 @@ final class VaultBrowserViewModelActionsTests: XCTestCase {
     /// Changing the setting to "Never" and copying again must cancel a clear that was already
     /// scheduled — otherwise the setting would appear not to take effect.
     func test_copy_withNeverAfterAFiniteCopy_cancelsThePendingClear() async throws {
-        ClipboardClearInterval.save(.tenSeconds)
+        ClipboardClearInterval.save(.tenSeconds, to: defaults)
         sut.copy("first")
         XCTAssertTrue(sut.isClipboardClearPending)
 
-        ClipboardClearInterval.save(.never)
+        ClipboardClearInterval.save(.never, to: defaults)
         sut.copy("second")
 
         XCTAssertFalse(sut.isClipboardClearPending)

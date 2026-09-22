@@ -11,18 +11,26 @@ final class SyncRepositoryImplTests: XCTestCase {
     private var mockAPI: MockPrizmAPIClient!
     private var mockCrypto: MockPrizmCryptoService!
     private var mockVault: MockVaultRepository!
+    private var mockVaultCache: MockVaultCacheStore!
+
+    /// The user id the cache is scoped to. A UUID, because that is the only shape
+    /// `VaultCacheStoreImpl` will accept as a directory name.
+    private let testUserId = "11111111-2222-3333-4444-555555555555"
 
     override func setUp() async throws {
         try await super.setUp()
         mockAPI    = MockPrizmAPIClient()
         mockCrypto = MockPrizmCryptoService()
         mockVault  = MockVaultRepository()
+        mockVaultCache = MockVaultCacheStore()
         sut = SyncRepositoryImpl(
             apiClient:       mockAPI,
             crypto:          mockCrypto,
             vaultRepository: mockVault,
             vaultKeyCache:   VaultKeyCache(),
-            orgKeyCache:     OrgKeyCache()
+            orgKeyCache:     OrgKeyCache(),
+            vaultCache:      mockVaultCache,
+            currentUserId:   { [testUserId] in testUserId }
         )
     }
 

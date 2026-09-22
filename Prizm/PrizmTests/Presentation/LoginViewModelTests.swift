@@ -36,7 +36,7 @@ final class LoginViewModelTests: XCTestCase {
 
     /// signIn() clears the password field after a successful login (Constitution §III).
     func testSignIn_success_clearsPasswordField() async throws {
-        mockUseCase.stubbedResult = .success(makeAccount())
+        mockUseCase.stubbedResult = .signedIn(account: makeAccount(), sync: nil)
         sut.serverURL = "https://vault.example.com"
         sut.email     = "alice@example.com"
         sut.password  = "SuperSecret1!"

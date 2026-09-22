@@ -34,3 +34,22 @@ final class StubEmptyTrashUseCase: EmptyTrashUseCase {
         return stubbedResult
     }
 }
+
+/// A delete that can be held open, so "a write is in flight" is observable rather than a race.
+///
+/// Shared rather than file-private because two suites need it: the browser's own mutation tests, and
+/// the app-level test that the background decision is told the session is busy.
+@MainActor
+final class HoldableDeleteUseCase: DeleteVaultItemUseCase {
+    private(set) var callCount = 0
+    private(set) var lastId: String?
+    var error: Error?
+    var delay: Duration?
+
+    func execute(id: String) async throws {
+        callCount += 1
+        lastId = id
+        if let delay { try? await Task.sleep(for: delay) }
+        if let error { throw error }
+    }
+}

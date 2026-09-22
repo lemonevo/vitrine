@@ -22,7 +22,7 @@ nonisolated struct ExportVaultUseCaseImpl: ExportVaultUseCase {
         self.vault = vault
     }
 
-    func execute() async throws -> VaultExport {
+    func execute(format: VaultExportFormat) async throws -> VaultExport {
         let items = try await vault.allItems()
         guard !items.isEmpty else { throw ExportVaultError.emptyVault }
 
@@ -44,6 +44,39 @@ nonisolated struct ExportVaultUseCaseImpl: ExportVaultUseCase {
 
         let document = VaultExportDocument(items: items, folders: folders, passwordHistory: history)
 
+        let organisationItemCount = items.filter { $0.organizationId != nil }.count
+
+        switch format {
+        case .csv:
+            let rendered = VaultExportCSV.serialise(document)
+            // A header-only file is refused for the same reason an empty JSON vault is: a file the user
+            // believes is a backup, and which restores nothing.
+            guard rendered.omittedCount < items.count else {
+                throw ExportVaultError.nothingInThisFormat
+            }
+            Self.logger.info("CSV export built: \(items.count - rendered.omittedCount, privacy: .public) row(s), \(rendered.omittedCount, privacy: .public) item(s) omitted")
+            return VaultExport(
+                data: Data(rendered.csv.utf8),
+                suggestedFilename: Self.filename(format: .csv),
+                itemCount: items.count - rendered.omittedCount,
+                organisationItemCount: organisationItemCount,
+                omittedItemCount: rendered.omittedCount
+            )
+
+        case .json:
+            return try jsonExport(
+                document: document, items: items, folders: folders,
+                organisationItemCount: organisationItemCount
+            )
+        }
+    }
+
+    private func jsonExport(
+        document: VaultExportDocument,
+        items: [VaultItem],
+        folders: [Folder],
+        organisationItemCount: Int
+    ) throws -> VaultExport {
         let encoder = JSONEncoder()
         // `.withoutEscapingSlashes` is not cosmetic: without it every `https://…` in the file is
         // written as `https:\/\/…`. That is valid JSON and every parser reads it, but it makes the
@@ -55,12 +88,11 @@ nonisolated struct ExportVaultUseCaseImpl: ExportVaultUseCase {
 
         let data = try encoder.encode(document)
 
-        let organisationItemCount = items.filter { $0.organizationId != nil }.count
-        Self.logger.info("Export built: \(items.count, privacy: .public) items, \(folders.count, privacy: .public) folders")
+        Self.logger.info("JSON export built: \(items.count, privacy: .public) items, \(folders.count, privacy: .public) folders")
 
         return VaultExport(
             data: data,
-            suggestedFilename: Self.filename(),
+            suggestedFilename: Self.filename(format: .json),
             itemCount: items.count,
             organisationItemCount: organisationItemCount
         )
@@ -73,11 +105,13 @@ nonisolated struct ExportVaultUseCaseImpl: ExportVaultUseCase {
     /// likely to do while checking that the feature works.
     ///
     /// The shape mirrors the reference's `bitwarden_export_<timestamp>.json`.
-    static func filename(now: Date = Date()) -> String {
+    static func filename(format: VaultExportFormat, now: Date = Date()) -> String {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.timeZone = TimeZone(identifier: "UTC")
         formatter.dateFormat = "yyyyMMddHHmmss"
-        return "prizm_export_\(formatter.string(from: now)).json"
+        // The extension follows the format: a `.csv` containing JSON, or the reverse, is the kind of
+        // thing a user would reasonably not think to check.
+        return "prizm_export_\(formatter.string(from: now)).\(format.fileExtension)"
     }
 }

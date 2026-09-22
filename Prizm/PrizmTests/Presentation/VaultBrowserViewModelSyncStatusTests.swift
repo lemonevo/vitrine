@@ -69,7 +69,7 @@ final class VaultBrowserViewModelSyncStatusTests: XCTestCase {
 
     func testHandleSyncCompleted_updatesLastSyncedAt_andRecordsTimestamp() async {
         let date = Date()
-        sut.handleSyncCompleted(syncedAt: date)
+        sut.handleSyncCompleted(SyncResult(syncedAt: date, totalCiphers: 3, failedDecryptionCount: 0))
 
         XCTAssertEqual(sut.lastSyncedAt, date)
         XCTAssertTrue(syncRepo.recordCalled, "recordSuccessfulSync() should be called on sync success")
@@ -79,10 +79,63 @@ final class VaultBrowserViewModelSyncStatusTests: XCTestCase {
 
     func testHandleSyncCompleted_updatesSyncStatusLabel() async {
         let date = Date()
-        sut.handleSyncCompleted(syncedAt: date)
+        sut.handleSyncCompleted(SyncResult(syncedAt: date, totalCiphers: 0, failedDecryptionCount: 0))
 
         XCTAssertNotEqual(sut.syncStatusLabel, "Never synced")
         XCTAssertTrue(sut.syncStatusLabel.hasPrefix("Synced"))
+    }
+
+    // MARK: - 5b. A cache-sourced sync reports the payload's age and records nothing
+
+    /// The label must describe the data, not the attempt: this is the only thing standing between a
+    /// user and a vault that looks current while the network is gone.
+    func testHandleSyncCompleted_cacheSourced_doesNotRecordTimestamp() async {
+        let payloadWrittenAt = Date(timeIntervalSinceNow: -3 * 3600)
+        sut.handleSyncCompleted(SyncResult(
+            syncedAt:              Date(),
+            totalCiphers:          4,
+            failedDecryptionCount: 0,
+            source:                .cache,
+            payloadTimestamp:      payloadWrittenAt
+        ))
+
+        XCTAssertEqual(sut.syncSource, .cache)
+        XCTAssertFalse(
+            syncRepo.recordCalled,
+            "A cache read is not a successful server sync and must not be recorded as one"
+        )
+        XCTAssertNil(sut.lastSyncedAt, "The persisted last-sync timestamp must not move")
+        XCTAssertTrue(
+            sut.syncStatusLabel.hasPrefix("Offline"),
+            "Expected an offline label; got: \(sut.syncStatusLabel)"
+        )
+    }
+
+    /// The payload's own time is what the label reports, not the moment the cache was read.
+    func testHandleSyncCompleted_cacheSourced_labelCarriesPayloadTime() async {
+        let payloadWrittenAt = Date(timeIntervalSince1970: 1_600_000_000)
+        sut.handleSyncCompleted(SyncResult(
+            syncedAt:              Date(),
+            totalCiphers:          1,
+            failedDecryptionCount: 0,
+            source:                .cache,
+            payloadTimestamp:      payloadWrittenAt
+        ))
+
+        XCTAssertTrue(
+            sut.syncStatusLabel.contains(OfflineSyncLabel.make(payloadTimestamp: payloadWrittenAt)),
+            "Expected the payload's own time in the label; got: \(sut.syncStatusLabel)"
+        )
+    }
+
+    // MARK: - 5c. Entering the vault without a sync records nothing
+
+    func testHandleVaultEnteredWithoutSync_leavesTimestampAlone() async {
+        sut.handleVaultEnteredWithoutSync()
+
+        XCTAssertNil(sut.lastSyncedAt)
+        XCTAssertFalse(syncRepo.recordCalled)
+        XCTAssertEqual(sut.syncStatusLabel, "Never synced")
     }
 
     // MARK: - 6. handleSyncError does NOT call recordSuccessfulSync

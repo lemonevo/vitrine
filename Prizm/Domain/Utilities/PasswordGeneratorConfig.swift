@@ -7,6 +7,7 @@ struct PasswordGeneratorConfig {
     enum Mode: String {
         case password
         case passphrase
+        case username
     }
 
     // MARK: - Shared
@@ -29,6 +30,14 @@ struct PasswordGeneratorConfig {
     var capitalize: Bool = false
     var includeNumber: Bool = false
 
+    // MARK: - Username mode
+
+    /// Deliberately not `wordCount`. That one is a secret-length decision — six words by default for
+    /// a passphrase — and a username needs two words to be memorable, not entropy. Sharing the field
+    /// would mean changing one silently changed the other.
+    var usernameWordCount: Int = 2
+    var usernameIncludeNumber: Bool = true
+
     // MARK: - UserDefaults persistence
 
     private enum Key {
@@ -43,6 +52,8 @@ struct PasswordGeneratorConfig {
         static let separator        = "pwgen.separator"
         static let capitalize       = "pwgen.capitalize"
         static let includeNumber    = "pwgen.includeNumber"
+        static let usernameWordCount     = "pwgen.usernameWordCount"
+        static let usernameIncludeNumber = "pwgen.usernameIncludeNumber"
     }
 
     func save(to defaults: UserDefaults = .standard) {
@@ -57,6 +68,8 @@ struct PasswordGeneratorConfig {
         defaults.set(separator, forKey: Key.separator)
         defaults.set(capitalize, forKey: Key.capitalize)
         defaults.set(includeNumber, forKey: Key.includeNumber)
+        defaults.set(usernameWordCount, forKey: Key.usernameWordCount)
+        defaults.set(usernameIncludeNumber, forKey: Key.usernameIncludeNumber)
     }
 
     static func load(from defaults: UserDefaults = .standard) -> PasswordGeneratorConfig {
@@ -93,6 +106,12 @@ struct PasswordGeneratorConfig {
         }
         if defaults.object(forKey: Key.includeNumber) != nil {
             config.includeNumber = defaults.bool(forKey: Key.includeNumber)
+        }
+        if defaults.object(forKey: Key.usernameWordCount) != nil {
+            config.usernameWordCount = max(1, min(4, defaults.integer(forKey: Key.usernameWordCount)))
+        }
+        if defaults.object(forKey: Key.usernameIncludeNumber) != nil {
+            config.usernameIncludeNumber = defaults.bool(forKey: Key.usernameIncludeNumber)
         }
         return config
     }
