@@ -8,7 +8,7 @@ open the vault.** The user cannot read one password, not even the one they could
 yesterday. For a password manager, that is the one failure it must not have: the moment the network
 is gone is exactly the moment a local vault is worth having.
 
-Official Bitwarden clients cache the vault and read it offline. Prizm does not, and this is the
+Official Bitwarden clients cache the vault and read it offline. Vitrine does not, and this is the
 largest remaining gap between "usable" and "can be a daily driver".
 
 **The part that makes this cheap, and the reason it is not a cryptography project:** unlocking is

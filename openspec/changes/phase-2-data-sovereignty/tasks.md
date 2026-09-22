@@ -63,7 +63,7 @@ items, one of which is gated on verifying an external algorithm (design D12).
       each item through `VaultRepository.create` in sequence. Continue past a failure. Record
       every outcome.
 - [x] `ImportVaultError.unreadableFile` / `.notAnUnencryptedExport` — the second fires when
-      `encrypted == true` or the `items` key is absent, with a message saying Prizm imports
+      `encrypted == true` or the `items` key is absent, with a message saying Vitrine imports
       unencrypted exports only.
 
 ### A4. File panels and wiring
@@ -111,7 +111,7 @@ items, one of which is gated on verifying an external algorithm (design D12).
       (**718 tests / 10 records**).
 - [x] Export a real vault, re-import the file into the same account, and confirm the item count and
       a sampled item's fields.
-- [x] Rebuild `dist/Prizm.app`, launch, and confirm the File menu entries appear and are enabled.
+- [x] Rebuild `dist/Vitrine.app`, launch, and confirm the File menu entries appear and are enabled.
 - [x] Every commit in the wave builds on its own (`verify-commit-series-builds`).
 
 ---
@@ -360,7 +360,7 @@ items, one of which is gated on verifying an external algorithm (design D12).
       `displayName`, `promptText`, and a name for the rest. **The map is 0…8, not 0…7**: the
       numbers were read out of Vaultwarden's `TwoFactorType`
       (`src/db/models/two_factor.rs`, main branch), where `RecoveryCode = 8` and
-      `is_twofactor_provider_usable` returns true for it, so the server can offer it. Prizm does
+      `is_twofactor_provider_usable` returns true for it, so the server can offer it. Vitrine does
       not complete it — Vaultwarden's token endpoint deletes every 2FA method on the account when a
       recovery code is accepted (`src/api/identity.rs`), and a generic "enter your code" prompt must
       not carry that side effect — but it is named rather than reported as an unrecognised number.
@@ -434,7 +434,7 @@ items, one of which is gated on verifying an external algorithm (design D12).
       hidden cannot be compared.
 - [x] `AccountFingerprintPhraseTests` — the two reference vectors above, the five-word and
       stability properties, the word-list size, and the SPKI encoding checked against `openssl`.
-      Nothing here is derived from Prizm's own output.
+      Nothing here is derived from Vitrine's own output.
 
 ### D2a. TOTP seed editing — **done**
 
@@ -521,7 +521,7 @@ support is a separate, much larger piece of work and is not in scope here.
       `libs/common/src/platform/services/fido2/fido2-authenticator.service.ts` and
       `libs/common/src/vault/models/domain/fido2-credential.ts`.
 - [x] A read-only section on `LoginDetailView`, shown only when there is something to show.
-- [x] The UI states that Prizm cannot *use* these, and names where they can be managed — a list of
+- [x] The UI states that Vitrine cannot *use* these, and names where they can be managed — a list of
       passkeys with no such note reads as a feature that does not work.
 - [x] Tests with fixture credentials; malformed entries are skipped, not fatal. 14 cases, including
       one that makes "the private key is never decrypted" observable rather than merely asserted:
@@ -534,14 +534,14 @@ kind someone acts on.
 
 ### E2. SSH agent — **code complete; end-to-end verification pending**
 
-A desktop-only capability that no other Prizm feature competes with. Prizm already stores SSH
+A desktop-only capability that no other Vitrine feature competes with. Vitrine already stores SSH
 private keys (`SSHKeyContent.privateKey`); what is missing is everything that makes them usable.
 
 - [x] A Unix socket, launched on demand. At `~/Library/Application Support/Prizm/ssh-agent/agent.sock`
       — a stable path, because `SSH_AUTH_SOCK` has to be exported in the user's shell and a
       per-launch path would have to be re-exported every time. The cost of stability is a stale
       socket file after a crash, handled by removing only a file that is a socket. The directory is
-      created `0700` and the socket `0600`, and Prizm **refuses** a directory it did not create or
+      created `0700` and the socket `0600`, and Vitrine **refuses** a directory it did not create or
       one whose permissions were widened — binding there would hand every signature request to
       anyone who can write to it. "On demand" is `SSHAgentCoordinator`: the agent listens when the
       user has switched it on **and** the vault is unlocked, and stops on lock and on sign-out. It
@@ -551,8 +551,8 @@ private keys (`SSHKeyContent.privateKey`); what is missing is everything that ma
 - [x] The SSH agent protocol subset: identity listing and signing. Not the full message set.
       `REQUEST_IDENTITIES`, `SIGN_REQUEST` and the failure message; everything else is answered with
       `SSH_AGENT_FAILURE` rather than ignored, so a client gets an answer instead of a hang.
-- [x] Parse the OpenSSH private key formats Prizm can already hold. `openssh-key-v1` only, ed25519
-      and RSA. A passphrase-protected key is reported as **unusable with that reason** — Prizm stores
+- [x] Parse the OpenSSH private key formats Vitrine can already hold. `openssh-key-v1` only, ed25519
+      and RSA. A passphrase-protected key is reported as **unusable with that reason** — Vitrine stores
       no passphrase for a key and does not prompt for one, so offering it would produce signature
       requests that can never succeed.
 - [x] **Every sign request goes through the master-password gate.** Without this the agent is an
@@ -629,7 +629,7 @@ private keys (`SSHKeyContent.privateKey`); what is missing is everything that ma
   reaches the test phase and the suite runs green — **1210 tests, 0 failures**. The failure counts
   recorded throughout this change (9–10, always the same `Bundle.main` family) were an artefact of
   running through `swift test`, where `Bundle.main` is the xctest runner and `Assets.car` and the
-  EFF wordlist are absent. Hosted by the Xcode project the test bundle runs inside `Prizm.app`, so
+  EFF wordlist are absent. Hosted by the Xcode project the test bundle runs inside `Vitrine.app`, so
   those resources are present and those tests pass.
 
   See `openspec/changes/fix-test-target-buildability/` for the configuration, the settings
@@ -701,7 +701,7 @@ private keys (`SSHKeyContent.privateKey`); what is missing is everything that ma
   { return }`, with the refresh above the guard so items created before the cancellation still
   appear.
 
-- **Verified, not assumed.** `./build-app.sh` succeeds; `dist/Prizm.app` carries both `.lproj`
+- **Verified, not assumed.** `./build-app.sh` succeeds; `dist/Vitrine.app` carries both `.lproj`
   directories at 379 keys each with the new strings translated, `plutil -lint` is clean on the
   bundled copies, the binary contains the wave A symbols and literals, and `codesign --verify
   --strict` passes.

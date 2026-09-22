@@ -57,7 +57,7 @@
 - [x] 7.2 `plutil -lint` both files; run the key-coverage check
 - [x] 7.3 `swift build` with zero warnings
 - [x] 7.4 Full test suite — no new failures
-- [x] 7.5 Rebuild `dist/Prizm.app`; confirm the new strings are in the binary and the bundle
+- [x] 7.5 Rebuild `dist/Vitrine.app`; confirm the new strings are in the binary and the bundle
 - [x] 7.6 Update `FEATURE-GAP-ANALYSIS.md` §2 to mark the five items fixed
 
 ## 8. Found while implementing (not in the original plan)

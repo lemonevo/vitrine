@@ -99,9 +99,9 @@ nonisolated enum ServerTrustError: Error, LocalizedError, Equatable {
         case .chainRejected(let host, let reason):
             return L("The certificate for %@ was not issued by the authority you trusted. %@", host, reason)
         case .configurationUnreadable(let host, let reason):
-            return L("Prizm could not read the stored certificate settings for %@, so the connection was not made. %@", host, reason)
+            return L("Vitrine could not read the stored certificate settings for %@, so the connection was not made. %@", host, reason)
         case .undetermined(let host):
-            return L("Prizm could not read the certificate for %@, so the connection was not made.", host)
+            return L("Vitrine could not read the certificate for %@, so the connection was not made.", host)
         }
     }
 }

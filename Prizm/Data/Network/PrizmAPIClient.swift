@@ -413,7 +413,7 @@ actor PrizmAPIClientImpl: PrizmAPIClientProtocol {
     /// Consulted when a request fails, so a refused handshake is reported as what it was.
     private let trustDelegate: ServerTrustDelegate?
     private let logger:    Logger = Logger(
-        subsystem: "com.prizm",
+        subsystem: "dev.lemonevo.vitrine",
         category:  "PrizmAPIClient"
     )
 
@@ -426,7 +426,7 @@ actor PrizmAPIClientImpl: PrizmAPIClientProtocol {
         // Vaultwarden gates SSH key ciphers (type 5) behind >= 2024.12.0.
         static let clientVersion = "2024.12.0"
         static let deviceType    = "7"
-        static let userAgent     = "Prizm/2024.12.0"
+        static let userAgent     = "Vitrine/2024.12.0"
     }
 
     // MARK: - Init
@@ -537,7 +537,7 @@ actor PrizmAPIClientImpl: PrizmAPIClientProtocol {
             "client_id":       ClientHeaders.clientId,
             "deviceType":      ClientHeaders.deviceType,
             "deviceIdentifier": deviceIdentifier,
-            "deviceName":      "Prizm",
+            "deviceName":      "Vitrine",
         ]
         if let token    = twoFactorToken    { params["twoFactorToken"]    = token }
         if let provider = twoFactorProvider { params["twoFactorProvider"] = String(provider) }

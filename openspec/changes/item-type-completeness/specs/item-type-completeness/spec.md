@@ -9,7 +9,7 @@ normalised to Generic.
 #### Scenario: A subtype set elsewhere survives an edit
 
 - **GIVEN** a secure note whose subtype was set to Passport by another client
-- **WHEN** the item is opened and saved in Prizm without changing the subtype
+- **WHEN** the item is opened and saved in Vitrine without changing the subtype
 - **THEN** the outgoing cipher SHALL carry Passport
 - **AND** re-reading that cipher SHALL yield Passport
 

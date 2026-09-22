@@ -1,4 +1,4 @@
-/* Prizm localizable strings
+/* Vitrine localizable strings
    Language: zh-Hans.lproj
    Generated — keep keys in sync with the Swift literals. */
 
@@ -36,7 +36,7 @@
 "A single dictionary word" = "单个词典单词";
 "A stored certificate could not be read." = "无法读取已保存的证书。";
 "A year or date" = "年份或日期";
-"About Prizm" = "关于 Prizm";
+"About Vitrine" = "关于 Vitrine";
 "Account" = "账户";
 "Acknowledgements" = "致谢";
 "Action Failed" = "操作失败";
@@ -52,8 +52,8 @@
 "Address Line 2" = "地址行 2";
 "Address Line 3" = "地址行 3";
 "All Items" = "全部项目";
-"All local data will be cleared." = "所有本地数据将被清除。";
-"An application asked Prizm to sign with the SSH key “%@”." = "某个应用请求 Prizm 使用 SSH 密钥「%@」签名。";
+"Session keys, tokens and the cached vault are removed from this Mac. Your preferences, this device's identifier and any certificate you have pinned are kept." = "会话密钥、令牌和已缓存的保管库将从这台 Mac 上移除。你的偏好设置、本设备标识以及你固定过的证书会被保留。";
+"An application asked Vitrine to sign with the SSH key “%@”." = "某个应用请求 Vitrine 使用 SSH 密钥「%@」签名。";
 "An item has no name." = "某个项目没有名称。";
 "Anyone who can read the file can read your vault." = "任何能读取该文件的人都能读取你的保险库。";
 "Argon2Swift — Argon2id key derivation (RFC 9106)" = "Argon2Swift —— Argon2id 密钥派生 (RFC 9106)";
@@ -202,7 +202,7 @@
 "Host" = "主机";
 "ID Numbers" = "证件号码";
 "Icons are loaded from your own server, never from a third party. Turn this off to skip the request entirely — items then show a generic symbol." = "图标从你自己的服务器加载，不经过第三方。关闭后完全跳过该请求，条目改为显示通用图标。";
-"Icons are loaded from your own server, never from a third party. Turn this off to skip the request entirely — items then show a generic symbol.\n\nThe clipboard is cleared only if Prizm's own value is still on it." = "图标仅从你自己的服务器加载，绝不来自第三方。关闭此项可完全跳过请求——项目将显示通用符号。\n\n仅当剪贴板上仍是 Prizm 写入的值时，才会清除剪贴板。";
+"Icons are loaded from your own server, never from a third party. Turn this off to skip the request entirely — items then show a generic symbol.\n\nThe clipboard is cleared only if Vitrine's own value is still on it." = "图标仅从你自己的服务器加载，绝不来自第三方。关闭此项可完全跳过请求——项目将显示通用符号。\n\n仅当剪贴板上仍是 Vitrine 写入的值时，才会清除剪贴板。";
 "Identity" = "身份";
 "Import Complete" = "导入完成";
 "Import Vault…" = "导入保险库…";
@@ -288,7 +288,7 @@
 "No server URL is configured." = "未配置服务器地址。";
 "No stored session was found. Sign in again to continue." = "找不到已保存的会话。请重新登录以继续。";
 "None" = "无";
-"Not an OpenSSH private key. Prizm needs the openssh-key-v1 format ssh-keygen writes." = "不是 OpenSSH 私钥。Prizm 需要 ssh-keygen 写出的 openssh-key-v1 格式。";
+"Not an OpenSSH private key. Vitrine needs the openssh-key-v1 format ssh-keygen writes." = "不是 OpenSSH 私钥。Vitrine 需要 ssh-keygen 写出的 openssh-key-v1 格式。";
 "Not available yet" = "暂不可用";
 "Not changed in over two years" = "超过两年未更改";
 "Not favorited" = "未收藏";
@@ -311,7 +311,7 @@
 "Open in browser" = "在浏览器中打开";
 "Open source — all crypto is publicly auditable" = "开源 —— 所有加密实现均可公开审计";
 "Open this item" = "打开此条目";
-"Open your Prizm vault with %@" = "使用 %@ 打开你的 Prizm 保险库";
+"Open your Vitrine vault with %@" = "使用 %@ 打开你的 Vitrine 保险库";
 "Opens in browser" = "在浏览器中打开";
 "Opens this item in the vault" = "在保险库中打开此条目";
 "Options" = "选项";
@@ -320,7 +320,7 @@
 "Organizations" = "组织";
 "Passkeys" = "通行密钥";
 "Passphrase" = "密码短语";
-"Passphrase-protected (%@). Prizm stores no passphrase for a key, so it cannot be used." = "受口令保护（%@）。Prizm 不保存 SSH 密钥的口令，因此无法使用。";
+"Passphrase-protected (%@). Vitrine stores no passphrase for a key, so it cannot be used." = "受口令保护（%@）。Vitrine 不保存 SSH 密钥的口令，因此无法使用。";
 "Passport Number" = "护照号";
 "Password" = "密码";
 "Password history" = "密码历史";
@@ -339,21 +339,21 @@
 "Previous passwords stay masked. Revealing one will require confirming your master password." = "旧密码保持遮罩状态。显示其中一个需要确认主密码。";
 "Privacy" = "隐私";
 "Private Key" = "私钥";
-"Prizm Is Locked" = "Prizm 已锁定";
-"Prizm cannot complete the two-factor method “%@”. Sign in from another Bitwarden client, or use one to change the method this account asks for." = "Prizm 无法完成“%@”这种两步验证方式。请改用其他 Bitwarden 客户端登录，或用其他客户端修改此账户要求的方式。";
-"Prizm cannot use %@ keys." = "Prizm 无法使用 %@ 密钥。";
-"Prizm cannot use these passkeys to sign in. Register, use and remove them from another Bitwarden client." = "Prizm 无法使用这些通行密钥登录。请改用其他 Bitwarden 客户端注册、使用或删除它们。";
-"Prizm could not bind the agent socket at %@ (error %lld). Another agent may already be listening there." = "Prizm 无法在 %@ 绑定代理套接字（错误 %lld）。可能已有另一个代理在监听该位置。";
-"Prizm could not create the agent socket (error %lld)." = "Prizm 无法创建代理套接字（错误 %lld）。";
-"Prizm could not listen on the agent socket (error %lld)." = "Prizm 无法监听代理套接字（错误 %lld）。";
-"Prizm could not prepare a private directory for the agent socket at %@: %@" = "Prizm 无法为代理套接字准备私有目录 %@：%@";
-"Prizm could not read the certificate for %@, so the connection was not made." = "Prizm 无法读取 %@ 的证书，因此未建立连接。";
-"Prizm could not read the stored certificate settings for %@, so the connection was not made. %@" = "Prizm 无法读取已保存的 %@ 证书设置，因此未建立连接。%@";
-"Prizm could not sign with this SSH key." = "Prizm 无法用这个 SSH 密钥签名。";
-"Prizm could not use this SSH key." = "Prizm 无法使用这个 SSH 密钥。";
-"Prizm is running sandboxed. A sandboxed app can only create sockets inside its own container, which ssh cannot reach, so the agent cannot be used in this build." = "Prizm 正运行在沙盒中。沙盒应用只能在自身容器内创建套接字，而 ssh 无法访问那里，因此这个构建里无法使用 SSH 代理。";
+"Vitrine Is Locked" = "Vitrine 已锁定";
+"Vitrine cannot complete the two-factor method “%@”. Sign in from another Bitwarden client, or use one to change the method this account asks for." = "Vitrine 无法完成“%@”这种两步验证方式。请改用其他 Bitwarden 客户端登录，或用其他客户端修改此账户要求的方式。";
+"Vitrine cannot use %@ keys." = "Vitrine 无法使用 %@ 密钥。";
+"Vitrine cannot use these passkeys to sign in. Register, use and remove them from another Bitwarden client." = "Vitrine 无法使用这些通行密钥登录。请改用其他 Bitwarden 客户端注册、使用或删除它们。";
+"Vitrine could not bind the agent socket at %@ (error %lld). Another agent may already be listening there." = "Vitrine 无法在 %@ 绑定代理套接字（错误 %lld）。可能已有另一个代理在监听该位置。";
+"Vitrine could not create the agent socket (error %lld)." = "Vitrine 无法创建代理套接字（错误 %lld）。";
+"Vitrine could not listen on the agent socket (error %lld)." = "Vitrine 无法监听代理套接字（错误 %lld）。";
+"Vitrine could not prepare a private directory for the agent socket at %@: %@" = "Vitrine 无法为代理套接字准备私有目录 %@：%@";
+"Vitrine could not read the certificate for %@, so the connection was not made." = "Vitrine 无法读取 %@ 的证书，因此未建立连接。";
+"Vitrine could not read the stored certificate settings for %@, so the connection was not made. %@" = "Vitrine 无法读取已保存的 %@ 证书设置，因此未建立连接。%@";
+"Vitrine could not sign with this SSH key." = "Vitrine 无法用这个 SSH 密钥签名。";
+"Vitrine could not use this SSH key." = "Vitrine 无法使用这个 SSH 密钥。";
+"Vitrine is running sandboxed. A sandboxed app can only create sockets inside its own container, which ssh cannot reach, so the agent cannot be used in this build." = "Vitrine 正运行在沙盒中。沙盒应用只能在自身容器内创建套接字，而 ssh 无法访问那里，因此这个构建里无法使用 SSH 代理。";
 "Public Key" = "公钥";
-"Put that line in your shell profile and open a new terminal. Prizm has to be running with the vault unlocked; anything that reads the key asks Prizm to sign with it, and the first request for each key asks for your master password." = "把这一行加到 shell 配置里，然后开一个新终端。Prizm 必须在运行且保险库已解锁；任何读取该密钥的程序都是请 Prizm 代为签名，每个密钥的第一次请求都会要求输入主密码。";
+"Put that line in your shell profile and open a new terminal. Vitrine has to be running with the vault unlocked; anything that reads the key asks Vitrine to sign with it, and the first request for each key asks for your master password." = "把这一行加到 shell 配置里，然后开一个新终端。Vitrine 必须在运行且保险库已解锁；任何读取该密钥的程序都是请 Vitrine 代为签名，每个密钥的第一次请求都会要求输入主密码。";
 "Put the cursor in the field below, then tap the metal contact on your YubiKey. The key types the code for you." = "把光标点进下面的输入框，然后触摸 YubiKey 的金属触点。密钥会自动输入验证码。";
 "Re-enable %@" = "重新启用%@";
 "Reading the file" = "正在读取文件";
@@ -433,7 +433,7 @@
 "Text" = "文本";
 "That file does not contain a certificate. Choose a .pem, .crt or .cer file exported from your server." = "该文件不含证书。请选择从服务器导出的 .pem、.crt 或 .cer 文件。";
 "That is not the master password for this account." = "这不是此账户的主密码。";
-"The SSH client sent a request Prizm does not answer (%lld)." = "SSH 客户端发来了 Prizm 不处理的请求（%lld）。";
+"The SSH client sent a request Vitrine does not answer (%lld)." = "SSH 客户端发来了 Vitrine 不处理的请求（%lld）。";
 "The SSH client sent an incomplete request." = "SSH 客户端发来的请求不完整。";
 "The account fingerprint could not be derived." = "无法生成账户指纹。";
 "The certificate for %@ is not the one this app recorded. It was replaced, or something is intercepting the connection." = "%@ 的证书与本机记录的不一致。它已被更换，或者连接正被拦截。";
@@ -441,25 +441,25 @@
 "The export file could not be read." = "无法读取导出文件。";
 "The exported file is not encrypted. Store it somewhere safe." = "导出的文件未加密，请妥善保存。";
 "The file is not encrypted. It contains every password, note, one-time-code seed and previous password in plain text." = "该文件未加密，其中以明文包含所有密码、备注、一次性验证码种子以及历史密码。";
-"The key type “%@” is not supported. Prizm can use ed25519 and RSA keys." = "不支持密钥类型「%@」。Prizm 可以使用 ed25519 和 RSA 密钥。";
+"The key type “%@” is not supported. Vitrine can use ed25519 and RSA keys." = "不支持密钥类型「%@」。Vitrine 可以使用 ed25519 和 RSA 密钥。";
 "The server response could not be read. Please try again." = "无法读取服务器响应，请重试。";
 "The socket path is too long (%lld characters is the maximum): %@" = "套接字路径太长（最多 %lld 个字符）：%@";
-"The timeout applies while the vault is unlocked and is measured from your last input in Prizm. Input in other applications does not count, so an untouched vault locks even if you are working elsewhere." = "超时仅在保险库解锁期间生效，并从你在 Prizm 中的最后一次输入开始计时。在其他应用中的输入不计入，因此即使你在别处工作，未被触碰的保险库也会锁定。";
+"The timeout applies while the vault is unlocked and is measured from your last input in Vitrine. Input in other applications does not count, so an untouched vault locks even if you are working elsewhere." = "超时仅在保险库解锁期间生效，并从你在 Vitrine 中的最后一次输入开始计时。在其他应用中的输入不计入，因此即使你在别处工作，未被触碰的保险库也会锁定。";
 "The vault is locked. Please unlock to continue." = "保险库已锁定。请解锁后继续。";
 "There is nothing to export — the vault is empty." = "没有可导出的内容 —— 保险库是空的。";
 "This SSH key could not be read." = "无法读取这个 SSH 密钥。";
-"This build is not signed with an Apple Developer certificate, so macOS cannot protect the key itself. Prizm asks for %@ instead — the same prompt, checked by the app rather than by the system." = "此版本未使用 Apple 开发者证书签名，macOS 无法保护钥匙串条目本身。Prizm 改为校验 %@ —— 提示完全一样，只是由应用而非系统核对。";
-"This build of Prizm is not signed with an Apple Developer certificate, so macOS does not allow it to store the key Touch ID unlock needs." = "当前 Prizm 构建没有 Apple 开发者签名，macOS 不允许它保存 Touch ID 解锁所需的密钥。";
+"This build is not signed with an Apple Developer certificate, so macOS cannot protect the key itself. Vitrine asks for %@ instead — the same prompt, checked by the app rather than by the system." = "此版本未使用 Apple 开发者证书签名，macOS 无法保护钥匙串条目本身。Vitrine 改为校验 %@ —— 提示完全一样，只是由应用而非系统核对。";
+"This build of Vitrine is not signed with an Apple Developer certificate, so macOS does not allow it to store the key Touch ID unlock needs." = "当前 Vitrine 构建没有 Apple 开发者签名，macOS 不允许它保存 Touch ID 解锁所需的密钥。";
 "This file is not an unencrypted Bitwarden export." = "该文件不是未加密的 Bitwarden 导出文件。";
 "This file is not encrypted. Delete it when you no longer need it." = "该文件未加密，不再需要时请将其删除。";
 "This includes %d items that belong to an organisation. The official Bitwarden export leaves those out." = "其中包含 %d 个属于组织的项目，而 Bitwarden 官方导出会忽略这些项目。";
-"This is an encrypted export. Prizm can only import unencrypted exports." = "这是加密导出文件。Prizm 只能导入未加密的导出文件。";
+"This is an encrypted export. Vitrine can only import unencrypted exports." = "这是加密导出文件。Vitrine 只能导入未加密的导出文件。";
 "This is not a secret — read it aloud to compare. If it differs from the phrase another Bitwarden client shows for this account, you may not be talking to the same server." = "这不是秘密 —— 可以念出来比对。如果它与另一个 Bitwarden 客户端显示的短语不一致，你连接的可能不是同一个服务器。";
-"This is not an OpenSSH private key. Prizm reads the OpenSSH format ssh-keygen writes." = "这不是 OpenSSH 私钥。Prizm 读取的是 ssh-keygen 写出的 OpenSSH 格式。";
+"This is not an OpenSSH private key. Vitrine reads the OpenSSH format ssh-keygen writes." = "这不是 OpenSSH 私钥。Vitrine 读取的是 ssh-keygen 写出的 OpenSSH 格式。";
 "This item holds no private key." = "此条目中没有私钥。";
 "This item is in Trash." = "该项目在废纸篓中。";
 "This key could not be read: %@" = "无法读取此密钥：%@";
-"This key is protected with a passphrase. Prizm does not store one for an SSH key, so it cannot use this key." = "此密钥受口令保护。Prizm 不保存 SSH 密钥的口令，因此无法使用此密钥。";
+"This key is protected with a passphrase. Vitrine does not store one for an SSH key, so it cannot use this key." = "此密钥受口令保护。Vitrine 不保存 SSH 密钥的口令，因此无法使用此密钥。";
 "This key will not produce a code." = "这个密钥无法生成验证码。";
 "This key will not produce a code. Paste the secret, or the otpauth:// URL the site shows when you cannot scan its QR code." = "这个密钥无法生成验证码。请粘贴密钥，或粘贴网站在无法扫描二维码时显示的 otpauth:// 链接。";
 "This server doesn't appear to be a Bitwarden instance." = "该服务器似乎不是 Bitwarden 实例。";
@@ -509,7 +509,7 @@
 "Websites" = "网站";
 "Words: %lld" = "词数：%lld";
 "You can also enable this in Settings at any time." = "你也可以随时在「设置」中启用。";
-"Your %@ settings changed — a fingerprint was added or removed. For your security, Prizm disabled %@ unlock. Would you like to re-enable it?" = "你的%@设置已更改 —— 指纹被添加或移除。出于安全考虑，Prizm 已关闭%@解锁。要重新启用吗？";
+"Your %@ settings changed — a fingerprint was added or removed. For your security, Vitrine disabled %@ unlock. Would you like to re-enable it?" = "你的%@设置已更改 —— 指纹被添加或移除。出于安全考虑，Vitrine 已关闭%@解锁。要重新启用吗？";
 "Your Touch ID settings have changed. Please enter your master password to continue." = "你的 Touch ID 设置已更改。请输入主密码继续。";
 "Your secrets. Your server. Our user interface." = "你的密码。你的服务器。我们的界面。";
 "Your session has expired. Try signing out and signing in again." = "会话已过期。请退出登录后重新登录。";
@@ -523,7 +523,7 @@
 "save" = "保存";
 "the directory could not be created" = "目录无法创建";
 "the directory is not private to this user" = "目录不是此用户私有的";
-"“%@” asked Prizm to sign with the SSH key “%@”." = "「%@」请求 Prizm 使用 SSH 密钥「%@」签名。";
+"“%@” asked Vitrine to sign with the SSH key “%@”." = "「%@」请求 Vitrine 使用 SSH 密钥「%@」签名。";
 "“%@” is protected. Enter your master password to continue." = "“%@”已受保护。请输入主密码以继续。";
 "“%@” will be moved to Trash." = "「%@」将被移到废纸篓。";
 "“%@” will be permanently deleted and cannot be recovered." = "「%@」将被永久删除，且无法恢复。";
@@ -532,9 +532,9 @@
 "…and %d more." = "…还有 %d 项。";
 "→ %@" = "→ %@";
 "%d items could not be read" = "有 %d 个条目无法读取";
-"%d items could not be read. They are still on the server; Prizm could not decrypt them." = "有 %d 个条目无法读取。它们仍在服务器上，只是 Prizm 解不开。";
+"%d items could not be read. They are still on the server; Vitrine could not decrypt them." = "有 %d 个条目无法读取。它们仍在服务器上，只是 Vitrine 解不开。";
 "1 item could not be read" = "有 1 个条目无法读取";
-"1 item could not be read. It is still on the server; Prizm could not decrypt it." = "有 1 个条目无法读取。它仍在服务器上，只是 Prizm 解不开。";
+"1 item could not be read. It is still on the server; Vitrine could not decrypt it." = "有 1 个条目无法读取。它仍在服务器上，只是 Vitrine 解不开。";
 "Generic" = "通用";
 "Bank Account" = "银行账户";
 "Driver's Licence" = "驾照";
@@ -551,11 +551,11 @@
 "PIN" = "PIN";
 "%d attempts left before the PIN is removed." = "PIN 还剩余 %d 次尝试机会。";
 "Unlock with a PIN" = "使用 PIN 解锁";
-"Require the master password after restarting Prizm" = "重启 Prizm 后要求输入主密码";
-"With this on, a PIN cannot unlock Prizm until you have entered your master password once since it started." = "开启后，本次启动未输入过主密码之前，PIN 无法解锁 Prizm。";
+"Require the master password after restarting Vitrine" = "重启 Vitrine 后要求输入主密码";
+"With this on, a PIN cannot unlock Vitrine until you have entered your master password once since it started." = "开启后，本次启动未输入过主密码之前，PIN 无法解锁 Vitrine。";
 "A PIN is shorter than your master password, so it protects the local vault less. Five wrong PINs remove it and sign you out." = "PIN 比主密码短，对本地保险库的保护更弱。连续输错五次会移除 PIN 并登出。";
 "Set a PIN" = "设置 PIN";
-"At least %d characters. It unlocks Prizm on this Mac only." = "至少 %d 个字符。仅在这台 Mac 上用于解锁 Prizm。";
+"At least %d characters. It unlocks Vitrine on this Mac only." = "至少 %d 个字符。仅在这台 Mac 上用于解锁 Vitrine。";
 "Confirm PIN" = "确认 PIN";
 "Set PIN" = "设置 PIN";
 "The two PINs do not match." = "两次输入的 PIN 不一致。";
@@ -594,4 +594,24 @@
 // MARK: - 网址匹配策略（线上取值，对齐 Bitwarden 的 UriMatchStrategySetting）
 "Base domain" = "根域名";
 "Unknown (%d)" = "未知（%d）";
-"Prizm could not delete the stored key, so this is still enabled. Try turning it off again." = "Prizm 无法删除已存储的密钥，因此该项仍然开启。请再次尝试关闭。";
+"Vitrine could not delete the stored key, so this is still enabled. Try turning it off again." = "Vitrine 无法删除已存储的密钥，因此该项仍然开启。请再次尝试关闭。";
+
+// MARK: - 解锁界面一次只问一种凭据
+"Enter the PIN for %@ to unlock." = "输入 %@ 的 PIN 以解锁。";
+"%@ or enter the PIN for %@ to unlock." = "%@，或输入 %@ 的 PIN 以解锁。";
+"Use PIN instead" = "改用 PIN";
+"Use master password instead" = "改用主密码";
+"Enter your PIN to unlock." = "请输入 PIN 以解锁。";
+"Enter your master password to unlock." = "请输入主密码以解锁。";
+"Enter the address of your server." = "请输入你的服务器地址。";
+"Enter your email address." = "请输入你的邮箱地址。";
+"Enter your master password." = "请输入主密码。";
+
+// MARK: - 传感器在多次失败后被系统锁定
+"Too many failed Touch ID attempts — enter your master password" = "Touch ID 连续失败次数过多——请输入主密码";
+
+// MARK: - 导入前按大小拒绝文件
+"That file is too large to import: %@ MB. Vitrine imports exports up to %@ MB." = "要导入的文件过大：%@ MB。Vitrine 最多导入 %@ MB 的导出文件。";
+
+// MARK: - The product name, as a bare title
+"Vitrine" = "Vitrine";

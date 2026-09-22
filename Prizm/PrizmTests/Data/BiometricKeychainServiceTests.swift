@@ -56,7 +56,7 @@ final class BiometricKeychainServiceTests: XCTestCase {
         XCTAssertEqual(evaluator.evaluateCallCount, 1)
         // The prompt is the system's own and appears over whatever app the user was in, so the line
         // has to say who is asking.
-        XCTAssertNotNil(evaluator.lastReason?.range(of: "Prizm"))
+        XCTAssertNotNil(evaluator.lastReason?.range(of: "Vitrine"), "the dialog must name this app")
     }
 
     /// The prompt line names the sensor, so the button on the unlock card and the dialog agree about
@@ -64,7 +64,7 @@ final class BiometricKeychainServiceTests: XCTestCase {
     /// asserted here.
     func testPromptReasonNamesASensor() {
         let reason = BiometricKeychainServiceImpl.promptReason
-        XCTAssertTrue(reason.hasPrefix("Open your Prizm vault with "), reason)
+        XCTAssertTrue(reason.hasPrefix("Open your Vitrine vault with "), reason)
         XCTAssertFalse(reason.hasSuffix(" "), "\(reason) names no sensor")
     }
 

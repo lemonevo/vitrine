@@ -47,6 +47,8 @@ nonisolated enum AccessibilityID {
         static let pinField              = "unlock.pin"
         /// Shown only after a wrong PIN — a bare count on arrival reads as a threat.
         static let pinAttemptsRemaining  = "unlock.pinAttemptsRemaining"
+        /// Switches the single credential field between the PIN and the master password.
+        static let switchCredential      = "unlock.switchCredential"
         static let unlockButton      = "unlock.unlock"
         static let errorMessage      = "unlock.error"
         static let headerTitle       = "unlock.headerTitle"

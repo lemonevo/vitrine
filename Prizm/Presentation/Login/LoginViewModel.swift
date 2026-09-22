@@ -16,6 +16,13 @@ enum LoginFlowState: Equatable {
     case vault
 }
 
+// MARK: - LoginField
+
+/// The three values the login form collects, in the order the user meets them.
+enum LoginField: String, CaseIterable {
+    case serverURL, email, password
+}
+
 // MARK: - LoginViewModel
 
 /// ViewModel for the login + 2FA + sync flow (User Story 1).
@@ -35,6 +42,14 @@ final class LoginViewModel: ObservableObject {
     @Published private(set) var isResendingCode: Bool = false
     @Published private(set) var flowState: LoginFlowState = .login
 
+    /// The field a submission was missing, so the view can put the insertion point where the message
+    /// points.
+    ///
+    /// The form used to answer an incomplete submission by greying out its own submit button, which
+    /// told the user nothing about what was missing and made the screen's one action look inert for
+    /// the whole time they were filling it in.
+    @Published private(set) var fieldRequiringAttention: LoginField?
+
     /// What the vault sync that follows a successful login produced, or `nil` when it failed.
     ///
     /// Read at the `.vault` transition, which has to report where the vault on screen came from.
@@ -46,7 +61,7 @@ final class LoginViewModel: ObservableObject {
     // MARK: - Dependencies
 
     private let loginUseCase: any LoginUseCase
-    private let logger = Logger(subsystem: "com.prizm", category: "LoginViewModel")
+    private let logger = Logger(subsystem: "dev.lemonevo.vitrine", category: "LoginViewModel")
 
     // MARK: - Init
 
@@ -56,24 +71,41 @@ final class LoginViewModel: ObservableObject {
 
     // MARK: - Actions
 
-    /// Validates credentials and initiates the login sequence.
+    /// Validates the form and initiates the login sequence.
     func signIn() {
-        logger.info("Sign-in flow started")
+        guard flowState != .loading else { return }
         errorMessage = nil
+
+        // Answered here rather than by a disabled button: the first thing missing, named, with the
+        // insertion point moved to it.
+        if let missing = firstMissingField {
+            fieldRequiringAttention = missing
+            errorMessage = switch missing {
+            case .serverURL: L("Enter the address of your server.")
+            case .email:     L("Enter your email address.")
+            case .password:  L("Enter your master password.")
+            }
+            logger.error("Sign-in refused: \(missing.rawValue, privacy: .public) is empty")
+            return
+        }
+        fieldRequiringAttention = nil
+
+        logger.info("Sign-in flow started")
         flowState    = .loading
 
         // Convert the password String to Data at this boundary — the only place the
         // String-to-bytes conversion happens. `Data` can be zeroed after the KDF call;
         // `String` cannot (Constitution §III).
-        // Reject empty password here to match the UI's disabled-button guard.
-        // The Task below must never be spawned with an empty credential.
-        guard let passwordData = password.data(using: .utf8), !passwordData.isEmpty else {
-            errorMessage = "Invalid password encoding."
+        guard var passwordData = password.data(using: .utf8), !passwordData.isEmpty else {
+            errorMessage = L("Invalid password encoding.")
             flowState    = .login
             return
         }
 
         Task {
+            // The view model owns these bytes and no one else can release them: `Data` is
+            // copy-on-write, so zeroizing inside the repository would only touch a private copy.
+            defer { passwordData.zeroize() }
             do {
                 let result = try await loginUseCase.execute(
                     serverURL:      serverURL,
@@ -169,5 +201,21 @@ final class LoginViewModel: ObservableObject {
                 flowState    = .twoFactorPrompt(provider)
             }
         }
+    }
+
+    // MARK: - Validation
+
+    /// The first required value that has not been given, in the order the form presents them.
+    ///
+    /// Whitespace alone does not count as an answer, and only the emptiness test trims — what the
+    /// user typed reaches the server unchanged.
+    private var firstMissingField: LoginField? {
+        func blank(_ value: String) -> Bool {
+            value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }
+        if blank(serverURL) { return .serverURL }
+        if blank(email)     { return .email }
+        if password.isEmpty { return .password }
+        return nil
     }
 }

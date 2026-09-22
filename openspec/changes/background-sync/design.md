@@ -57,7 +57,7 @@ old". A 5-minute tick will get there — after up to five minutes of the user wo
 data.
 
 So the monitor also listens for `NSApplication.didBecomeActiveNotification` (the user came back to
-Prizm) and `NSWorkspace.didWakeNotification` (the machine came back). Both are throttled by the same
+Vitrine) and `NSWorkspace.didWakeNotification` (the machine came back). Both are throttled by the same
 decision function: a tick is suppressed if the last successful sync was recent, so switching windows
 rapidly does not produce a sync per switch. `lastSuccessfulSyncAt` is the input, not "time since last
 attempt", so a run of failures does not turn into a retry storm either.

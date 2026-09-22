@@ -52,9 +52,9 @@ struct PrizmApp: App {
         .windowStyle(.titleBar)
         .windowToolbarStyle(.unified(showsTitle: false))
         .commands {
-            // Replace the default "About Prizm" panel with our custom SwiftUI window.
+            // Replace the default "About Vitrine" panel with our custom SwiftUI window.
             CommandGroup(replacing: .appInfo) {
-                Button("About Prizm") {
+                Button("About Vitrine") {
                     openWindow(id: "about")
                 }
             }
@@ -184,7 +184,7 @@ struct PrizmApp: App {
         // so the system title bar would be redundant.
         // contentSize resizability: window sizes to AboutView's fixed 380pt width; no
         // free resize since the content is a fixed-layout info panel.
-        Window("About Prizm", id: "about") {
+        Window("About Vitrine", id: "about") {
             AboutView()
                 .environment(\.locale, locale)
                 .id(localization.language)
@@ -462,7 +462,7 @@ final class RootViewModel: ObservableObject, RepromptGating {
         repromptGrants.insert(itemId)
     }
 
-    private let logger = Logger(subsystem: "com.prizm", category: "RootViewModel")
+    private let logger = Logger(subsystem: "dev.lemonevo.vitrine", category: "RootViewModel")
 
     let loginVM:          LoginViewModel
     @Published var unlockVM: UnlockViewModel?
@@ -712,7 +712,17 @@ final class RootViewModel: ObservableObject, RepromptGating {
     func confirmSignOut() {
         let alert = NSAlert()
         alert.messageText = L("Sign Out")
-        alert.informativeText = L("All local data will be cleared.")
+        // Verified against `AuthRepositoryImpl.signOut()` before this was written, because the sentence
+        // it replaces — "All local data will be cleared" — was not true. Sign-out removes the session
+        // keys, tokens, the encrypted user key, the KDF params, the remembered 2FA device pair, the
+        // PIN's wrapped key material, the biometric key, the cached vault, and then locks. What
+        // survives on purpose: UserDefaults preferences, `bw.macos:deviceIdentifier` (an installation
+        // identity, shared across accounts — deleting it would make the server see a new device on
+        // every login), and the pinned certificate decisions in `KeychainServerTrustStore`, which are
+        // per-server and not this session's to revoke.
+        alert.informativeText = L(
+            "Session keys, tokens and the cached vault are removed from this Mac. Your preferences, this device's identifier and any certificate you have pinned are kept."
+        )
         alert.alertStyle = .warning
         alert.addButton(withTitle: L("Sign Out"))
         alert.addButton(withTitle: L("Cancel"))

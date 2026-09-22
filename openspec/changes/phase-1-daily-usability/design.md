@@ -11,7 +11,7 @@ No new write path is introduced.
 | Field | Why not |
 |---|---|
 | `preserved.cipherKey` | The per-item key is what the *original's* attachments are wrapped with. Copying it would make the new cipher claim a key it has no attachments for, and would leave the original's attachments pointing at a key that is now shared. |
-| `preserved.fido2Credentials` | A passkey is a credential for one account. Two ciphers holding the same credential is a state no Bitwarden client expects, and the user cannot see or remove the copy — Prizm has no passkey UI. |
+| `preserved.fido2Credentials` | A passkey is a credential for one account. Two ciphers holding the same credential is a state no Bitwarden client expects, and the user cannot see or remove the copy — Vitrine has no passkey UI. |
 | `preserved.passwordHistory` | That is the *original's* history. A brand-new cipher has no history. |
 | `preserved.archivedDate` | A copy is a new item; the user asked for a duplicate, not an archived duplicate. |
 | `attachments` | Matches the official clients. Copying them would mean re-uploading blobs the server already has, and (with a per-item key) re-wrapping them. |
@@ -27,7 +27,7 @@ oversight.
 
 `NSEvent.addLocalMonitorForEvents(matching:)` is the only supported way to observe input without an
 accessibility entitlement. A local monitor only sees events delivered to *this* application, which
-is the correct semantics for an idle timeout: if the user is working in another app, Prizm is idle.
+is the correct semantics for an idle timeout: if the user is working in another app, Vitrine is idle.
 
 Two consequences worth stating, because they look like bugs:
 

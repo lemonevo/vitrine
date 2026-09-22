@@ -58,3 +58,7 @@ its own declaration. Anything that could not be confirmed that way was left in p
 - [ ] 6.4 **Not verified:** the Homebrew tap (`b0x42/prizm`) still points at the upstream owner's tap while
       every other link in the file points at this fork. Left alone — I cannot check whether that is
       intentional without trying an install.
+      **Answered, and moved out of this change:** verified through the GitHub API that
+      `lemonevo/homebrew-prizm` does not exist and this repository publishes no releases, so the tap
+      cannot be retargeted yet. Tracked at
+      `openspec/changes/repository-links-at-this-fork/tasks.md` §3.1 and §4.5.

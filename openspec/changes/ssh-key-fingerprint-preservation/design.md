@@ -15,7 +15,7 @@ it was simply never wired up, on the strength of the comment beside it.
 ## Decision 1 — round-trip the value; do not derive it
 
 The fingerprint is produced client-side by whichever Bitwarden client created the item, encrypted
-with the vault key, and stored by the server as an opaque `EncString`. Prizm's job on an update is
+with the vault key, and stored by the server as an opaque `EncString`. Vitrine's job on an update is
 therefore the same as for every other field: decrypt it on the way in, encrypt whatever it holds on
 the way out.
 

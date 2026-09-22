@@ -64,7 +64,7 @@
 - [x] 9.2 `plutil -lint` both files
 - [x] 9.3 `swift build` with zero warnings
 - [x] 9.4 Full test suite — no new failures against the base-commit failure set
-- [x] 9.5 Rebuild `dist/Prizm.app`; confirm it launches
+- [x] 9.5 Rebuild `dist/Vitrine.app`; confirm it launches
 - [x] 9.6 Update `FEATURE-GAP-ANALYSIS.md` §5 to mark phase 1 done
 - [x] 9.7 Commit in dependency order, verifying each commit compiles in a worktree
 

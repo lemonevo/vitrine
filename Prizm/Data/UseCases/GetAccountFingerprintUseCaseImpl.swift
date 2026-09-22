@@ -16,7 +16,7 @@ final class GetAccountFingerprintUseCaseImpl: GetAccountFingerprintUseCase {
     private let accountKeyCache: AccountKeyCache
     private let wordList:        [String]
 
-    private let logger = Logger(subsystem: "com.prizm", category: "AccountFingerprint")
+    private let logger = Logger(subsystem: "dev.lemonevo.vitrine", category: "AccountFingerprint")
 
     init(auth:            any AuthRepository,
          accountKeyCache: AccountKeyCache,

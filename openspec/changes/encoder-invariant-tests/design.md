@@ -4,7 +4,7 @@
 
 The invariant is "nothing the server had is missing from what we send back", which is a statement
 about two JSON documents. Comparing `VaultItem`s cannot express it, because the type is precisely the
-set of things Prizm kept.
+set of things Vitrine kept.
 
 So the test flattens both wire forms into dot-separated paths (`login.uris.0.match`) and compares
 those. A new field the decoder learns to read but the encoder does not write shows up as a path in the

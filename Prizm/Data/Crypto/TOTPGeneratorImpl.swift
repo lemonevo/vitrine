@@ -31,7 +31,7 @@ import os.log
 /// improve a weak secret — only the issuing service can.
 nonisolated struct TOTPGeneratorImpl: TOTPGenerator {
 
-    private static let logger = Logger(subsystem: "com.prizm", category: "TOTP")
+    private static let logger = Logger(subsystem: "dev.lemonevo.vitrine", category: "TOTP")
 
     /// Hash algorithms permitted by the Key URI Format. Anything else yields no code rather than
     /// a guess.

@@ -47,7 +47,7 @@ final class AuthRepositoryImpl: AuthRepository {
     /// the same reason the sort order takes one — parallel test processes share the real domain.
     private let userDefaults: UserDefaults
 
-    private let logger = Logger(subsystem: "com.prizm", category: "AuthRepository")
+    private let logger = Logger(subsystem: "dev.lemonevo.vitrine", category: "AuthRepository")
 
     /// Whether a full authentication (master password or biometrics) has happened since launch.
     ///
@@ -134,13 +134,19 @@ final class AuthRepositoryImpl: AuthRepository {
         }
 
         // Step 2: Derive master key locally — never sent to server.
-        // `masterPassword` is `Data` so we can zero it after the KDF call (Constitution §III).
+        // `masterPassword` is `Data` so the caller can zero it after the KDF call (Constitution §III) —
+        // the *caller*, because `Data` is copy-on-write: zeroizing this parameter inside the callee
+        // would only ever zero a private copy and leave the caller's bytes intact.
         logger.info("Step 2: deriving master key (KDF)")
-        let masterKey  = try await crypto.makeMasterKey(
+        var masterKey  = try await crypto.makeMasterKey(
             password: masterPassword,
             email:    email.lowercased(),
             kdf:      kdfParams
         )
+        // Covers every exit, including the throws from steps 3-5. By the time this runs the key has
+        // been stretched and folded into the server hash; the pending two-factor state carries the
+        // stretched pair, never this, so nothing downstream reads it.
+        defer { masterKey.zeroize() }
         if DebugConfig.isEnabled {
             logger.debug("[debug] master key derived (\(masterKey.count, privacy: .public) bytes)")
         }
@@ -354,13 +360,19 @@ final class AuthRepositoryImpl: AuthRepository {
         if DebugConfig.isEnabled {
             logger.debug("[debug] unlock: KDF type=\(String(describing: kdfParams.type), privacy: .public) iterations=\(kdfParams.iterations, privacy: .public) encUserKey prefix=\(String(encUserKey.prefix(2)), privacy: .public)")
         }
-        // `masterPassword` is already `Data`; pass directly to KDF (Constitution §III).
-        let masterKey  = try await crypto.makeMasterKey(
+        // `masterPassword` is already `Data`; the caller zeroes it (see the note in
+        // `loginWithPassword` on why zeroizing a `Data` parameter here would accomplish nothing).
+        var masterKey  = try await crypto.makeMasterKey(
             password: masterPassword,
             email:    restoredAccount.email.lowercased(),
             kdf:      kdfParams
         )
-        let stretched  = try await crypto.stretchKey(masterKey: masterKey)
+        var stretched  = try await crypto.stretchKey(masterKey: masterKey)
+        // Both exist only to unwrap the stored symmetric key. `vaultKeys` below is the value the
+        // session keeps; these two are dead the moment `decryptSymmetricKey` returns, and a `defer`
+        // covers the throw paths too — a wrong master password is precisely the case where the
+        // buffers were filled and nothing else runs afterwards.
+        defer { discardDerivedKeys(&masterKey, &stretched) }
         let vaultKeys  = try await crypto.decryptSymmetricKey(
             encUserKey:    encUserKey,
             stretchedKeys: stretched
@@ -695,8 +707,17 @@ final class AuthRepositoryImpl: AuthRepository {
                 // User cancelled. Normalised to an OSStatus so the caller has one shape to
                 // test for — the dialog can be dismissed with a keyboard as well as a finger.
                 throw NSError(domain: NSOSStatusErrorDomain, code: Int(errSecUserCanceled))
+            case .biometryLockout:
+                // The system stopped evaluating biometrics until something else authenticates, so
+                // "try again" is not available and the retry button would keep failing. Named here
+                // rather than left to the generic catch: that one surfaces `localizedDescription`,
+                // which for this code is an untranslated framework string.
+                //
+                // Nothing is disabled — the enrollment is intact, the sensor is resting.
+                logger.info("Biometric unlock refused: the sensor is locked out")
+                throw AuthError.biometricLockout
             default:
-                // Lockout or other LAError — surface error without clearing stored key.
+                // Other LAError — surface error without clearing stored key.
                 throw laError
             }
         } catch {

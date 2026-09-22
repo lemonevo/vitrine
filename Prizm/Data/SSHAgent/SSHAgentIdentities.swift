@@ -110,11 +110,11 @@ nonisolated enum SSHAgentKeyStore {
     private static func reason(for error: OpenSSHKeyError) -> String {
         switch error {
         case .encrypted(let cipher):
-            return L("Passphrase-protected (%@). Prizm stores no passphrase for a key, so it cannot be used.", cipher)
+            return L("Passphrase-protected (%@). Vitrine stores no passphrase for a key, so it cannot be used.", cipher)
         case .unsupportedAlgorithm(let algorithm):
-            return L("The key type “%@” is not supported. Prizm can use ed25519 and RSA keys.", algorithm)
+            return L("The key type “%@” is not supported. Vitrine can use ed25519 and RSA keys.", algorithm)
         case .notOpenSSHFormat:
-            return L("Not an OpenSSH private key. Prizm needs the openssh-key-v1 format ssh-keygen writes.")
+            return L("Not an OpenSSH private key. Vitrine needs the openssh-key-v1 format ssh-keygen writes.")
         case .malformed:
             return L("This key could not be read: %@", error.localizedDescription)
         }

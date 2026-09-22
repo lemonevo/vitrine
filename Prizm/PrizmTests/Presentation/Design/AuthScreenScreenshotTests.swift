@@ -8,6 +8,14 @@ import XCTest
 ///
 /// Uses the same real-window capture as `VaultScreenshotTests`; see that file for why
 /// `ImageRenderer` alone is not enough.
+///
+/// **What these pictures cannot say.** The test process is not the active application, so its windows
+/// are never key, and `.borderedProminent` draws an *enabled* control in an inactive window as a grey
+/// pill. That is close enough to the disabled look to make every capture here useless for judging the
+/// primary button — which is the thing `openspec/changes/unlock-credential-layering/` changed. The two
+/// states are distinguishable if compared directly: enabled is grey with a **black** label, disabled is
+/// paler with a washed-out grey one, and the auth screens now show the former. The accent-coloured
+/// fill itself still has only been seen by running the app.
 @MainActor
 final class AuthScreenScreenshotTests: XCTestCase {
 
@@ -29,7 +37,7 @@ final class AuthScreenScreenshotTests: XCTestCase {
     private func useLanguage(_ code: String) {
         guard let path = Bundle.main.path(forResource: code, ofType: "lproj"),
               let bundle = Bundle(path: path) else {
-            XCTFail("Prizm.app carries no \(code).lproj — the localisation files are not in the build")
+            XCTFail("Vitrine.app carries no \(code).lproj — the localisation files are not in the build")
             return
         }
         LocalizedBundle.overrideBundle = bundle
@@ -99,6 +107,7 @@ final class AuthScreenScreenshotTests: XCTestCase {
 
     private func unlockVM(biometrics: Bool = false,
                           pin: Bool = false,
+                          pinMode: Bool = false,
                           pinAttemptsLeft: Int = 5,
                           error: String? = nil) -> UnlockViewModel {
         let auth = MockAuthRepository()
@@ -106,6 +115,9 @@ final class AuthScreenScreenshotTests: XCTestCase {
         auth.stubbedPinUnlockAvailable = pin
         auth.stubbedPinUnlockRemainingAttempts = pinAttemptsLeft
         let vm = UnlockViewModel(auth: auth, sync: MockSyncUseCase(), account: account)
+        // The screen asks for one credential at a time; the PIN is only on it once it has been asked
+        // for, which is what `pinMode` stands in for here.
+        if pinMode { vm.toggleCredentialMethod() }
         vm.errorMessage = error
         return vm
     }
@@ -156,7 +168,15 @@ final class AuthScreenScreenshotTests: XCTestCase {
     /// PIN offered, one wrong try already spent, so the remaining-attempt line is visible.
     func testUnlockWithPIN() throws {
         try snapshot("auth-unlock-pin", size: roomy) {
-            UnlockView(viewModel: unlockVM(pin: true, pinAttemptsLeft: 4))
+            UnlockView(viewModel: unlockVM(pin: true, pinMode: true, pinAttemptsLeft: 4))
+        }
+    }
+
+    /// The other half of the same account: a PIN exists, but the screen is asking for the master
+    /// password — so the switch is offered and the attempt count is **not** shown.
+    func testUnlockWithPINOfferedButNotAskedFor() throws {
+        try snapshot("auth-unlock-pin-offered", size: roomy) {
+            UnlockView(viewModel: unlockVM(pin: true, pinAttemptsLeft: 1))
         }
     }
 
@@ -170,7 +190,8 @@ final class AuthScreenScreenshotTests: XCTestCase {
     /// nothing else can clip.
     func testUnlockWorstCaseAtMinimumSize() throws {
         try snapshot("auth-unlock-min", size: unlockMinimum) {
-            UnlockView(viewModel: unlockVM(biometrics: true, pin: true, pinAttemptsLeft: 4,
+            UnlockView(viewModel: unlockVM(biometrics: true, pin: true, pinMode: true,
+                                           pinAttemptsLeft: 4,
                                            error: "Master password incorrect."))
         }
     }

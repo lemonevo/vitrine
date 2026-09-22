@@ -72,7 +72,7 @@ final class AttachmentBatchViewModel: Identifiable {
     private let cipherId: String
     private let uploadUseCase: any UploadAttachmentUseCase
 
-    private let logger = Logger(subsystem: "com.prizm", category: "attachments")
+    private let logger = Logger(subsystem: "dev.lemonevo.vitrine", category: "attachments")
 
     // MARK: - State (observable)
 

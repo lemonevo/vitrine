@@ -18,7 +18,7 @@ one the user chose, and the only thing that catches it is an assertion about the
 
 #### Scenario: A rule set elsewhere is not erased by a save
 - **GIVEN** a vault item whose entry carries `match: 6` from another client
-- **WHEN** Prizm displays it and later saves the item for any reason
+- **WHEN** Vitrine displays it and later saves the item for any reason
 - **THEN** the entry SHALL still carry 6 afterwards
 
 #### Scenario: A favourite toggle does not rewrite the rules

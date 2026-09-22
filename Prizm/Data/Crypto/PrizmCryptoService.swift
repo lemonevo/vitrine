@@ -228,7 +228,7 @@ protocol PrizmCryptoService: Actor {
 ///   platforms (CryptoKit is FIPS 140-3 certified since macOS 12).
 actor PrizmCryptoServiceImpl: PrizmCryptoService {
 
-    private let logger = Logger(subsystem: "com.prizm", category: "PrizmCryptoService")
+    private let logger = Logger(subsystem: "dev.lemonevo.vitrine", category: "PrizmCryptoService")
 
     // MARK: - State
 

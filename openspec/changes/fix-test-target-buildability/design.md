@@ -72,7 +72,7 @@ lost.
 ## Verification
 
 ```
-xcodebuild test -project "Prizm/Prizm.xcodeproj" -scheme "Prizm" -destination "platform=macOS" \
+xcodebuild test -project "Prizm/Prizm.xcodeproj" -scheme "Vitrine" -destination "platform=macOS" \
   CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
 ```
 

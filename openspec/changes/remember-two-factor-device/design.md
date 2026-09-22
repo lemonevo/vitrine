@@ -2,7 +2,7 @@
 
 ## Decision 1 — keyed by email, stored globally, matched on replay
 
-The token belongs to an account, but at login time Prizm knows only the **email** — the user id comes
+The token belongs to an account, but at login time Vitrine knows only the **email** — the user id comes
 back in the token response, after the challenge has already been decided. So a per-user key
 (`bw.macos:<userId>:…`, the convention every other session item uses) cannot be looked up at the moment
 it is needed.
@@ -38,7 +38,7 @@ decides.
 Recorded here because it was in the same batch and deliberately not changed.
 
 The official client lets "On system lock" and "On system sleep" be selected as timeout modes, which
-means a user who picks `Never` does not get locked by closing the lid. Prizm locks on
+means a user who picks `Never` does not get locked by closing the lid. Vitrine locks on
 `willSleepNotification`, the screensaver, and screen lock regardless of the timeout setting
 (`PrizmApp.swift:603-621`).
 

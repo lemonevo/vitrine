@@ -2,7 +2,7 @@
 
 ## Why
 
-Locking Prizm destroys the key material in the vault store and every key cache. It does not touch
+Locking Vitrine destroys the key material in the vault store and every key cache. It does not touch
 `VaultBrowserViewModel`, which keeps `displayedItems` and `itemSelection` — arrays of `VaultItem`
 whose fields are plain `String`s, decrypted at sync time and never re-encrypted. So after a lock:
 

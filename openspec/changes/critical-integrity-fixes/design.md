@@ -8,7 +8,7 @@ The fix must not depend on the caller remembering to do something. `DraftVaultIt
 
 **Goals**
 
-- Editing an item in Prizm can never delete data written by another Bitwarden client.
+- Editing an item in Vitrine can never delete data written by another Bitwarden client.
 - The per-item cipher key, when present, is used for encryption and returned unchanged.
 - Cache-patch operations cannot silently drop domain fields.
 - `Copy Code` never puts a long-lived secret on the clipboard.
@@ -31,7 +31,7 @@ The fix must not depend on the caller remembering to do something. `DraftVaultIt
 
 The Domain layer stays Foundation-only: `PreservedCipherFields` holds strings, booleans and one `JSONValue` subtree. It names no crypto type and no passkey concept.
 
-### D2 — `JSONValue` for the subtrees Prizm does not interpret
+### D2 — `JSONValue` for the subtrees Vitrine does not interpret
 
 `login.fido2Credentials` and `passwordHistory` are structured data with mixed value types (`counter` is a string, `discoverable` is a bool). Typing them as Swift structs would mean modelling a feature that is out of scope, and any field added by a future Bitwarden release would be dropped again.
 
@@ -84,6 +84,6 @@ A `showWebsiteIcons` preference (default on) in `UserDefaults` disables fetching
 
 - **`PreservedCipherFields` grows the `VaultItem` value.** It holds two small arrays and three scalars per item, in memory only. Acceptable; the vault is already fully decrypted in memory.
 - **`JSONValue` is an untyped escape hatch.** Contained to one struct with a documented purpose; it is never read by the Presentation layer and never rendered.
-- **Preserved fields are not merged with concurrent edits.** The write path remains last-write-wins. Preserving is strictly better than deleting, but it does not make Prizm concurrency-safe — that is the offline/conflict work in Phase 3.
+- **Preserved fields are not merged with concurrent edits.** The write path remains last-write-wins. Preserving is strictly better than deleting, but it does not make Vitrine concurrency-safe — that is the offline/conflict work in Phase 3.
 - **Old items synced before this change carry empty `preserved`.** The first sync after upgrading repopulates it; until then a write is no worse than today.
 - **TOTP is generated on demand, not on a timer.** Phase 0 only needs the code at the moment ⌃⌘C is pressed; a countdown UI is Phase 1.

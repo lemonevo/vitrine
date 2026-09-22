@@ -8,7 +8,7 @@ The unlock screen drew its own fingerprint glyph via `LAAuthenticationView`
 own view hierarchy instead. So the reason the authentication looked hand-built is the same mechanism
 that made it not look like the rest of macOS.
 
-The user asked for the system prompt — the dialog every other app raises — rather than Prizm's own
+The user asked for the system prompt — the dialog every other app raises — rather than Vitrine's own
 affordance.
 
 Removing the pairing collapses most of the feature: the embedded view, the context-version re-arm
@@ -31,9 +31,9 @@ declines a prompt that is now modal.
   path, and still asks once automatically when the screen appears.
 - **Cancelling no longer re-arms.** The old behaviour re-triggered evaluation on every cancellation;
   that was written for an inline glyph and becomes an inescapable loop when the prompt is modal.
-- **The prompt reason names the sensor**: `Open your Prizm vault with Touch ID` /
-  `使用 Touch ID 打开你的 Prizm 保险库`. A dialog that appears over whatever app the user was in has
-  to say who is asking, and "unlock your Prizm vault" read as an unlabelled sentence.
+- **The prompt reason names the sensor**: `Open your Vitrine vault with Touch ID` /
+  `使用 Touch ID 打开你的 Vitrine 保险库`. A dialog that appears over whatever app the user was in has
+  to say who is asking, and "unlock your Vitrine vault" read as an unlabelled sentence.
 - Four comments that asserted "no system modal appears" are corrected; they were the documentation of
   the removed mechanism.
 

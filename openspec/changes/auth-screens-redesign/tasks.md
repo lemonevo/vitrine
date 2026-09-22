@@ -59,7 +59,7 @@
       nothing in a non-key window in a test host, so the gap under the Unlock button is the sensor's
       reserved space, not its appearance. Only the real lock screen can confirm that.
 - 7.2 **The Chinese captures initially read the checkout's `.lproj` folders**, because an Xcode-built
-      `Prizm.app` contained no localisation files at all. Fixed the same day in
+      `Vitrine.app` contained no localisation files at all. Fixed the same day in
       `openspec/changes/xcode-localisation-resources/`; the captures were re-taken with the harness
       resolving from `Bundle.main` only.
 - 7.3 Focus rings are absent from every capture — the harness window is never key, so

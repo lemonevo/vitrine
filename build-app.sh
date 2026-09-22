@@ -1,6 +1,6 @@
 #!/bin/zsh
 #
-# build-app.sh — build Prizm.app from source without Xcode's build system.
+# build-app.sh — build Vitrine.app from source without Xcode's build system.
 #
 # Why this exists: `xcodebuild` resolves SwiftPM packages by re-entering
 # `sandbox-exec`, which fails inside an already-sandboxed process
@@ -15,8 +15,8 @@ set -euo pipefail
 
 CONFIG="${1:-debug}"
 ROOT="$(cd "$(dirname "$0")" && pwd)"
-APP="$ROOT/dist/Prizm.app"
-ENT="$ROOT/dist/Prizm.local.entitlements"
+APP="$ROOT/dist/Vitrine.app"
+ENT="$ROOT/dist/Vitrine.local.entitlements"
 
 cd "$ROOT"
 
@@ -68,20 +68,20 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
 	<key>CFBundleExecutable</key><string>Prizm</string>
 	<key>CFBundleIconFile</key><string>Prizm_V2</string>
 	<key>CFBundleIconName</key><string>Prizm_V2</string>
-	<key>CFBundleIdentifier</key><string>com.prizm</string>
+	<key>CFBundleIdentifier</key><string>dev.lemonevo.vitrine</string>
 	<key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
-	<key>CFBundleName</key><string>Prizm</string>
-	<key>CFBundleDisplayName</key><string>Prizm</string>
+	<key>CFBundleName</key><string>Vitrine</string>
+	<key>CFBundleDisplayName</key><string>Vitrine</string>
 	<key>CFBundlePackageType</key><string>APPL</string>
-	<key>CFBundleShortVersionString</key><string>1.4.3</string>
-	<key>CFBundleVersion</key><string>12</string>
+	<key>CFBundleShortVersionString</key><string>0.0.1</string>
+	<key>CFBundleVersion</key><string>1</string>
 	<key>LSMinimumSystemVersion</key><string>26.0</string>
 	<key>LSApplicationCategoryType</key><string>public.app-category.productivity</string>
 	<key>NSHighResolutionCapable</key><true/>
 	<key>NSPrincipalClass</key><string>NSApplication</string>
 	<key>NSSupportsAutomaticTermination</key><true/>
 	<key>NSSupportsSuddenTermination</key><true/>
-	<key>NSFaceIDUsageDescription</key><string>Prizm uses Touch ID to unlock your vault.</string>
+	<key>NSFaceIDUsageDescription</key><string>Vitrine uses Touch ID to unlock your vault.</string>
 </dict>
 </plist>
 PLIST
@@ -113,7 +113,7 @@ echo "==> Ad-hoc signing"
 # binary. Dropping the sandbox gives the same legacy keychain with one less
 # variable in the way, which is what we want for a local test build.
 #
-# NOTE: the sandbox is NOT what causes the "Prizm wants to use confidential
+# NOTE: the sandbox is NOT what causes the "Vitrine wants to use confidential
 # information stored in ..." prompt — that was tested and disproved. The prompt
 # comes from *stale keychain items*: items created by an earlier build may not be
 # recognised as owned by the current binary, so touching them demands the login

@@ -18,13 +18,13 @@ app target's `SWIFT_DEFAULT_ACTOR_ISOLATION` setting.
 #### Scenario: The suite compiles and runs
 
 - **GIVEN** a clean checkout with the committed `project.pbxproj` and no local signing identity
-- **WHEN** `xcodebuild test` is run for the `Prizm` scheme on a macOS destination
+- **WHEN** `xcodebuild test` is run for the `Vitrine` scheme on a macOS destination
 - **THEN** the test target SHALL compile
 - **AND** the run SHALL report an executed test count greater than zero
 
 #### Scenario: The isolation setting matches the app target
 
-- **GIVEN** the `Prizm` target declares `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`
+- **GIVEN** the `Vitrine` target declares `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`
 - **WHEN** a test constructs a type declared in the app module without an explicit isolation
   annotation
 - **THEN** the construction SHALL compile
@@ -54,7 +54,7 @@ recorded, with the reason, wherever the build configuration is described.
 
 #### Scenario: A reader does not "fix" the mismatch
 
-- **GIVEN** a reader notices `SWIFT_VERSION = 5.0` on `PrizmTests` next to `6.0` on `Prizm`
+- **GIVEN** a reader notices `SWIFT_VERSION = 5.0` on `PrizmTests` next to `6.0` on `Vitrine`
 - **WHEN** they look for the reason
 - **THEN** the design document SHALL state that v6 with main-actor default isolation produces
   4969 errors from `XCTestCase` subclassing

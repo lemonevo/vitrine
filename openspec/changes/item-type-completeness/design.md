@@ -3,7 +3,7 @@
 ## Context
 
 Two independently-shaped problems got put in one change because they are one surface — "the item
-types Bitwarden has that Prizm does not".
+types Bitwarden has that Vitrine does not".
 
 The secure-note subtype is a data-fidelity bug. The read path drops the value
 (`mapSecureNote` takes only notes and custom fields, `CipherMapper.swift:233-235`), the domain model
@@ -74,5 +74,5 @@ The tests that carry the weight are the fidelity ones, because they are the ones
 - an export of a non-generic note writes its subtype, and an import restores it;
 - a card whose brand is not in the list keeps that brand through a round trip.
 
-The UI is checked manually: a subtype set in another client shows in Prizm's detail view and survives
+The UI is checked manually: a subtype set in another client shows in Vitrine's detail view and survives
 an edit.

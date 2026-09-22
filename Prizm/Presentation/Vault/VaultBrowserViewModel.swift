@@ -251,7 +251,7 @@ final class VaultBrowserViewModel: ObservableObject {
     /// the app; a private suite in a test.
     private let userDefaults: UserDefaults
 
-    private let logger = Logger(subsystem: "com.prizm", category: "VaultBrowserViewModel")
+    private let logger = Logger(subsystem: "dev.lemonevo.vitrine", category: "VaultBrowserViewModel")
 
     // MARK: - Menu bar action relay
 
@@ -431,9 +431,7 @@ final class VaultBrowserViewModel: ObservableObject {
     /// the next copy without a relaunch. "Never" schedules nothing at all — not a very long timer,
     /// which would still depend on the process outliving it.
     func copy(_ value: String) {
-        let pasteboard = NSPasteboard.general
-        pasteboard.clearContents()
-        pasteboard.setString(value, forType: .string)
+        SecretClipboard.shared.write(value)
 
         // Cancel any previous clear task before scheduling a new one.
         clipboardClearTask?.cancel()
@@ -448,8 +446,8 @@ final class VaultBrowserViewModel: ObservableObject {
             do {
                 try await Task.sleep(for: .seconds(seconds))
                 // Only clear if our value is still on the clipboard.
-                if pasteboard.string(forType: .string) == value {
-                    pasteboard.clearContents()
+                if SecretClipboard.shared.stillHolds(value) {
+                    SecretClipboard.shared.clearIfStillOurs()
                     logger.debug("Clipboard auto-cleared after \(Int(seconds)) s")
                 }
             } catch {
@@ -1100,17 +1098,37 @@ final class VaultBrowserViewModel: ObservableObject {
     /// The read happens off the main actor: an export of a large vault is tens of megabytes, and
     /// blocking the UI on `Data(contentsOf:)` while a progress sheet is supposed to be animating
     /// would be the one place this feature could look broken.
+    ///
+    /// **The file is sized before it is read.** `Data(contentsOf:)` allocates the whole file in one
+    /// step, so picking the wrong file — a database dump, an archive, a device image — meant the app
+    /// committed its entire size to memory before anything got round to rejecting it. The size comes
+    /// from the file's metadata, not from reading it.
     func requestImport() {
         guard backupSheet == nil else { return }
         guard let url = filePicker() else { return }
+
+        if let rejection = importFileRejection(for: url) {
+            logger.error("Import refused for \(url.lastPathComponent, privacy: .private)")
+            actionError = rejection
+            return
+        }
 
         backupSheet = .importing(done: 0, total: 0)
         importTask = Task { [weak self] in
             guard let self else { return }
             do {
+                // The detached read is the one step that cannot be interrupted — `Data(contentsOf:)`
+                // never checks the task's cancellation flag, and dismissing the sheet therefore has
+                // to wait for it. Checking again here covers the case where the user dismissed it
+                // while the read was queued, so the sheet is not reopened behind them and the rest of
+                // the run does not start at all.
+                if Task.isCancelled { return }
+
                 let data = try await Task.detached(priority: .userInitiated) {
                     try Data(contentsOf: url)
                 }.value
+
+                if Task.isCancelled { return }
 
                 let summary = try await importUseCase.execute(data: data) { done, total in
                     Task { @MainActor [weak self] in
@@ -1146,6 +1164,39 @@ final class VaultBrowserViewModel: ObservableObject {
         importTask?.cancel()
         importTask = nil
         backupSheet = nil
+    }
+
+    // MARK: - Import preflight
+
+    /// The largest export this app will read, in bytes.
+    ///
+    /// A Bitwarden JSON export of ten thousand items is single-digit megabytes, so 64 MB sits two
+    /// orders of magnitude above anything a real vault reaches. The number is not a claim about what
+    /// a vault can hold — it is the point past which the file almost certainly is not a vault export,
+    /// and reading it would allocate its whole size to find that out.
+    private enum ImportLimits {
+        static let maximumFileBytes: Int64 = 64 * 1024 * 1024
+    }
+
+    /// Why this file will not be imported, or `nil` to go ahead.
+    ///
+    /// Reads the file's attributes rather than its contents — the whole point is not to read it. A
+    /// size that cannot be determined is allowed through: the failure mode being prevented is a
+    /// mistaken file selection, not a hostile one, and refusing a legitimate export because a
+    /// sandboxed volume declined to report a length would be the worse trade.
+    private func importFileRejection(for url: URL) -> String? {
+        guard let size = try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize else {
+            logger.debug("Import preflight: file size unavailable, proceeding")
+            return nil
+        }
+        guard Int64(size) > ImportLimits.maximumFileBytes else { return nil }
+
+        func megabytes(_ bytes: Int64) -> String {
+            String(format: "%.1f", Double(bytes) / 1_048_576)
+        }
+        return L("That file is too large to import: %@ MB. Vitrine imports exports up to %@ MB.",
+                 megabytes(Int64(size)),
+                 megabytes(ImportLimits.maximumFileBytes))
     }
 
     private func updateImportProgress(done: Int, total: Int) {

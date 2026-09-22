@@ -33,19 +33,19 @@ nonisolated enum SSHAgentSocketError: Error, LocalizedError, Equatable {
     var errorDescription: String? {
         switch self {
         case .sandboxed:
-            return L("Prizm is running sandboxed. A sandboxed app can only create sockets inside its own container, which ssh cannot reach, so the agent cannot be used in this build.")
+            return L("Vitrine is running sandboxed. A sandboxed app can only create sockets inside its own container, which ssh cannot reach, so the agent cannot be used in this build.")
         case .directoryUnusable(let path, let reason):
-            return L("Prizm could not prepare a private directory for the agent socket at %@: %@", path, reason)
+            return L("Vitrine could not prepare a private directory for the agent socket at %@: %@", path, reason)
         case .pathTooLong(let path, let limit):
             return L("The socket path is too long (%lld characters is the maximum): %@",
                      Int64(limit), path)
         case .socketCreationFailed(let code):
-            return L("Prizm could not create the agent socket (error %lld).", Int64(code))
+            return L("Vitrine could not create the agent socket (error %lld).", Int64(code))
         case .bindFailed(let path, let code):
-            return L("Prizm could not bind the agent socket at %@ (error %lld). Another agent may already be listening there.",
+            return L("Vitrine could not bind the agent socket at %@ (error %lld). Another agent may already be listening there.",
                      path, Int64(code))
         case .listenFailed(let code):
-            return L("Prizm could not listen on the agent socket (error %lld).", Int64(code))
+            return L("Vitrine could not listen on the agent socket (error %lld).", Int64(code))
         }
     }
 }
@@ -55,7 +55,10 @@ nonisolated enum SSHAgentSocketError: Error, LocalizedError, Equatable {
 /// Where the socket goes, and why there.
 nonisolated enum SSHAgentSocketLocation {
 
-    /// `~/Library/Application Support/Prizm/ssh-agent/agent.sock`.
+    /// `~/Library/Application Support/Vitrine/ssh-agent/agent.sock`.
+    ///
+    /// The directory is named for the product, so a machine that exported `SSH_AUTH_SOCK`
+    /// against the old path has to re-copy the line from Settings ▸ SSH agent once.
     ///
     /// A stable path rather than a per-launch temporary one, because `SSH_AUTH_SOCK` has to be
     /// exported in the user's shell and a path that changes on every launch would have to be
@@ -63,7 +66,7 @@ nonisolated enum SSHAgentSocketLocation {
     /// in `SSHAgentServer.start` by removing only a file that is a socket.
     static func defaultPath() -> String {
         homeDirectory
-            .appendingPathComponent("Library/Application Support/Prizm/ssh-agent", isDirectory: true)
+            .appendingPathComponent("Library/Application Support/Vitrine/ssh-agent", isDirectory: true)
             .appendingPathComponent("agent.sock")
             .path
     }
@@ -145,7 +148,7 @@ nonisolated final class SSHAgentServer: @unchecked Sendable {
     /// the only layer that has a descriptor to ask about.
     private let respond: @Sendable (Data, SSHAgentPeer?) async -> Data
     private let queue   = DispatchQueue(label: "com.prizm.ssh-agent", qos: .userInitiated)
-    private let logger  = Logger(subsystem: "com.prizm", category: "SSHAgent")
+    private let logger  = Logger(subsystem: "dev.lemonevo.vitrine", category: "SSHAgent")
 
     private var listenFD:     Int32 = -1
     private var listenSource: DispatchSourceRead?

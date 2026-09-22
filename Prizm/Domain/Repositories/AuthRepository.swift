@@ -208,6 +208,14 @@ nonisolated enum AuthError: Error, LocalizedError, Equatable {
     case unsupported2FAMethod(String)
     /// Biometric Keychain item was invalidated due to fingerprint enrollment change.
     case biometricInvalidated
+    /// The sensor is locked by the system after repeated failures, so it will not evaluate at all
+    /// until the user authenticates some other way.
+    ///
+    /// Distinct from a rejected finger: retrying is pointless until the master password has been
+    /// entered, which is the one thing the message has to say. The wording is the one
+    /// `openspec/specs/biometric-unlock/spec.md` mandates — until this case existed, that sentence
+    /// lived only in the spec and in a UI test that could not fail.
+    case biometricLockout
     /// Biometric Keychain item was deleted externally (Keychain Access, reinstall, etc.).
     /// Distinct from `biometricInvalidated` — no error is shown; the app silently falls back.
     case biometricItemNotFound
@@ -249,9 +257,11 @@ nonisolated enum AuthError: Error, LocalizedError, Equatable {
             // No advice to "use an authenticator app" any more: a user whose account asks for
             // Duo cannot switch methods from here, so that sentence is not actionable — and it
             // reads as if the app had tried and failed rather than declined.
-            return L("Prizm cannot complete the two-factor method “%@”. Sign in from another Bitwarden client, or use one to change the method this account asks for.", name)
+            return L("Vitrine cannot complete the two-factor method “%@”. Sign in from another Bitwarden client, or use one to change the method this account asks for.", name)
         case .biometricInvalidated:
             return L("Your Touch ID settings have changed. Please enter your master password to continue.")
+        case .biometricLockout:
+            return L("Too many failed Touch ID attempts — enter your master password")
         case .biometricItemNotFound:
             // Intentionally nil — this error is handled silently in UnlockViewModel.
             return nil
@@ -260,9 +270,9 @@ nonisolated enum AuthError: Error, LocalizedError, Equatable {
         case .biometricUnavailable:
             return L("Biometric unlock is not available. Please unlock with your master password.")
         case .biometricUnsupportedInBuild:
-            return L("This build of Prizm is not signed with an Apple Developer certificate, so macOS does not allow it to store the key Touch ID unlock needs.")
+            return L("This build of Vitrine is not signed with an Apple Developer certificate, so macOS does not allow it to store the key Touch ID unlock needs.")
         case .secretRetirementFailed:
-            return L("Prizm could not delete the stored key, so this is still enabled. Try turning it off again.")
+            return L("Vitrine could not delete the stored key, so this is still enabled. Try turning it off again.")
         }
     }
 }

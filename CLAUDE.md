@@ -1,4 +1,4 @@
-# Prizm Development Guidelines
+# Vitrine Development Guidelines
 
 **Constitution: [CONSTITUTION.md](CONSTITUTION.md) (v1.4.0) — READ THIS FIRST.**
 The Constitution defines seven non-negotiable principles that govern every decision in this
@@ -50,12 +50,12 @@ open "Prizm/Prizm.xcodeproj"
 
 # Build
 xcodebuild -project "Prizm/Prizm.xcodeproj" \
-           -scheme "Prizm" -configuration Debug build
+           -scheme "Vitrine" -configuration Debug build
 
 # Run all tests
 xcodebuild test \
   -project "Prizm/Prizm.xcodeproj" \
-  -scheme "Prizm" \
+  -scheme "Vitrine" \
   -destination "platform=macOS"
 ```
 
@@ -105,6 +105,9 @@ All Presentation layer typography and spacing is defined in one place:
 | `metaLine` | `.system(size: 11)` | 11pt | The created/updated line at the foot of the detail pane |
 | `orgBadge` | `.system(size: 9, weight: .medium)` | 9pt | Organisation badge on an item row |
 | `chipIcon` | `.system(size: 14)` | 14pt | Type symbol inside an item row's tinted chip |
+| `screenHeading` | `.title.bold()` | ~22pt | The "Vitrine" / "Vitrine Is Locked" heading on an entry screen |
+| `screenBody` | `.callout` | 13pt | The entry-screen subtitle, error banner, and sync message |
+| `fieldLabelProminent` | `.callout.weight(.medium)` | 13pt | A form label that must out-rank `fieldLabel` |
 
 ### Spacing tokens (`Spacing.*`)
 
@@ -135,6 +138,11 @@ All Presentation layer typography and spacing is defined in one place:
 | `authBannerCornerRadius` | 7pt | Corner radius of the entry-screen error banner |
 | `authFieldWidth` | 352pt | A field on an entry screen — the card's inner content width |
 | `authFootnoteGap` | 14pt | Between the auth card and the caption under it |
+| `authFieldGap` | 12pt | Between stacked fields inside the auth card |
+| `authActionTopGap` | 14pt | Above the card's filled action, and above the banner before it |
+| `authDividerVertical` | 16pt | Around the rule under the credential fields |
+| `authProgressHeight` | 34pt | Height reserved while deriving or syncing, so the card does not jump |
+| `authProgressLabelGap` | 6pt | Between the spinner and the sync message |
 | `fieldLabelGap` | 5pt | Between a field's label, its control and its hint |
 | `bannerVertical` | 8pt | Vertical padding inside status banners |
 
@@ -155,6 +163,23 @@ view.
 | `typeChip` | 0.16 / 0.28 | Tinted chip behind a type icon |
 | `hairline` | 0.12 / 0.22 | Divider between item rows |
 | `authCardBorder` | 0.20 / 0.40 | Edge of the auth card — stronger, because it is the only thing marking the panel in dark mode |
+
+### Text foreground (`Foreground.*`)
+
+`.secondary` and `.tertiary` are **not** safe for copy a user has to act on. Measured on this Mac
+against the resolved sRGB system surfaces, light / dark: `secondaryLabel` 3.95:1 / 5.89:1 (fails AA in
+light), `tertiaryLabel` 1.88:1 / 2.26:1 (fails both), `systemOrange` 2.31:1 / 7.47:1. AA for text at
+13pt and below is 4.5:1, which `ACCESSIBILITY.md` claims.
+
+| Token | Light / dark | Use for |
+|---|---|---|
+| `Foreground.muted` (`Color.primary.opacity(0.62)`) | 6.20:1 / 7.13:1 | Secondary-in-weight, mandatory-in-content: field labels and hints, entry-screen subtitles, the sentence under the login card, section captions |
+| `Foreground.action` (`Color(nsColor: .linkColor)`) | 5.26:1 / 5.89:1 | Text that is a way to do something: a link, a switch, an inline command. `accentColor` measures 4.02:1 / 4.15:1 and `systemBlue` 3.52:1 / 5.16:1 — neither clears AA at these sizes |
+| `Foreground.warning` (resolves per appearance: `#8C4700` / `#E9A23B`) | 6.97:1 / 7.69:1 | A state to act on. No single amber clears both modes, so this one is a dynamic `NSColor`, never a constant |
+
+Never write `.foregroundStyle(.tertiary)` on text, and never pick a warning colour at a call site.
+Neither token is ever the only signal — pair it with a glyph and plain words. See
+`openspec/changes/unlock-credential-layering/design.md` (D5).
 
 ### Interface strings
 

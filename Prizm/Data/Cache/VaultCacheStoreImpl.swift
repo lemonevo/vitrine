@@ -42,7 +42,7 @@ actor VaultCacheStoreImpl: VaultCacheStore {
 
     private let directory: URL
     private let fileManager: FileManager
-    private let logger = Logger(subsystem: "com.prizm", category: "VaultCacheStore")
+    private let logger = Logger(subsystem: "dev.lemonevo.vitrine", category: "VaultCacheStore")
 
     // MARK: - Init
 
@@ -60,7 +60,7 @@ actor VaultCacheStoreImpl: VaultCacheStore {
         let base = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
             ?? URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
         return base
-            .appendingPathComponent("Prizm", isDirectory: true)
+            .appendingPathComponent("Vitrine", isDirectory: true)
             .appendingPathComponent(rootDirectoryName, isDirectory: true)
     }
 

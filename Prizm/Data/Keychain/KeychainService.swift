@@ -86,7 +86,7 @@ final class KeychainServiceImpl: KeychainService {
     static let storeAccount = "store"
 
     private let service: String
-    private let logger = Logger(subsystem: "com.prizm", category: "KeychainService")
+    private let logger = Logger(subsystem: "dev.lemonevo.vitrine", category: "KeychainService")
 
     /// When `true`, routes all queries through the modern data protection keychain
     /// (`kSecUseDataProtectionKeychain`), which requires the `keychain-access-groups`
@@ -112,7 +112,7 @@ final class KeychainServiceImpl: KeychainService {
     ///     rewrite the live session).
     ///   - useDataProtectionKeychain: `nil` probes the entitlement; pass an explicit
     ///     value to skip the probe.
-    init(service: String = "com.prizm", useDataProtectionKeychain: Bool? = nil) {
+    init(service: String = "dev.lemonevo.vitrine", useDataProtectionKeychain: Bool? = nil) {
         self.service = service
         if let explicit = useDataProtectionKeychain {
             self.useDataProtectionKeychain = explicit

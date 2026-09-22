@@ -14,7 +14,7 @@ Templates requiring updates: N/A
 Follow-up TODOs: N/A
 -->
 
-# Prizm Constitution
+# Vitrine Constitution
 
 ## Core Principles
 

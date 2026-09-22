@@ -31,10 +31,10 @@ struct AboutViewModel {
     @MainActor
     static func forCurrentApp() -> AboutViewModel {
         AboutViewModel(
-            appName: Bundle.main.infoDictionary?["CFBundleName"] as? String ?? "Prizm",
+            appName: Bundle.main.infoDictionary?["CFBundleName"] as? String ?? "Vitrine",
             version: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "",
             tagline: L("Your secrets. Your server. Our user interface."),
-            gitHubURL: URL(string: "https://github.com/b0x42/prizm")!,
+            gitHubURL: URL(string: "https://github.com/lemonevo/vitrine")!,
             acknowledgements: [
                 L("Vaultwarden & Bitwarden — server API and vault format"),
                 L("Argon2Swift — Argon2id key derivation (RFC 9106)"),

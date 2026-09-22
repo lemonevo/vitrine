@@ -21,7 +21,7 @@ import os.log
 ///   Data layer").
 actor VaultKeyCache {
 
-    private let logger = Logger(subsystem: "com.prizm", category: "VaultKeyCache")
+    private let logger = Logger(subsystem: "dev.lemonevo.vitrine", category: "VaultKeyCache")
 
     /// Maps cipher ID → 64-byte effective key (encryptionKey ‖ macKey).
     private var cache: [String: Data] = [:]

@@ -31,7 +31,7 @@ nonisolated enum AttachmentMapperError: Error, Equatable {
 // `Sendable`: no mutable instance state — only a static logger.
 nonisolated final class AttachmentMapper: Sendable {
 
-    private static let logger = Logger(subsystem: "com.prizm", category: "attachments")
+    private static let logger = Logger(subsystem: "dev.lemonevo.vitrine", category: "attachments")
 
     /// Maps an `AttachmentDTO` to a domain `Attachment`.
     ///

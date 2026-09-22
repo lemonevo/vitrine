@@ -1,6 +1,6 @@
 ## Why
 
-Prizm can already derive a one-time code and copy it — `Item ▸ Copy Code` (⌃⌘C) generates from the
+Vitrine can already derive a one-time code and copy it — `Item ▸ Copy Code` (⌃⌘C) generates from the
 stored seed and puts the *code* on the clipboard, which is the fix that stopped it copying the seed
 itself. What is missing is that the code cannot be **read**. The only way to see it is to copy it,
 which is a round trip through the menu and, on a re-prompt-protected item, a master-password prompt
@@ -33,7 +33,7 @@ editing, the gate and the menu command all exist; the display does not.
 
 ## Non-goals
 
-- **Registering** a TOTP secret with a service. Prizm reads a seed the user pasted in; it does not
+- **Registering** a TOTP secret with a service. Vitrine reads a seed the user pasted in; it does not
   perform enrolment.
 - **Steam / Yandex / other non-RFC variants.** The generator supports what RFC 6238 defines plus the
   Key URI Format parameters; anything else still yields no code.

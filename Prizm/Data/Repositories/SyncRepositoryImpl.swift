@@ -46,7 +46,7 @@ actor SyncRepositoryImpl: SyncRepository {
     /// zeroed.
     private let sessionEpoch:    SessionEpoch
 
-    private let logger = Logger(subsystem: "com.prizm", category: "SyncRepository")
+    private let logger = Logger(subsystem: "dev.lemonevo.vitrine", category: "SyncRepository")
 
     // MARK: - State
 
@@ -133,7 +133,7 @@ actor SyncRepositoryImpl: SyncRepository {
         var (items, failedCount, cipherKeyMap) = try await crypto.decryptList(ciphers: syncResponse.ciphers)
         logger.info("Decrypted \(items.count) cipher(s); \(failedCount) failure(s)")
         if DebugConfig.isEnabled && failedCount > 0 {
-            logger.debug("[debug] \(failedCount, privacy: .public) cipher(s) failed to decrypt — check PrizmCryptoService logs for per-cipher errors")
+            logger.debug("[debug] \(failedCount, privacy: .public) cipher(s) failed to decrypt — check VitrineCryptoService logs for per-cipher errors")
         }
 
         // Phase 2b: Populate the per-cipher key cache from keys collected during decryptList.

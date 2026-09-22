@@ -2,7 +2,7 @@
 
 ## Why
 
-Unlocking without the master password is offered by every official client, and Prizm has half of it:
+Unlocking without the master password is offered by every official client, and Vitrine has half of it:
 biometrics. Bitwarden's own documentation states that "mobile apps, browser extensions, and **desktop
 apps** can be unlocked with a PIN", so this is a genuine gap on this platform rather than a mobile-only
 feature — checked before starting, because an earlier batch of this work was planned around gaps that

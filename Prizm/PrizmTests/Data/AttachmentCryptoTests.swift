@@ -19,7 +19,7 @@ final class AttachmentCryptoTests: XCTestCase {
     // MARK: - 2.7 Round-trip tests
 
     func test_encryptDecrypt_roundTrip_smallData() throws {
-        let plaintext = Data("Hello, Prizm!".utf8)
+        let plaintext = Data("Hello, Vitrine!".utf8)
         let encrypted = try sut.encryptData(plaintext, attachmentKey: attachmentKey64)
         let decrypted = try sut.decryptData(encrypted, attachmentKey: attachmentKey64)
         XCTAssertEqual(decrypted, plaintext)

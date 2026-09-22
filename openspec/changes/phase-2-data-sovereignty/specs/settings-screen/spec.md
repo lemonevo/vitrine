@@ -81,7 +81,7 @@ the word "unavailable". The status SHALL reflect the agent's current state while
 - **AND** the status SHALL NOT say the agent is listening
 
 #### Scenario: A key the agent cannot use is listed with its reason
-- **GIVEN** the vault holds a key in a format Prizm cannot use
+- **GIVEN** the vault holds a key in a format Vitrine cannot use
 - **WHEN** the section renders
 - **THEN** that key SHALL appear in the not-offered list
 - **AND** the reason SHALL be shown with it, never the name alone

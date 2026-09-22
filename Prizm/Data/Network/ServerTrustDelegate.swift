@@ -22,7 +22,7 @@ nonisolated final class ServerTrustDelegate: NSObject, URLSessionDelegate, Senda
     private let store:      any ServerTrustStore
     private let hostSource: HostSource = HostSource()
     private let refusals:   RefusalBox = RefusalBox()
-    private let logger = Logger(subsystem: "com.prizm", category: "ServerTrust")
+    private let logger = Logger(subsystem: "dev.lemonevo.vitrine", category: "ServerTrust")
 
     init(store: any ServerTrustStore) {
         self.store = store

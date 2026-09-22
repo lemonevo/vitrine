@@ -116,7 +116,7 @@ nonisolated enum SSHAgentResponder {
         return SSHWireWriter.failure()
     }
 
-    private static let logger = Logger(subsystem: "com.prizm", category: "SSHAgent")
+    private static let logger = Logger(subsystem: "dev.lemonevo.vitrine", category: "SSHAgent")
 }
 
 extension SSHAgentResponder.Refusal {

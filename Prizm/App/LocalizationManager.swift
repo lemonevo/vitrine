@@ -145,7 +145,7 @@ final class LocalizationManager: ObservableObject {
     /// keyed on.
     @Published private(set) var language: String
 
-    private let logger = Logger(subsystem: "com.prizm", category: "LocalizationManager")
+    private let logger = Logger(subsystem: "dev.lemonevo.vitrine", category: "LocalizationManager")
 
     private init() {
         let stored = UserDefaults.standard.string(forKey: Self.defaultsKey) ?? AppLanguage.system.rawValue

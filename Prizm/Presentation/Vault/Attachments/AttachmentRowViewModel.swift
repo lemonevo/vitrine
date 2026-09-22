@@ -38,7 +38,7 @@ final class AttachmentRowViewModel {
     /// Injectable file-opener closure. Provided by AppContainer (defaults to NSWorkspace.shared.open).
     private let fileOpener:           @MainActor (_ url: URL) -> Void
 
-    private let logger = Logger(subsystem: "com.prizm", category: "attachments")
+    private let logger = Logger(subsystem: "dev.lemonevo.vitrine", category: "attachments")
 
     /// Called after a successful delete or retry-upload so the parent view can refresh
     /// `itemSelection` and reflect the updated attachment list without waiting for a sync.

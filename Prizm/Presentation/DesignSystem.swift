@@ -108,11 +108,53 @@ enum Typography {
     /// Large icon on the Login, TOTP, and Unlock screens (keyhole / app symbol).
     static let screenIcon: Font    = .system(size: 48)
 
-    /// Primary heading on the Login, TOTP, and Unlock screens ("Welcome to Prizm").
+    /// Primary heading on the Login, TOTP, and Unlock screens ("Welcome to Vitrine").
     static let screenHeading: Font = .title.bold()
 
     /// Secondary body copy on the Login, TOTP, and Unlock screens.
     static let screenBody: Font    = .callout
+}
+
+// MARK: - Foreground
+//
+// Text colours that carry information. These exist because `.secondary` and `.tertiary` are not
+// safe for copy a user has to read: measured on this Mac against the resolved sRGB values of the
+// system surfaces, `secondaryLabelColor` is **3.95:1 in light aqua** (it passes in dark, at 5.89:1),
+// and `tertiaryLabelColor` is **1.88:1 in light / 2.26:1 in dark**. Both sit under the 4.5:1 that
+// `ACCESSIBILITY.md` claims for the interface, and `tertiary` is under the 3:1 floor for large text.
+//
+// `Color.primary.opacity(0.62)` resolves to **6.20:1 in light and 7.13:1 in dark** on both the window
+// and control backgrounds, so one value clears AA in either appearance — which is why it needs no
+// `colorScheme` branch, unlike the warning colour below.
+enum Foreground {
+
+    /// Copy that is secondary in weight but not optional in content: the field hints on the entry
+    /// screens, the sentence under the login card, section labels, subtitles.
+    static let muted: Color = .primary.opacity(0.62)
+
+    /// Text that is a way to do something — a link, a switch, an inline command.
+    ///
+    /// `Color.accentColor` is the obvious choice and it does not clear AA at the sizes this appears at:
+    /// `controlAccentColor` measures 4.02:1 in light and 4.15:1 in dark, and `systemBlue` is worse
+    /// (3.52:1 / 5.16:1). `linkColor` is the platform's own semantic "this is actionable" colour and it
+    /// measures 5.26:1 / 5.89:1 — one value, both appearances, and it follows the user's System Settings
+    /// accent the way a hand-picked blue would not.
+    static let action: Color = Color(nsColor: .linkColor)
+
+    /// A state that needs acting on — the remaining PIN attempts.
+    ///
+    /// A single amber cannot serve both appearances: `#8C4700` measures 6.97:1 on a light surface and
+    /// 2.39:1 on a dark one, and `#E9A23B` is the exact reverse (7.69:1 dark, 2.17:1 light). So the
+    /// colour resolves per appearance at draw time rather than being picked by each call site, which
+    /// is how it stays correct in a screenshot of the wrong mode.
+    ///
+    /// It is never the only signal: the row that shows it carries a warning glyph and plain words.
+    static let warning: Color = Color(nsColor: NSColor(name: nil) { appearance in
+        let isDark = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+        return isDark
+            ? NSColor(srgbRed: 0.914, green: 0.635, blue: 0.231, alpha: 1)   // #E9A23B
+            : NSColor(srgbRed: 0.549, green: 0.278, blue: 0.000, alpha: 1)   // #8C4700
+    })
 }
 
 // MARK: - Spacing
@@ -196,6 +238,22 @@ enum Spacing {
     /// Gap between the auth card and the caption under it. Small enough that the two read as one
     /// group, large enough that the caption is not mistaken for text inside the card.
     static let authFootnoteGap: CGFloat = 14
+
+    /// Gap between stacked fields inside the auth card.
+    static let authFieldGap: CGFloat = 12
+
+    /// Gap above the card's one filled action, and above an error banner that precedes it.
+    static let authActionTopGap: CGFloat = 14
+
+    /// Vertical padding around the rule that separates the credential fields from what is below it.
+    static let authDividerVertical: CGFloat = 16
+
+    /// Height reserved while the vault is being derived or synced, so the card does not change height
+    /// under the user's cursor between asking and answering.
+    static let authProgressHeight: CGFloat = 34
+
+    /// Gap between the spinner and the sync message shown while the vault is being fetched.
+    static let authProgressLabelGap: CGFloat = 6
 
 
     /// Horizontal inner padding for inline badge labels (e.g. org membership badge on item rows).

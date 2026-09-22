@@ -115,4 +115,32 @@ final class AttachmentTempFileManagerTests: XCTestCase {
 
         XCTAssertFalse(FileManager.default.fileExists(atPath: url.path))
     }
+
+    // MARK: - Quit
+
+    /// The deadline exists so an attachment open in another app is not pulled away mid-use. Quitting is
+    /// the one moment where waiting for it is wrong: the timer that would have honoured it is going
+    /// away with the process, and the plaintext would be left behind forever.
+    func test_removeAllForTermination_deletesFilesWhoseDeadlineHasNotArrived() {
+        let stillLive = makeTempFile(content: "plaintext that outlives nothing")
+        sut.register(url: stillLive, deleteAfter: Date().addingTimeInterval(600))
+
+        sut.removeAllForTermination()
+
+        XCTAssertFalse(FileManager.default.fileExists(atPath: stillLive.path),
+                       "A temp file with ten minutes left on its deadline must still go at quit")
+    }
+
+    func test_removeAllForTermination_drainsEveryEntry() {
+        let first  = makeTempFile()
+        let second = makeTempFile()
+        sut.register(url: first,  deleteAfter: Date().addingTimeInterval(600))
+        sut.register(url: second, deleteAfter: Date().addingTimeInterval(600))
+
+        sut.removeAllForTermination()
+        sut.removeAllForTermination()   // idempotent — nothing left to delete, nothing thrown
+
+        XCTAssertFalse(FileManager.default.fileExists(atPath: first.path))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: second.path))
+    }
 }

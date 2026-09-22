@@ -28,7 +28,7 @@ import os.log
 final class BiometricKeychainServiceImpl: BiometricKeychainService {
 
     private let service = "com.prizm.biometric"
-    private let logger = Logger(subsystem: "com.prizm", category: "BiometricKeychain")
+    private let logger = Logger(subsystem: "dev.lemonevo.vitrine", category: "BiometricKeychain")
     private let mode: BiometricStorageMode
     private let evaluator: any BiometricPolicyEvaluating
 
@@ -181,7 +181,7 @@ final class BiometricKeychainServiceImpl: BiometricKeychainService {
         case .faceID:  sensor = "Face ID"
         default:       sensor = L("Biometrics")
         }
-        return L("Open your Prizm vault with %@", sensor)
+        return L("Open your Vitrine vault with %@", sensor)
     }
 
     /// Shared read path. `context` has already been authenticated by the caller.

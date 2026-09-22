@@ -47,7 +47,7 @@ left untouched. They disagreed about what application they belonged to:
 ## Found while doing this, fixed separately the same day
 
 **An Xcode build of this app shipped with no localisation files at all.**
-`Prizm.app/Contents/Resources/` contained `Assets.car`, the icon and the wordlist — no `en.lproj`, no
+`Vitrine.app/Contents/Resources/` contained `Assets.car`, the icon and the wordlist — no `en.lproj`, no
 `zh-Hans.lproj`. `project.pbxproj` had zero references to `Localizable.strings` or `lproj`. Chinese
 worked only because `build-app.sh` copies the `.lproj` folders into the bundle by hand — and that
 script's comment said it is "exactly where Xcode would put them", which was not true.

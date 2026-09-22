@@ -1,6 +1,6 @@
 ## Why
 
-`FEATURE-GAP-ANALYSIS.md` §2 lists five problems that are not missing features but live defects: one leaks a long-lived 2FA secret to the clipboard, three silently destroy data written by other Bitwarden clients, and one hands every vault item's domain to a third-party server. They decide whether Prizm can be trusted with a real vault, so they are fixed before any new capability is added.
+`FEATURE-GAP-ANALYSIS.md` §2 lists five problems that are not missing features but live defects: one leaks a long-lived 2FA secret to the clipboard, three silently destroy data written by other Bitwarden clients, and one hands every vault item's domain to a third-party server. They decide whether Vitrine can be trusted with a real vault, so they are fixed before any new capability is added.
 
 The three data-loss defects share one root cause. `PUT /api/ciphers/{id}` replaces the whole cipher object, and `CipherMapper.toRawCipher` rebuilds the request body from the domain model. Every wire field the domain model does not carry is therefore deleted server-side on save. Verified against the Vaultwarden server source (`update_cipher_from_data` in `src/api/core/ciphers.rs`):
 
@@ -17,7 +17,7 @@ The three data-loss defects share one root cause. `PUT /api/ciphers/{id}` replac
 
 - **Stop the TOTP seed leak.** `Item ▸ Copy Code` (⌃⌘C) currently copies `LoginContent.totp`, which is the long-lived shared secret, not a one-time code. Implement real TOTP generation (parse `otpauth://` or a bare Base32 secret; HMAC-SHA1/256/512; per-secret period and digit count) and make the command copy the current 6-digit code. No command copies the seed afterwards.
 - **Make the write path lossless.** Carry every unmodelled wire field through the domain model verbatim and send it back on PUT: `passwordHistory`, `archivedDate`, `key`, `login.fido2Credentials`, `login.passwordRevisionDate`, `login.autofillOnPageLoad`.
-- **Re-encrypt with the per-item key when one exists.** Items that carry `key` must keep it: their fields are encrypted with that key, not with the vault/org key. Today Prizm encrypts with the vault key *and* nulls `key`, which orphans every attachment whose key was wrapped with the old cipher key.
+- **Re-encrypt with the per-item key when one exists.** Items that carry `key` must keep it: their fields are encrypted with that key, not with the vault/org key. Today Vitrine encrypts with the vault key *and* nulls `key`, which orphans every attachment whose key was wrapped with the old cipher key.
 - **Refuse to write an org item without its org key.** `VaultRepositoryImpl.update` currently falls back to the personal vault key when the org key is missing, which re-encrypts an org cipher under the wrong key. Throw instead.
 - **Preserve org membership in cache patches.** `deleteFolder`, `moveItemToFolder` and `moveItemsToFolder` rebuild `VaultItem` without `organizationId` / `collectionIds`, so an org item silently becomes a personal one locally — and a later save then writes it back as personal.
 - **Stop sending domains to `icons.bitwarden.net`.** Default the favicon source to the account's own server (`{base}/icons`) and add a Settings toggle to disable website icons entirely.

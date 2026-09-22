@@ -79,9 +79,9 @@ final class SSHAgentSectionTests: XCTestCase {
     /// `SSH_AUTH_SOCK` ends up empty, and `ssh` silently falls back to `~/.ssh` — which looks
     /// exactly like the agent being broken.
     func testTheExportLineQuotesAPathWithSpaces() {
-        let path = "/Users/someone/Library/Application Support/Prizm/ssh-agent/agent.sock"
+        let path = "/Users/someone/Library/Application Support/Vitrine/ssh-agent/agent.sock"
         XCTAssertEqual(SSHAgentShellSetup.exportLine(socketPath: path),
-                       "export SSH_AUTH_SOCK=\"/Users/someone/Library/Application Support/Prizm/ssh-agent/agent.sock\"")
+                       "export SSH_AUTH_SOCK=\"/Users/someone/Library/Application Support/Vitrine/ssh-agent/agent.sock\"")
     }
 
     /// Quoted even when there is nothing to quote, so the line has one shape rather than two.

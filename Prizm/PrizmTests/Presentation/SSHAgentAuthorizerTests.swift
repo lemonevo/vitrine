@@ -246,4 +246,54 @@ final class SSHAgentAuthorizerTests: XCTestCase {
         XCTAssertNil(sut.pending)
         XCTAssertEqual(verify.callCount, 0)
     }
+
+    // MARK: - The answer window
+
+    /// An ignored prompt used to park the agent's connection thread indefinitely: the responder was
+    /// suspended on this continuation and `SSHAgentServer.awaitResponse(to:)` was suspended on the
+    /// responder, so the `git` that asked hung until the app quit.
+    func testUnansweredPrompt_isRefusedWhenTheWindowCloses() async throws {
+        sut = SSHAgentAuthorizer(verifyMasterPassword: verify, answerWindow: 0.15)
+        let request = Task { await sut.authorize(deployKey, requestedBy: "git") }
+        await waitUntil { self.sut.pending != nil }
+
+        let allowed = await request.value
+
+        XCTAssertFalse(allowed, "an expired request signs nothing")
+        XCTAssertNil(sut.pending)
+        XCTAssertEqual(verify.callCount, 0, "nothing was ever typed, so nothing should be checked")
+    }
+
+    /// A request queued behind the one on screen has not been shown, so its clock has not started.
+    /// Timing from arrival would let the app refuse a prompt nobody has seen yet.
+    func testQueuedRequest_isNotRefusedBeforeItIsShown() async {
+        sut = SSHAgentAuthorizer(verifyMasterPassword: verify, answerWindow: 0.4)
+        let first  = Task { await sut.authorize(deployKey, requestedBy: "git") }
+        let second = Task { await sut.authorize(backupKey, requestedBy: "ssh") }
+        await waitUntil { self.sut.waitingCount == 2 }
+
+        // Past the first window and into the second's: key-1 has expired, key-2 is only now on screen.
+        try? await Task.sleep(nanoseconds: 600_000_000)
+        let firstAnswer = await first.value
+        XCTAssertFalse(firstAnswer)
+        XCTAssertEqual(sut.pending?.itemId, "key-2",
+                       "the second request gets its own window rather than the remainder of the first")
+
+        let secondAnswer = await second.value
+        XCTAssertFalse(secondAnswer)
+    }
+
+    /// The deadline is a backstop for an ignored prompt, not a race the user has to win.
+    func testAnsweredRequest_outlivesItsOwnDeadline() async {
+        sut = SSHAgentAuthorizer(verifyMasterPassword: verify, answerWindow: 0.2)
+        let request = Task { await sut.authorize(deployKey, requestedBy: "git") }
+        await waitUntil { self.sut.pending != nil }
+        sut.submit(Data("right".utf8))
+        let answered = await request.value
+        XCTAssertTrue(answered)
+
+        try? await Task.sleep(nanoseconds: 400_000_000)
+        XCTAssertFalse(sut.needsAuthorization(for: "key-1"),
+                       "a grant must not be revoked by the deadline armed before it was answered")
+    }
 }

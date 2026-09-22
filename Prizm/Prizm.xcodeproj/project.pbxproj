@@ -12,6 +12,7 @@
 		02606EB154B6BFB37C4B93FE /* SSHAgentCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AC13A19D5CF36538FB94F5C /* SSHAgentCoordinator.swift */; };
 		9F8DDFF38397E7D0B5CFEBC9 /* VaultIdleMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9B1DCFF140D48ABAC7F7D41 /* VaultIdleMonitor.swift */; };
 		CA0E0011000000000000B011 /* BackgroundSyncMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0E0010000000000000F010 /* BackgroundSyncMonitor.swift */; };
+		CE1F00B1000000000000B0B1 /* SecretClipboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE1F00B0000000000000F0B0 /* SecretClipboard.swift */; };
 		4CDACE943001437A8329DDB7 /* AccountKeyCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7D4BC5786EBC2E9503ACBCE /* AccountKeyCache.swift */; };
 		C95E58F6F1D8493B1068040F /* ConstantTimeCompare.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF1C0F136814B6196A3A00B1 /* ConstantTimeCompare.swift */; };
 		4089C2E62820840F065D8BE7 /* TOTPGeneratorImpl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 154C898CB5652F96F8370BE0 /* TOTPGeneratorImpl.swift */; };
@@ -113,6 +114,7 @@
 		3CE951E495E649489E3DADAC /* SyncRepositoryImpl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6A671692BE497AA7E39F45 /* SyncRepositoryImpl.swift */; };
 		CA0E0003000000000000B003 /* VaultCacheStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0E0001000000000000F001 /* VaultCacheStore.swift */; };
 		CA0E0021000000000000B021 /* SessionEpoch.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0E0020000000000000F020 /* SessionEpoch.swift */; };
+		CE1F00A1000000000000B0A2 /* UnlockCredentialPreference.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE1F00A0000000000000F0A1 /* UnlockCredentialPreference.swift */; };
 		CA0E0031000000000000B031 /* SecureNoteSubtypeLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0E0030000000000000F030 /* SecureNoteSubtypeLabel.swift */; };
 		CA0E0041000000000000B041 /* CardFieldOptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0E0040000000000000F040 /* CardFieldOptions.swift */; };
 		CA0E0051000000000000B051 /* UsernameGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0E0050000000000000F050 /* UsernameGenerator.swift */; };
@@ -268,6 +270,7 @@
 		6AC13A19D5CF36538FB94F5C /* SSHAgentCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SSHAgentCoordinator.swift; sourceTree = "<group>"; };
 		B9B1DCFF140D48ABAC7F7D41 /* VaultIdleMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultIdleMonitor.swift; sourceTree = "<group>"; };
 		CA0E0010000000000000F010 /* BackgroundSyncMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundSyncMonitor.swift; sourceTree = "<group>"; };
+		CE1F00B0000000000000F0B0 /* SecretClipboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecretClipboard.swift; sourceTree = "<group>"; };
 		E7D4BC5786EBC2E9503ACBCE /* AccountKeyCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountKeyCache.swift; sourceTree = "<group>"; };
 		DF1C0F136814B6196A3A00B1 /* ConstantTimeCompare.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConstantTimeCompare.swift; sourceTree = "<group>"; };
 		154C898CB5652F96F8370BE0 /* TOTPGeneratorImpl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TOTPGeneratorImpl.swift; sourceTree = "<group>"; };
@@ -383,6 +386,7 @@
 		4D6A671692BE497AA7E39F45 /* SyncRepositoryImpl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncRepositoryImpl.swift; sourceTree = "<group>"; };
 		CA0E0001000000000000F001 /* VaultCacheStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultCacheStore.swift; sourceTree = "<group>"; };
 		CA0E0020000000000000F020 /* SessionEpoch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionEpoch.swift; sourceTree = "<group>"; };
+		CE1F00A0000000000000F0A1 /* UnlockCredentialPreference.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnlockCredentialPreference.swift; sourceTree = "<group>"; };
 		CA0E0030000000000000F030 /* SecureNoteSubtypeLabel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecureNoteSubtypeLabel.swift; sourceTree = "<group>"; };
 		CA0E0040000000000000F040 /* CardFieldOptions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardFieldOptions.swift; sourceTree = "<group>"; };
 		CA0E0050000000000000F050 /* UsernameGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsernameGenerator.swift; sourceTree = "<group>"; };
@@ -639,6 +643,7 @@
 				6AC13A19D5CF36538FB94F5C /* SSHAgentCoordinator.swift */,
 				B9B1DCFF140D48ABAC7F7D41 /* VaultIdleMonitor.swift */,
 				CA0E0010000000000000F010 /* BackgroundSyncMonitor.swift */,
+				CE1F00B0000000000000F0B0 /* SecretClipboard.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -1033,6 +1038,7 @@
 				74EC7415FC893D9E0F1A6BF8 /* VaultTimeoutSettings.swift */,
 				CA0E0080000000000000F080 /* PinUnlockSettings.swift */,
 				BA69644F960AD8631B48B686 /* WebsiteIconsPreference.swift */,
+				CE1F00A0000000000000F0A1 /* UnlockCredentialPreference.swift */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
@@ -1245,6 +1251,7 @@
 				018ED7880B384B399D0C3A98 /* SyncRepository.swift in Sources */,
 				CA0E0003000000000000B003 /* VaultCacheStore.swift in Sources */,
 				CA0E0021000000000000B021 /* SessionEpoch.swift in Sources */,
+				CE1F00A1000000000000B0A2 /* UnlockCredentialPreference.swift in Sources */,
 				CA0E0031000000000000B031 /* SecureNoteSubtypeLabel.swift in Sources */,
 				CA0E0041000000000000B041 /* CardFieldOptions.swift in Sources */,
 				CA0E0051000000000000B051 /* UsernameGenerator.swift in Sources */,
@@ -1396,6 +1403,7 @@
 				02606EB154B6BFB37C4B93FE /* SSHAgentCoordinator.swift in Sources */,
 				9F8DDFF38397E7D0B5CFEBC9 /* VaultIdleMonitor.swift in Sources */,
 				CA0E0011000000000000B011 /* BackgroundSyncMonitor.swift in Sources */,
+				CE1F00B1000000000000B0B1 /* SecretClipboard.swift in Sources */,
 				4CDACE943001437A8329DDB7 /* AccountKeyCache.swift in Sources */,
 				C95E58F6F1D8493B1068040F /* ConstantTimeCompare.swift in Sources */,
 				4089C2E62820840F065D8BE7 /* TOTPGeneratorImpl.swift in Sources */,
@@ -1504,12 +1512,12 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 12;
+				CURRENT_PROJECT_VERSION = 1;
 				DEAD_CODE_STRIPPING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 1.4.3;
-				PRODUCT_BUNDLE_IDENTIFIER = de.b0x42.de.PrizmTests;
+				MARKETING_VERSION = 0.0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.lemonevo.vitrine.PrizmTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
@@ -1527,12 +1535,12 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 12;
+				CURRENT_PROJECT_VERSION = 1;
 				DEAD_CODE_STRIPPING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 1.4.3;
-				PRODUCT_BUNDLE_IDENTIFIER = de.b0x42.de.PrizmTests;
+				MARKETING_VERSION = 0.0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.lemonevo.vitrine.PrizmTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
@@ -1672,7 +1680,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_ENTITLEMENTS = Prizm/Prizm.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 12;
+				CURRENT_PROJECT_VERSION = 1;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = QQLP5WK88A;
 				ENABLE_APP_SANDBOX = YES;
@@ -1704,7 +1712,8 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 1.4.3;
+				MARKETING_VERSION = 0.0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.lemonevo.vitrine;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
@@ -1730,7 +1739,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_ENTITLEMENTS = Prizm/Prizm.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 12;
+				CURRENT_PROJECT_VERSION = 1;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = QQLP5WK88A;
 				ENABLE_APP_SANDBOX = YES;
@@ -1763,7 +1772,8 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 1.4.3;
+				MARKETING_VERSION = 0.0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.lemonevo.vitrine;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;

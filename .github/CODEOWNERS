@@ -1,10 +1,10 @@
 # Default owner for everything
-* @b0x42
+* @lemonevo
 
 # Crypto and keychain — security-critical, mandatory review
-Prizm/Data/Crypto/ @b0x42
-Prizm/Data/Keychain/ @b0x42
+Prizm/Data/Crypto/ @lemonevo
+Prizm/Data/Keychain/ @lemonevo
 
 # Architecture contracts
-CONSTITUTION.md @b0x42
-SECURITY.md @b0x42
+CONSTITUTION.md @lemonevo
+SECURITY.md @lemonevo

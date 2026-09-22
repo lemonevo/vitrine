@@ -22,8 +22,8 @@
 
 ## 3. Copy and comments
 
-- [x] 3.1 Add `Unlock with %@` and `Open your Prizm vault with %@` to both tables; remove the now
-      unused `unlock your Prizm vault`
+- [x] 3.1 Add `Unlock with %@` and `Open your Vitrine vault with %@` to both tables; remove the now
+      unused `unlock your Vitrine vault`
 - [x] 3.2 Correct the four comments asserting "no system modal appears", and the one in
       `AuthRepositoryImpl` that justified the re-arm from the cancel path
 
@@ -40,5 +40,24 @@
 ## 5. Ship
 
 - [x] 5.1 Render the unlock card and check the button against the rest of the card
-- [ ] 5.2 Rebuild `dist/Prizm.app` and confirm the system dialog is what appears, on real hardware
+- [ ] 5.2 Rebuild `dist/Vitrine.app` and confirm the system dialog is what appears, on real hardware
 - [ ] 5.3 Verify Decision 5: that the dialog's password fallback does not release the vault key
+
+## 6. The lockout message this spec mandates (added 2026-09-22)
+
+Found while answering "can this ship": the spec's `THEN the system SHALL display the message "Too many
+failed Touch ID attempts — enter your master password"` had **no counterpart in the code**. The sensor
+locked out, the raw `LAError` fell through `default: throw laError`, and `UnlockViewModel`'s generic
+handler printed `error.localizedDescription` — an untranslated framework string naming neither the
+cause nor the way out.
+
+- [x] 6.1 `AuthError.biometricLockout` added, its `errorDescription` the spec's sentence verbatim, so
+      the scenario is satisfiable as written.
+- [x] 6.2 `AuthRepositoryImpl.unlockWithBiometrics` maps `LAError.Code.biometryLockout` to it. Nothing
+      is disabled: lockout is the sensor resting, not the enrollment changing.
+- [x] 6.3 Tests: the repository maps it (mutation-checked — removing the case turns it red), the
+      repository leaves both biometric preferences alone, and the view model shows the exact sentence.
+- [ ] 6.4 **Still open, and this change cannot close it:** `BiometricUnlockJourneyTests.swift:63` wraps
+      its whole assertion in `if error.waitForExistence(timeout: 5) { … }`, so the banner's absence is a
+      pass. Fixing that `if` without also giving `Prizm/UITests/` a target produces a test that is red
+      in a suite nobody runs. Both halves belong to the UITest-target decision (§A#2), not to this one.

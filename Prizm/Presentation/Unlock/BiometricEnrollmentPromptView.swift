@@ -70,7 +70,7 @@ struct BiometricEnrollmentPromptView: View {
             return L("You can also enable this in Settings at any time.")
         case .reEnrollAfterInvalidation:
             return L(
-                "Your %@ settings changed — a fingerprint was added or removed. For your security, Prizm disabled %@ unlock. Would you like to re-enable it?",
+                "Your %@ settings changed — a fingerprint was added or removed. For your security, Vitrine disabled %@ unlock. Would you like to re-enable it?",
                 biometryName, biometryName
             )
         }

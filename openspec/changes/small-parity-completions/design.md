@@ -21,8 +21,8 @@ data, no new dependency.
 
 ## Why the Trash notice refuses to name a number
 
-The purge interval lives in the server's configuration. Prizm's sync response does not carry it and no
-endpoint Prizm implements returns it, so any figure printed here would be a guess about a deployment
+The purge interval lives in the server's configuration. Vitrine's sync response does not carry it and no
+endpoint Vitrine implements returns it, so any figure printed here would be a guess about a deployment
 the client cannot observe.
 
 A guessed number is not a harmless approximation: it is the number a user would plan around when

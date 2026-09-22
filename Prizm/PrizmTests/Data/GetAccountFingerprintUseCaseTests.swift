@@ -97,15 +97,16 @@ final class GetAccountFingerprintUseCaseTests: XCTestCase {
         )
     }
 
-    /// Read from the repository rather than `Bundle.main`: `swift test` has no resource bundle,
-    /// which is why the generator's own word-list cases are among the known baseline failures.
+        /// The reference word list, read the way production reads it: from the app bundle.
+    ///
+    /// See the note in `AccountFingerprintPhraseTests` — the source-tree path this replaced made the
+    /// suite read a file under `~/Desktop`, a TCC-protected location, and hung there once the bundle
+    /// identifier changed.
     private static func wordList() throws -> [String] {
-        let url = URL(fileURLWithPath: #filePath)          // .../Prizm/PrizmTests/Data/<file>
-            .deletingLastPathComponent()                    // Data
-            .deletingLastPathComponent()                    // PrizmTests
-            .deletingLastPathComponent()                    // Prizm
-            .deletingLastPathComponent()                    // repository root
-            .appendingPathComponent("Prizm/Resources/eff-large-wordlist.txt")
+        let url = try XCTUnwrap(
+            Bundle.main.url(forResource: "eff-large-wordlist", withExtension: "txt"),
+            "Vitrine.app carries no eff-large-wordlist.txt — the resource is not in the build"
+        )
         let words = try String(contentsOf: url, encoding: .utf8)
             .split(separator: "\n").map(String.init).filter { !$0.isEmpty }
         guard words.count == 7776 else { throw FixtureError.unexpectedWordCount(words.count) }

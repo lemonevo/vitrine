@@ -57,10 +57,24 @@ final class SSHAgentAuthorizer: ObservableObject {
     private var queue: [(request: Request, continuation: CheckedContinuation<Bool, Never>)] = []
 
     private let verifyMasterPassword: any VerifyMasterPasswordUseCase
-    private let logger = Logger(subsystem: "com.prizm", category: "SSHAgent")
+    private let logger = Logger(subsystem: "dev.lemonevo.vitrine", category: "SSHAgent")
 
-    init(verifyMasterPassword: any VerifyMasterPasswordUseCase) {
+    /// How long the request **on screen** may go unanswered.
+    ///
+    /// Without a deadline an ignored prompt parks the agent's connection thread forever: the responder
+    /// is suspended on this continuation, `SSHAgentServer.awaitResponse(to:)` is suspended on the
+    /// responder, and the `git` that asked hangs until the app is quit. Two minutes is long enough to
+    /// notice the sheet, read which key is being asked for and type a master password, and short
+    /// enough that a terminal someone walked away from is released before they come back.
+    ///
+    /// Timed from promotion, not arrival: a request queued behind one the user is still reading has
+    /// not been shown yet, and refusing it unseen would be the app timing out its own prompt queue.
+    /// Injected for the same reason — a test cannot wait two minutes.
+    private let answerWindow: TimeInterval
+
+    init(verifyMasterPassword: any VerifyMasterPasswordUseCase, answerWindow: TimeInterval = 120) {
         self.verifyMasterPassword = verifyMasterPassword
+        self.answerWindow         = answerWindow
     }
 
     // MARK: - Asking
@@ -165,12 +179,28 @@ final class SSHAgentAuthorizer: ObservableObject {
 
     // MARK: - Queue
 
-    /// Shows the next request if the sheet is free.
+    /// Shows the next request if the sheet is free, and starts its answer window.
     private func promoteNextIfIdle() {
         guard pending == nil, let first = queue.first else { return }
         pending     = first.request
         error       = nil
         isVerifying = false
+        armDeadline(for: first.request.id)
+    }
+
+    /// Refuses the request if it is still the one on screen when the window closes.
+    ///
+    /// No task handle is kept, because none is needed: the expiry re-checks `pending?.id`, so a task
+    /// whose request was answered, replaced or revoked simply finds nothing to do. Cancelling tasks on
+    /// every transition would be a second bookkeeping trail that can disagree with the first.
+    private func armDeadline(for id: UUID) {
+        let window = answerWindow
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(window * 1_000_000_000))
+            guard let self, self.pending?.id == id else { return }
+            self.logger.info("SSH agent prompt went unanswered; the request was refused")
+            self.refuse(id: id)
+        }
     }
 
     /// Grants one key for the rest of the session, and answers every request already waiting on it.
@@ -192,8 +222,13 @@ final class SSHAgentAuthorizer: ObservableObject {
     private func refuse(id: UUID) {
         guard let index = queue.firstIndex(where: { $0.request.id == id }) else { return }
         let entry = queue.remove(at: index)
-        pending     = nil
-        error       = nil
+        // Only the request on screen owns the sheet. Refusing one that is still queued behind it must
+        // not close the prompt the user is reading — which is reachable now that a timeout can fire on
+        // a request nobody has seen yet, and was not before `refuse` had a single caller.
+        if pending?.id == id {
+            pending = nil
+            error   = nil
+        }
         promoteNextIfIdle()
         entry.continuation.resume(returning: false)
     }

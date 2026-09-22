@@ -26,7 +26,7 @@ so this feature inherits the protection by construction rather than by rememberi
 ## Decision 2 — the seed never enters the list
 
 `TOTPCodeViewModel.copyValue` is the derived code. The seed is a credential that generates codes
-forever, and Prizm already treats it as one: the detail view never shows it and the copy commands never
+forever, and Vitrine already treats it as one: the detail view never shows it and the copy commands never
 put it on the clipboard. A list multiplies the opportunities to leak it, so the tests assert on the
 copyable value rather than trusting that nobody would.
 

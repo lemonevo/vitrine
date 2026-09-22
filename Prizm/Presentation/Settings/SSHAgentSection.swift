@@ -62,7 +62,7 @@ struct SSHAgentSection: View {
                 }
             }
 
-            Text(L("Put that line in your shell profile and open a new terminal. Prizm has to be running with the vault unlocked; anything that reads the key asks Prizm to sign with it, and the first request for each key asks for your master password."))
+            Text(L("Put that line in your shell profile and open a new terminal. Vitrine has to be running with the vault unlocked; anything that reads the key asks Vitrine to sign with it, and the first request for each key asks for your master password."))
                 .font(.caption)
                 .foregroundStyle(.secondary)
 

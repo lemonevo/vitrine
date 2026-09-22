@@ -2,8 +2,8 @@
 
 ## Why
 
-**An `xcodebuild` build of Prizm contained no translation files at all.**
-`Prizm.app/Contents/Resources/` had `Assets.car`, `Prizm_V2.icns` and the wordlist — no `en.lproj`, no
+**An `xcodebuild` build of Vitrine contained no translation files at all.**
+`Vitrine.app/Contents/Resources/` had `Assets.car`, `Prizm_V2.icns` and the wordlist — no `en.lproj`, no
 `zh-Hans.lproj`. `project.pbxproj` had zero references to `Localizable.strings`, to `lproj`, or to any
 `PBXVariantGroup`.
 

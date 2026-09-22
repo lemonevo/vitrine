@@ -33,7 +33,7 @@ actor FaviconLoader {
     /// `UserDefaults` is documented by Apple as thread-safe; `nonisolated(unsafe)` matches the
     /// treatment in `SyncTimestampRepositoryImpl`.
     nonisolated(unsafe) private let defaults: UserDefaults
-    private let logger = Logger(subsystem: "com.prizm", category: "FaviconLoader")
+    private let logger = Logger(subsystem: "dev.lemonevo.vitrine", category: "FaviconLoader")
 
     /// Base URL of the icon service. `nil` means "do not fetch" — either no account has signed in
     /// yet, or the user turned website icons off.

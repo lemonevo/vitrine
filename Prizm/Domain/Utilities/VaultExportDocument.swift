@@ -274,7 +274,7 @@ nonisolated enum VaultExportDocumentError: Error, LocalizedError, Equatable {
         case .notAnUnencryptedExport:
             return L("This file is not an unencrypted Bitwarden export.")
         case .encryptedExportUnsupported:
-            return L("This is an encrypted export. Prizm can only import unencrypted exports.")
+            return L("This is an encrypted export. Vitrine can only import unencrypted exports.")
         case .malformedExport:
             return L("The export file could not be read.")
         }

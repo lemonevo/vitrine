@@ -123,7 +123,7 @@ final class ItemEditViewModel: ObservableObject {
     private let createUseCase: (any CreateVaultItemUseCase)?
     private let strengthEstimator: PasswordStrengthEstimator
     private let totpGenerator: any TOTPGenerator
-    private let logger  = Logger(subsystem: "com.prizm", category: "ItemEditViewModel")
+    private let logger  = Logger(subsystem: "dev.lemonevo.vitrine", category: "ItemEditViewModel")
 
     /// Called on save success with the server-confirmed `VaultItem` so the caller
     /// (VaultBrowserViewModel or parent) can refresh the list pane.

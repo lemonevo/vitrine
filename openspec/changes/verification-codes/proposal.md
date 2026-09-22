@@ -7,7 +7,7 @@ is a screen listing them together, and the mobile clients surface codes without 
 because the moment a user needs a code is the moment they are being asked for it by something else and
 want it in front of them, not three interactions away.
 
-Prizm derives TOTP codes already (`TOTPCodeViewModel`, with a live countdown) but only inside the
+Vitrine derives TOTP codes already (`TOTPCodeViewModel`, with a live countdown) but only inside the
 detail pane of one item.
 
 ## What Changes

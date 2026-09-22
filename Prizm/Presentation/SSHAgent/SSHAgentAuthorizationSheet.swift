@@ -75,9 +75,9 @@ struct SSHAgentAuthorizationSheet: View {
     /// one?" when there is not one.
     private func description(for request: SSHAgentAuthorizer.Request) -> String {
         if let process = request.process {
-            return L("“%@” asked Prizm to sign with the SSH key “%@”.", process, request.itemName)
+            return L("“%@” asked Vitrine to sign with the SSH key “%@”.", process, request.itemName)
         }
-        return L("An application asked Prizm to sign with the SSH key “%@”.", request.itemName)
+        return L("An application asked Vitrine to sign with the SSH key “%@”.", request.itemName)
     }
 
     private func submit() {

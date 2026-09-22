@@ -18,7 +18,7 @@ import os.log
 nonisolated final class KeychainServerTrustStore: ServerTrustStore {
 
     private let keychain: any KeychainService
-    private let logger = Logger(subsystem: "com.prizm", category: "ServerTrustStore")
+    private let logger = Logger(subsystem: "dev.lemonevo.vitrine", category: "ServerTrustStore")
 
     init(keychain: any KeychainService) {
         self.keychain = keychain

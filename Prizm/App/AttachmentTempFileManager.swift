@@ -14,7 +14,12 @@ import os.log
 /// - Each registered file has a 30-second deletion deadline.
 /// - `cleanup()` is called on every foreground transition (via `NSApplication.didBecomeActiveNotification`)
 ///   and by a scheduled Task inside `AttachmentRowViewModel` 30 s after registration.
+/// - `removeAllForTermination()` runs on `NSApplication.willTerminateNotification` and ignores the
+///   deadline — see that method for why only quitting makes that correct.
 /// - On cleanup, the file is overwritten with zeros then deleted (Constitution §III).
+///
+/// Not guaranteed to run: a force-quit, a crash, or a power loss skips termination handlers, and the
+/// files survive until the next launch's sweeps or the system's own temp-directory cleanup.
 ///
 /// Thread safety: `entries` is protected by a `Lock` because `register` and `cleanup`
 /// may be called from background Tasks or notification callbacks.
@@ -32,7 +37,7 @@ final class AttachmentTempFileManager: TempFileManaging, @unchecked Sendable {
     private var entries: [Entry] = []
     private let lock = NSLock()
 
-    private let logger = Logger(subsystem: "com.prizm", category: "attachments")
+    private let logger = Logger(subsystem: "dev.lemonevo.vitrine", category: "attachments")
 
     // MARK: - Init
 
@@ -46,6 +51,19 @@ final class AttachmentTempFileManager: TempFileManaging, @unchecked Sendable {
             name: NSApplication.didBecomeActiveNotification,
             object: nil
         )
+        // Quitting is a different job from the timed sweep: the deadline is enforced by a timer that
+        // dies with the process, so any file still registered at termination is plaintext that would
+        // outlive every mechanism meant to remove it.
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(appWillTerminate),
+            name: NSApplication.willTerminateNotification,
+            object: nil
+        )
+    }
+
+    @objc private func appWillTerminate() {
+        removeAllForTermination()
     }
 
     deinit {
@@ -87,6 +105,25 @@ final class AttachmentTempFileManager: TempFileManaging, @unchecked Sendable {
 
         for entry in expired {
             zeroAndDelete(entry.url)
+        }
+    }
+
+    /// Zeroes and deletes **every** entry, deadline or not.
+    ///
+    /// Only correct at termination. The deadline exists so an attachment the user still has open in
+    /// another app is not pulled out from under them; once this process is ending there is no timer
+    /// left to honour it, and no caller either, so waiting would mean leaving plaintext behind.
+    func removeAllForTermination() {
+        lock.lock()
+        let all = entries
+        entries.removeAll()
+        lock.unlock()
+
+        for entry in all {
+            zeroAndDelete(entry.url)
+        }
+        if !all.isEmpty {
+            logger.info("Quit cleanup: removed \(all.count, privacy: .public) decrypted attachment temp file(s)")
         }
     }
 

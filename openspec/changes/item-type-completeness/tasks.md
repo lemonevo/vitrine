@@ -60,13 +60,13 @@
 
 - [x] 6.1 Full suite green except the baseline recorded in `fix-test-target-buildability`.
 - [x] 6.2 Manual: with a note whose subtype was set by another client, confirm the detail view shows
-      it and that saving from Prizm leaves it unchanged on the server.
+      it and that saving from Vitrine leaves it unchanged on the server.
 - [x] 6.3 Manual: confirm the card pickers write values the server accepts, and that a card whose
       brand is not in the list is not rewritten.
 
 > **6.2–6.3 are outstanding.** They need a signed app against a live Vaultwarden account and a note
 > whose subtype was set by another client. What the unit tests establish is that the value now survives
-> Prizm's own read→write→read path and its export/import path; what they cannot establish is that a
+> Vitrine's own read→write→read path and its export/import path; what they cannot establish is that a
 > real server returns what the fixtures say it does.
 
 > **Unrelated flake, found while running this change's suite — since fixed.**

@@ -152,6 +152,24 @@ final class UnlockViewModelBiometricTests: XCTestCase {
         XCTAssertNotNil(sut.errorMessage)
     }
 
+    /// The sentence `openspec/specs/biometric-unlock/spec.md` mandates. It is asserted here rather
+    /// than only in `BiometricUnlockJourneyTests` because that UI test is not built into any target
+    /// and its assertion is wrapped in `if error.waitForExistence { … }`, so it cannot fail even if it
+    /// were run. This one runs.
+    func testRequestBiometricUnlock_lockout_showsTheSpecifiedSentence() async {
+        mockAuth.stubbedBiometricUnlockAvailable = true
+        mockAuth.unlockWithBiometricsError = AuthError.biometricLockout
+
+        sut.requestBiometricUnlock()
+        await settle()
+
+        XCTAssertEqual(
+            sut.errorMessage,
+            "Too many failed Touch ID attempts — enter your master password",
+            "The message has to name the cause and the way out, not the framework's error text"
+        )
+    }
+
     func testRequestBiometricUnlock_itemNotFound_showsNoError() async {
         mockAuth.stubbedBiometricUnlockAvailable = true
         mockAuth.unlockWithBiometricsError = AuthError.biometricItemNotFound

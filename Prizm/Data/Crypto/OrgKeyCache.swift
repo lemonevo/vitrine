@@ -20,7 +20,7 @@ import os.log
 ///   Data layer").
 actor OrgKeyCache {
 
-    private let logger = Logger(subsystem: "com.prizm", category: "OrgKeyCache")
+    private let logger = Logger(subsystem: "dev.lemonevo.vitrine", category: "OrgKeyCache")
 
     /// Maps organization ID → unwrapped 64-byte symmetric key (encKey ‖ macKey).
     private var cache: [String: CryptoKeys] = [:]

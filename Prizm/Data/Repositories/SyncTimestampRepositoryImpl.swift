@@ -74,7 +74,7 @@ actor SyncTimestampRepositoryImpl: SyncTimestampRepository {
         // §V Observability: log that a sync timestamp was recorded. Timestamp is non-sensitive.
         // Local Logger allocation required because the actor-isolated `logger` property is not
         // accessible from a nonisolated context. os.Logger is a lightweight struct — no cost.
-        Logger(subsystem: "com.prizm", category: "SyncTimestampRepository")
+        Logger(subsystem: "dev.lemonevo.vitrine", category: "SyncTimestampRepository")
             .info("Sync timestamp recorded: \(iso, privacy: .public)")
     }
 }

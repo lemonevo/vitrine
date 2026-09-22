@@ -4,7 +4,7 @@ The app SHALL have an icon defined in `Assets.xcassets/AppIcon.appiconset` at al
 sizes required by macOS (16, 32, 64, 128, 256, 512, 1024px).
 
 #### Scenario: App is launched
-- **WHEN** a user launches Prizm
+- **WHEN** a user launches Vitrine
 - **THEN** the app icon appears correctly in the Dock, Launchpad, and Finder at all display scales
 
 #### Scenario: App icon appears in Finder

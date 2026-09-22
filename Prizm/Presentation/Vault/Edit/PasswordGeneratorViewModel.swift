@@ -163,9 +163,7 @@ final class PasswordGeneratorViewModel: ObservableObject {
     private func copy(_ value: String) {
         guard !value.isEmpty else { return }
 
-        let pasteboard = NSPasteboard.general
-        pasteboard.clearContents()
-        pasteboard.setString(value, forType: .string)
+        SecretClipboard.shared.write(value)
 
         // Cancel any outstanding clear task before scheduling a new one: the newest copy owns the
         // clipboard, and an older task firing later would clear it early.
@@ -182,8 +180,8 @@ final class PasswordGeneratorViewModel: ObservableObject {
             do {
                 try await Task.sleep(for: .seconds(seconds))
                 // Only clear if our value is still on the clipboard.
-                if pasteboard.string(forType: .string) == value {
-                    pasteboard.clearContents()
+                if SecretClipboard.shared.stillHolds(value) {
+                    SecretClipboard.shared.clearIfStillOurs()
                 }
             } catch {
                 // Task cancelled — a newer copy owns the clipboard now.

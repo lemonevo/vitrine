@@ -57,7 +57,7 @@ The suite needs one language, decided before the first assertion. Four ways to g
 - **A base `XCTestCase` every class inherits.** 150 classes to touch, and a new class that forgets the
   base silently tests the host language again.
 - **`-AppleLanguages (en)` in the scheme's launch arguments.** Applies to the test *and* ordinary runs
-  of the app, so the developer's own Prizm would stop following the system.
+  of the app, so the developer's own Vitrine would stop following the system.
 - **A test plan with `language: en`, referenced from the shared scheme.** One file, applies to ⌘U and to
   `xcodebuild test -scheme` alike, and is the mechanism Apple built for this. Chosen.
 

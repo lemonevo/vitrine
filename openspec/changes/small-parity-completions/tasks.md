@@ -22,7 +22,7 @@
 - [x] 2.1 Failing test: the notice is present when Trash has items.
 - [x] 2.2 Failing test: it is absent when Trash is empty — an empty Trash has nothing to warn about.
 - [x] 2.3 The notice says the deletion is automatic and gives no interval, with a comment recording
-      why: the interval is a server setting Prizm cannot read.
+      why: the interval is a server setting Vitrine cannot read.
 - [x] 2.4 Strings in both language files.
 
 ## 3. Verification

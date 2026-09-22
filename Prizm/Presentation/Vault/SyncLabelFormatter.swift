@@ -74,8 +74,8 @@ enum UnreadableItemsLabel {
     /// true and the one the user cannot check from inside the app.
     static func explanation(count: Int) -> String {
         count == 1
-            ? L("1 item could not be read. It is still on the server; Prizm could not decrypt it.")
-            : L("%d items could not be read. They are still on the server; Prizm could not decrypt them.", count)
+            ? L("1 item could not be read. It is still on the server; Vitrine could not decrypt it.")
+            : L("%d items could not be read. They are still on the server; Vitrine could not decrypt them.", count)
     }
 }
 

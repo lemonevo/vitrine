@@ -14,7 +14,7 @@ import os.log
 /// actor's cooperative-thread-pool executor — never on the main thread.
 actor VaultRepositoryImpl: VaultRepository {
 
-    private let logger = Logger(subsystem: "com.prizm", category: "VaultRepository")
+    private let logger = Logger(subsystem: "dev.lemonevo.vitrine", category: "VaultRepository")
 
     // MARK: - Dependencies (write path)
 

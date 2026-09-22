@@ -11,7 +11,7 @@ No package managers required. Dependencies are vendored under `LocalPackages/`.
 ## Cloning and Setup
 
 ```bash
-git clone https://github.com/b0x42/prizm.git
+git clone https://github.com/lemonevo/vitrine.git
 cd prizm
 ```
 
@@ -52,7 +52,7 @@ Or build from the command line:
 
 ```bash
 xcodebuild -project "Prizm/Prizm.xcodeproj" \
-           -scheme "Prizm" \
+           -scheme "Vitrine" \
            -configuration Debug \
            build
 ```
@@ -64,13 +64,13 @@ Press `⌘U` in Xcode, or from the command line:
 ```bash
 xcodebuild test \
   -project "Prizm/Prizm.xcodeproj" \
-  -scheme "Prizm" \
+  -scheme "Vitrine" \
   -destination "platform=macOS"
 ```
 
 All tests must pass before merging to `main`. The CI workflow enforces this on every push and pull request.
 
-The suite is green as of 2026-09-22 — 1507 tests, 0 failures, 0 skipped. The test target requires
+The suite is green as of 2026-09-22 — 1544 tests, 0 failures, 0 skipped. The test target requires
 `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor` (it matches the app target) and is held at
 `SWIFT_VERSION = 5.0`; changing either will stop the target compiling. See
 `openspec/changes/fix-test-target-buildability/` before touching those settings.

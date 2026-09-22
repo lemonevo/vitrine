@@ -23,7 +23,7 @@ final class AttachmentRepositoryImplTests: XCTestCase {
     private let cipherId      = "cipher-abc"
     private let attachmentId  = "att-xyz"
     private let plainFileName = "document.pdf"
-    private let plainData     = Data("Hello from Prizm integration test".utf8)
+    private let plainData     = Data("Hello from Vitrine integration test".utf8)
 
     override func setUp() async throws {
         apiClient  = MockPrizmAPIClient()

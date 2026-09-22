@@ -90,5 +90,5 @@ A list of passkeys with no such note reads as a feature that does not work.
 #### Scenario: The limitation is stated in the section
 - **GIVEN** a passkey section is shown
 - **WHEN** the user reads it
-- **THEN** it SHALL state that Prizm cannot use these credentials to sign in
+- **THEN** it SHALL state that Vitrine cannot use these credentials to sign in
 - **AND** the statement SHALL name what is possible elsewhere rather than only what is not

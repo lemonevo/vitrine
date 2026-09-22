@@ -33,12 +33,21 @@ final class UnlockViewModel: ObservableObject {
     @Published var showEnrollmentPrompt: Bool = false
     @Published private(set) var enrollmentReason: EnrollmentReason = .firstTime
 
+    /// Which of the two credentials this screen is asking for.
+    ///
+    /// One field, not two. The screen used to show a master-password box and a PIN box at the same
+    /// weight with nothing saying which to use, and the remaining-attempts line — which counts PIN
+    /// failures only — sat under both, so a user who typed a wrong *password* was told they had four
+    /// PINs left. Whichever way the choice is made, the count has to sit under the one it counts.
+    @Published private(set) var credentialMethod: UnlockCredentialMethod
+
     // MARK: - Dependencies
 
     private let auth:             any AuthRepository
     private let sync:             any SyncUseCase
     private let account:          Account
-    private let logger = Logger(subsystem: "com.prizm", category: "UnlockViewModel")
+    private let credentialPreference: UnlockCredentialPreference
+    private let logger = Logger(subsystem: "dev.lemonevo.vitrine", category: "UnlockViewModel")
 
     /// Tracks whether the last biometric attempt failed with invalidation,
     /// so the enrollment prompt can show the re-enroll copy.
@@ -56,11 +65,18 @@ final class UnlockViewModel: ObservableObject {
     init(
         auth: any AuthRepository,
         sync: any SyncUseCase,
-        account: Account
+        account: Account,
+        credentialPreference: UnlockCredentialPreference = UnlockCredentialPreference()
     ) {
-        self.auth              = auth
-        self.sync              = sync
-        self.account           = account
+        self.auth                 = auth
+        self.sync                 = sync
+        self.account              = account
+        self.credentialPreference = credentialPreference
+        // A PIN that has since been removed must not stay the thing the screen asks for.
+        self.credentialMethod = credentialPreference.lastUsedMethod(for: account.email) == .pin
+                                && auth.pinUnlockAvailable
+            ? .pin
+            : .masterPassword
     }
 
     // MARK: - Derived properties
@@ -78,14 +94,86 @@ final class UnlockViewModel: ObservableObject {
     /// freshly-restarted app.
     var pinUnlockAvailable: Bool { auth.pinUnlockAvailable }
 
+    /// The heading sentence, naming whichever credential the field below it wants.
+    ///
+    /// It follows `credentialMethod` rather than listing both possibilities: a subtitle that says
+    /// "password or PIN" above a field that silently accepts only one is the same lie in a longer
+    /// sentence. The sensor name arrives from the view because the view is where the device is asked.
+    ///
+    /// Four whole-sentence keys rather than a prefix spliced onto a verb phrase — word order is not
+    /// portable between languages, and neither is the position of the email.
+    func unlockInstructionText(biometricName: String?) -> String {
+        switch (credentialMethod, biometricName) {
+        case (.pin, let name?):
+            return L("%@ or enter the PIN for %@ to unlock.", name, email)
+        case (.pin, nil):
+            return L("Enter the PIN for %@ to unlock.", email)
+        case (.masterPassword, let name?):
+            return L("%@ or enter the password for %@ to unlock.", name, email)
+        case (.masterPassword, nil):
+            return L("Enter the password for %@ to unlock.", email)
+        }
+    }
+
+    /// The label on the single credential field.
+    var credentialFieldLabel: String {
+        credentialMethod == .pin ? L("PIN") : L("Master password")
+    }
+
+    /// What the switch under the field offers — the credential not currently being asked for.
+    var switchCredentialTitle: String {
+        credentialMethod == .pin
+            ? L("Use master password instead")
+            : L("Use PIN instead")
+    }
+
     /// Attempts left before the stored material is destroyed. Rendered while entering a PIN: a limit
     /// the user cannot see is a trap rather than a protection.
     var pinRemainingAttempts: Int { auth.pinUnlockRemainingAttempts }
 
     /// Whether the attempt count is worth showing — i.e. the user has already got one wrong.
-    var shouldShowRemainingAttempts: Bool { pinRemainingAttempts < PinUnlockSettings.maximumAttempts }
+    ///
+    /// Gated on the screen actually asking for a PIN. The count is a property of the PIN, so showing it
+    /// beside a master-password field reports a limit that has nothing to do with what is being typed.
+    var shouldShowRemainingAttempts: Bool {
+        credentialMethod == .pin && pinRemainingAttempts < PinUnlockSettings.maximumAttempts
+    }
 
     // MARK: - Actions
+
+    /// Asks for the other credential.
+    ///
+    /// The text already typed stays with the field it was typed into — nothing is moved between them,
+    /// because a PIN pushed through the password path would be a wrong-master-password attempt the
+    /// user never meant to make.
+    func toggleCredentialMethod() {
+        guard pinUnlockAvailable else { return }
+        errorMessage = nil
+        credentialMethod = credentialMethod == .pin ? .masterPassword : .pin
+    }
+
+    /// Submits whichever credential the screen is asking for.
+    ///
+    /// The button is live from the start, so an empty field has to be answered here rather than by a
+    /// greyed-out control: the screen used to disable it until every field was filled, which meant the
+    /// one action on the screen looked inert for the entire time the user was filling the form.
+    func submit() {
+        guard flowState != .loading else { return }
+        switch credentialMethod {
+        case .pin:
+            guard !pin.isEmpty else {
+                errorMessage = L("Enter your PIN to unlock.")
+                return
+            }
+            unlockWithPIN()
+        case .masterPassword:
+            guard !password.isEmpty else {
+                errorMessage = L("Enter your master password to unlock.")
+                return
+            }
+            unlock()
+        }
+    }
 
     func unlock() {
         logger.info("Unlock flow started")
@@ -94,18 +182,23 @@ final class UnlockViewModel: ObservableObject {
 
         // Convert the password String to Data at this boundary so the KDF stack
         // receives `Data` that can be zeroed after use (Constitution §III).
-        guard let passwordData = password.data(using: .utf8) else {
-            errorMessage = "Invalid password encoding."
+        guard var passwordData = password.data(using: .utf8) else {
+            errorMessage = L("Invalid password encoding.")
             flowState    = .unlock
             return
         }
 
         Task {
+            // This is the only owner of those bytes. The repository cannot zero them for us —
+            // `Data` is copy-on-write, so a callee that tried would only ever zero its own copy —
+            // and a wrong master password throws, which is the path that most needs it.
+            defer { passwordData.zeroize() }
             do {
                 _ = try await auth.unlockWithPassword(passwordData)
                 // Clear the password field after a successful unlock so the plaintext
                 // does not linger in the published property.
                 password = ""
+                credentialPreference.recordSuccess(of: .masterPassword, for: account.email)
                 await checkEnrollmentOrSync()
             } catch let err as AuthError {
                 logger.error("Unlock failed: \(err.localizedDescription, privacy: .public)")
@@ -134,6 +227,9 @@ final class UnlockViewModel: ObservableObject {
             do {
                 _ = try await auth.unlockWithPIN(enteredPIN)
                 pin = ""
+                // Only a PIN that worked earns the shortcut. A failed attempt must not make the next
+                // lock screen ask for the credential that just failed.
+                credentialPreference.recordSuccess(of: .pin, for: account.email)
                 await checkEnrollmentOrSync()
             } catch let err as PinUnlockError {
                 logger.error("PIN unlock failed: \(err.localizedDescription, privacy: .public)")

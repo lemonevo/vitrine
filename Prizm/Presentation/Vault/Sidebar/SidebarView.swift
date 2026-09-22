@@ -83,7 +83,7 @@ struct SidebarView: View {
                 sidebarSections.move(fromOffsets: from, toOffset: to)
             }
         }
-        .navigationTitle("Prizm")
+        .navigationTitle(L("Vitrine"))
         .alert("Delete Collection", isPresented: $showDeleteCollectionAlert,
                presenting: collectionToDelete) { col in
             Button("Delete", role: .destructive) {

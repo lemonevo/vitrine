@@ -1,6 +1,6 @@
 # Accessibility Conformance Statement
 
-**Product**: Prizm (macOS)
+**Product**: Vitrine (macOS)
 **Version**: 1.4.3
 **Date**: 2026-09-20
 **Standard**: EN 301 549 v3.2.1 / WCAG 2.1 Level AA
@@ -10,7 +10,7 @@
 
 ## Summary
 
-Prizm is a native macOS SwiftUI application. It inherits platform accessibility features (VoiceOver, keyboard navigation, focus rings, Dynamic Type) from SwiftUI and AppKit. This document reports conformance against WCAG 2.1 Level A and Level AA success criteria as mapped to native software by EN 301 549 Chapter 11.
+Vitrine is a native macOS SwiftUI application. It inherits platform accessibility features (VoiceOver, keyboard navigation, focus rings, Dynamic Type) from SwiftUI and AppKit. This document reports conformance against WCAG 2.1 Level A and Level AA success criteria as mapped to native software by EN 301 549 Chapter 11.
 
 ---
 
@@ -67,7 +67,7 @@ Prizm is a native macOS SwiftUI application. It inherits platform accessibility 
 | 2.4.7 Focus Visible | Supports | macOS provides default focus rings on all focusable controls. |
 | 3.2.3 Consistent Navigation | Supports | Sidebar navigation is consistent across all views. |
 | 3.2.4 Consistent Identification | Supports | Same actions use same labels throughout (e.g. "Copy", "Reveal", "Delete"). Reveal is consistently an eye icon with "Reveal" / "Hide", including in the password-history list. |
-| 3.3.3 Error Suggestion | Supports | Error messages include corrective suggestions where an actionable fix is known (e.g. "Check your network connection", "Make sure to include https://", "Choose a .pem, .crt or .cer file exported from your server", "Sign in from another Bitwarden client"). Where no fix is available in Prizm, the message says so rather than suggesting something the user cannot do — an account protected by Duo cannot be switched to an authenticator app from here. |
+| 3.3.3 Error Suggestion | Supports | Error messages include corrective suggestions where an actionable fix is known (e.g. "Check your network connection", "Make sure to include https://", "Choose a .pem, .crt or .cer file exported from your server", "Sign in from another Bitwarden client"). Where no fix is available in Vitrine, the message says so rather than suggesting something the user cannot do — an account protected by Duo cannot be switched to an authenticator app from here. |
 | 3.3.4 Error Prevention (Legal, Financial, Data) | Supports | Destructive actions (delete, permanent delete) require confirmation dialogs. |
 | 4.1.3 Status Messages | Supports | Error banners and sync status changes are announced to VoiceOver via `AccessibilityNotification.Announcement`. Copying the account fingerprint phrase is announced too: its button's icon becomes a tick, which confirms the copy visually and says nothing to a screen reader. |
 
@@ -108,4 +108,4 @@ Accessibility was tested with:
 
 ## Contact
 
-To report an accessibility issue, [open an issue](https://github.com/b0x42/prizm/issues) with the "accessibility" label.
+To report an accessibility issue, [open an issue](https://github.com/lemonevo/vitrine/issues) with the "accessibility" label.

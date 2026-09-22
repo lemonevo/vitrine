@@ -47,7 +47,7 @@ struct PinUnlockSection: View {
             // Only meaningful when a PIN exists; showing it otherwise invites the user to reason about
             // a setting that does nothing yet.
             if isEnabled {
-                Toggle(L("Require the master password after restarting Prizm"),
+                Toggle(L("Require the master password after restarting Vitrine"),
                        isOn: $requiresMasterPasswordOnRestart)
                     .disabled(isProcessing)
                     .accessibilityIdentifier(AccessibilityID.PinSettings.requirePasswordOnRestart)
@@ -55,7 +55,7 @@ struct PinUnlockSection: View {
                         PinUnlockSettings.setRequiresMasterPasswordOnRestart(newValue)
                     }
 
-                Text(L("With this on, a PIN cannot unlock Prizm until you have entered your master password once since it started."))
+                Text(L("With this on, a PIN cannot unlock Vitrine until you have entered your master password once since it started."))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -159,7 +159,7 @@ private struct SetPinSheet: View {
             Text(L("Set a PIN"))
                 .font(Typography.screenHeading)
 
-            Text(L("At least %d characters. It unlocks Prizm on this Mac only.", minimumLength))
+            Text(L("At least %d characters. It unlocks Vitrine on this Mac only.", minimumLength))
                 .font(.caption)
                 .foregroundStyle(.secondary)
 

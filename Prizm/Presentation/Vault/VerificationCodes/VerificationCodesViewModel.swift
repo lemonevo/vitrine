@@ -53,7 +53,7 @@ final class VerificationCodesViewModel: ObservableObject {
     private let generator: any TOTPGenerator
     private let gateFor: (VaultItem) -> RevealGateBinding
     private let now: () -> Date
-    private let logger = Logger(subsystem: "com.prizm", category: "VerificationCodes")
+    private let logger = Logger(subsystem: "dev.lemonevo.vitrine", category: "VerificationCodes")
 
     init(vault: any VaultRepository,
          generator: any TOTPGenerator,

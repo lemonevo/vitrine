@@ -34,7 +34,7 @@ final class KeychainPinUnlockService: PinUnlockService {
 
     private let keychain: KeychainService
     private let crypto:   any PrizmCryptoService
-    private let logger = Logger(subsystem: "com.prizm", category: "PinUnlock")
+    private let logger = Logger(subsystem: "dev.lemonevo.vitrine", category: "PinUnlock")
 
     init(keychain: KeychainService, crypto: any PrizmCryptoService) {
         self.keychain = keychain

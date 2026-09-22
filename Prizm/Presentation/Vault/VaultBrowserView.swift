@@ -239,7 +239,7 @@ struct VaultBrowserView: View {
     }
     @Environment(\.colorSchemeContrast) private var contrast
 
-    private let logger = Logger(subsystem: "com.prizm", category: "UI.VaultBrowser")
+    private let logger = Logger(subsystem: "dev.lemonevo.vitrine", category: "UI.VaultBrowser")
 
     var body: some View {
         NavigationSplitView(

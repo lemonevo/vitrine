@@ -8,7 +8,7 @@ persist across launches.
 
 Idle time SHALL be measured from the most recent local user input — key press, mouse button, scroll
 or mouse movement — delivered to the application. Input delivered to other applications SHALL NOT
-count as activity, because an idle Prizm is an idle Prizm regardless of what the user is doing
+count as activity, because an idle Vitrine is an idle Vitrine regardless of what the user is doing
 elsewhere.
 
 When the interval elapses the vault SHALL be locked and the key caches cleared, using the same
@@ -30,7 +30,7 @@ SHALL NOT suppress or alter user input.
 
 #### Scenario: Input to another application does not count as activity
 - **GIVEN** the vault is unlocked with an idle interval of 1 minute
-- **WHEN** the user types in another application for 5 minutes without interacting with Prizm
+- **WHEN** the user types in another application for 5 minutes without interacting with Vitrine
 - **THEN** the vault SHALL lock
 
 #### Scenario: Never disables the idle timeout

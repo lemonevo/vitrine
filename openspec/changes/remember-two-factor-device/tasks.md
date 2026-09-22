@@ -43,7 +43,7 @@
 
 > **5.2 is outstanding.** It needs a signed app against a live Vaultwarden account: tick the box, sign
 > out, sign in again, confirm no code is requested, then sign out once more and confirm it is
-> requested again. The unit tests cover Prizm's half of the exchange end to end through the real
+> requested again. The unit tests cover Vitrine's half of the exchange end to end through the real
 > repository with Keychain and API doubles. What they cannot cover is the server's half — that a
 > replayed token actually suppresses the challenge.
 

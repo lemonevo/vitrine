@@ -42,7 +42,7 @@ final class AttachmentRepositoryImpl: AttachmentRepository {
     private let crypto:          any PrizmCryptoService
     private let vaultRepository: any VaultRepository
 
-    private let logger = Logger(subsystem: "com.prizm", category: "attachments")
+    private let logger = Logger(subsystem: "dev.lemonevo.vitrine", category: "attachments")
 
     init(
         apiClient:       any PrizmAPIClientProtocol,

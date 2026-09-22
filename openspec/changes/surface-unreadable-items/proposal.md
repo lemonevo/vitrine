@@ -2,7 +2,7 @@
 
 ## Why
 
-A cipher Prizm cannot decrypt is dropped, counted, and never mentioned again.
+A cipher Vitrine cannot decrypt is dropped, counted, and never mentioned again.
 
 The chain, end to end:
 
@@ -32,7 +32,7 @@ the place where being wrong costs the user the most: they cannot tell their vaul
 - `VaultBrowserViewModel` publishes the count as `unreadableItemCount`, set from the sync result and
   cleared by `clearSessionState()` along with the rest of the session.
 - The sidebar footer renders it below the freshness label, in a warning treatment, with a tooltip
-  that states the two things a user needs to know: the items are still on the server, and Prizm could
+  that states the two things a user needs to know: the items are still on the server, and Vitrine could
   not read them.
 - It is **not** a dismissable banner. It is a standing fact about the vault's contents, and dismissing
   it would hide the only signal that the list is incomplete. (`syncErrorMessage` stays dismissable:

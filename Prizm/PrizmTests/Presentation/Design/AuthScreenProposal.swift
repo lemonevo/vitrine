@@ -172,7 +172,7 @@ struct ProposedLogin: View {
 struct ProposedUnlock: View {
     var body: some View {
         AuthCard {
-            Header(title: "Prizm Is Locked",
+            Header(title: "Vitrine Is Locked",
                    subtitle: "Enter the password for alice@example.com to unlock.")
 
             VStack(spacing: 12) {

@@ -1,6 +1,6 @@
 # Security
 
-Prizm is a password manager. This document explains exactly how it protects your
+Vitrine is a password manager. This document explains exactly how it protects your
 data — what is encrypted, where keys live, what threats it defends against, and what
 it does not. The goal is to let any developer or technically literate user audit the
 implementation and decide whether to trust it. No black boxes.
@@ -11,7 +11,7 @@ implementation and decide whether to trust it. No black boxes.
 
 Please do **not** open a public GitHub issue for security vulnerabilities.
 
-Report privately via GitHub's [Security Advisories](https://github.com/b0x42/prizm/security/advisories/new)
+Report privately via GitHub's [Security Advisories](https://github.com/lemonevo/vitrine/security/advisories/new)
 or email the maintainer directly (address in the GitHub profile). Include a description
 of the issue, steps to reproduce, and any relevant log output or proof of concept.
 
@@ -43,7 +43,7 @@ are persisted, both as ciphertext the app cannot read without the master passwor
 
 ### Offline vault cache
 
-Prizm can unlock and show the vault with no network. The mechanism is a copy of the server's
+Vitrine can unlock and show the vault with no network. The mechanism is a copy of the server's
 last successful `/api/sync` response, written to the app's container at:
 
 ```
@@ -173,7 +173,7 @@ alongside the email address it belongs to.
 - **It is deleted on sign-out**, with the rest of the session's material. It is **not** deleted on
   lock: locking keeps you signed in, and a remembered device is part of being signed in rather than of
   the vault being open.
-- **The server decides when it expires.** Prizm stores and replays it, and does not reinterpret its
+- **The server decides when it expires.** Vitrine stores and replays it, and does not reinterpret its
   lifetime. When the server stops accepting it, the challenge simply reappears — which is the ordinary
   path and needs no special handling.
 
@@ -458,7 +458,7 @@ cover if a test host with a private authority ever becomes available.
 
 ## SSH Agent
 
-Prizm can serve the SSH private keys held in the vault to `ssh` and `git` over a Unix socket, so a
+Vitrine can serve the SSH private keys held in the vault to `ssh` and `git` over a Unix socket, so a
 key that already lives in the vault does not have to be copied out into `~/.ssh`. The feature is
 **off by default**, and the agent runs only while the vault is unlocked.
 
@@ -481,14 +481,14 @@ key that already lives in the vault does not have to be copied out into `~/.ssh`
   cannot claim to be something else. When the kernel declines to say, the sheet reads "an
   application" instead of guessing.
 - **The socket is private to the user.** The directory is created `0700` and the socket is `0600`.
-  Prizm refuses to bind in a directory it did not create, or one whose permissions were widened:
+  Vitrine refuses to bind in a directory it did not create, or one whose permissions were widened:
   binding there would hand every signature request to anyone who can write to it.
 - **The keys offered are the keys in the vault**, re-read per request rather than snapshotted at
   start, so deleting a key from the vault stops it being offered immediately.
 
 ### What it does not cover
 
-- **A process that can read Prizm's memory while the vault is unlocked** — see the gate above. The
+- **A process that can read Vitrine's memory while the vault is unlocked** — see the gate above. The
   gate closes an *unattended* path to a signature; it says nothing about memory access.
 - **The user approving a request they did not mean to.** The sheet names the process, but the
   decision is the user's. A prompt is only as good as the reading of it.
@@ -505,8 +505,8 @@ key that already lives in the vault does not have to be copied out into `~/.ssh`
   runs today. Closing that gap means placing the socket inside the container and verifying that a
   non-sandboxed `ssh` can connect to it — a change of its own, not a tweak, and not something to
   assume either way.
-- **Keys Prizm cannot use.** Only `openssh-key-v1` containers, and only ed25519 and RSA. A
-  passphrase-protected key is listed as unusable with that reason: Prizm stores no passphrase for a
+- **Keys Vitrine cannot use.** Only `openssh-key-v1` containers, and only ed25519 and RSA. A
+  passphrase-protected key is listed as unusable with that reason: Vitrine stores no passphrase for a
   key and does not prompt for one, so offering it would produce signature requests that can never
   succeed.
 
@@ -516,7 +516,7 @@ The protocol framing, the key parsing, the signing primitives, the socket lifecy
 authorization gate are unit-tested — 103 cases across `SSHAgentPrimitivesTests`,
 `SSHAgentSessionTests`, `SSHAgentServerTests`, `SSHAgentAuthorizerTests`, `SSHAgentCoordinatorTests`
 and `SSHAgentSectionTests`. The ed25519 and RSA expectations are compared against values computed
-**outside** Prizm (Python `cryptography`), so they test Prizm's output rather than restate it. No
+**outside** Vitrine (Python `cryptography`), so they test Vitrine's output rather than restate it. No
 private key material is committed: the fixtures are assembled from components, and the one key with
 a secret in it is built from a seed of repeated bytes.
 

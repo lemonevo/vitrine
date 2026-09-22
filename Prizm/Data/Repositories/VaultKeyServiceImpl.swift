@@ -33,7 +33,7 @@ final class VaultKeyServiceImpl: VaultKeyService {
     private let cache:  VaultKeyCache
     private let crypto: any PrizmCryptoService
 
-    private let logger = Logger(subsystem: "com.prizm", category: "attachments")
+    private let logger = Logger(subsystem: "dev.lemonevo.vitrine", category: "attachments")
 
     init(cache: VaultKeyCache, crypto: any PrizmCryptoService) {
         self.cache  = cache

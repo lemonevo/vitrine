@@ -65,7 +65,7 @@ struct AuthHeader: View {
 
             Text(subtitle)
                 .font(Typography.screenBody)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Foreground.muted)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -96,14 +96,14 @@ struct AuthField<Control: View>: View {
         VStack(alignment: .leading, spacing: Spacing.fieldLabelGap) {
             Text(label)
                 .font(Typography.fieldLabel)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Foreground.muted)
 
             control()
 
             if let hint {
                 Text(hint)
                     .font(Typography.utility)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(Foreground.muted)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

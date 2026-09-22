@@ -1,6 +1,6 @@
 ## ADDED Requirements
 
-### Requirement: Saving an item preserves wire fields Prizm does not model
+### Requirement: Saving an item preserves wire fields Vitrine does not model
 
 `PUT /api/ciphers/{id}` replaces the whole cipher: any field absent from the request body is
 deleted server-side (Vaultwarden `update_cipher_from_data` assigns `key`, `password_history` and

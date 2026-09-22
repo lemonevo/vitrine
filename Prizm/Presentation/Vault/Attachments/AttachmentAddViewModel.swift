@@ -39,7 +39,7 @@ final class AttachmentAddViewModel: Identifiable {
     /// `@MainActor` — AppKit panel classes require main-actor isolation on macOS 26.
     private let filePicker: @MainActor () -> [(url: URL, bytes: Int)]
 
-    private let logger = Logger(subsystem: "com.prizm", category: "attachments")
+    private let logger = Logger(subsystem: "dev.lemonevo.vitrine", category: "attachments")
 
     // MARK: - State (observable)
 

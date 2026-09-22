@@ -209,11 +209,11 @@ nonisolated enum OpenSSHKeyError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .encrypted:
-            return L("This key is protected with a passphrase. Prizm does not store one for an SSH key, so it cannot use this key.")
+            return L("This key is protected with a passphrase. Vitrine does not store one for an SSH key, so it cannot use this key.")
         case .unsupportedAlgorithm(let algorithm):
-            return L("Prizm cannot use %@ keys.", algorithm)
+            return L("Vitrine cannot use %@ keys.", algorithm)
         case .notOpenSSHFormat:
-            return L("This is not an OpenSSH private key. Prizm reads the OpenSSH format ssh-keygen writes.")
+            return L("This is not an OpenSSH private key. Vitrine reads the OpenSSH format ssh-keygen writes.")
         case .malformed:
             return L("This SSH key could not be read.")
         }

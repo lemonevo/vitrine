@@ -33,7 +33,7 @@ delivered to other applications does not count as activity.
 The Settings window SHALL display a clipboard-clearing interval picker in the Privacy section,
 alongside the existing website icons toggle. It SHALL offer 10 seconds, 20 seconds, 30 seconds,
 1 minute, 2 minutes and never, defaulting to 30 seconds. The footer SHALL state that the clipboard
-is cleared only if Prizm's own value is still on it.
+is cleared only if Vitrine's own value is still on it.
 
 #### Scenario: Clipboard picker is visible
 - **GIVEN** the user opens the Settings window

@@ -6,12 +6,12 @@ held for the life of the session. The only other caller is `View ▸ Sync Now` (
 to remember to press.
 
 So a session drifts. Item edited in the web vault, a password rotated on another device, a new item
-added by a colleague sharing a collection — none of it appears in a running Prizm until the user
+added by a colleague sharing a collection — none of it appears in a running Vitrine until the user
 quits, or thinks to sync. The failure mode is the dangerous kind: the vault is *unlocked and looks
 current*. There is no staleness cue beyond a relative timestamp in the sidebar footer, and a user who
 is not looking at the footer sees an authoritative-looking list that is quietly hours old.
 
-The official Bitwarden clients refresh on a timer while unlocked. Prizm has the sync path, the
+The official Bitwarden clients refresh on a timer while unlocked. Vitrine has the sync path, the
 in-flight guard (`SyncError.syncInProgress`) and the manual trigger already; what it lacks is the
 timer.
 

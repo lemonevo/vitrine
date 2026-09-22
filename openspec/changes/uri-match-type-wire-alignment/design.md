@@ -29,12 +29,12 @@ the guard that exists precisely to catch this class of loss was blind to it.
 
 ## D4 — No migration, and why that is the right call
 
-Items Prizm previously saved carry the shifted numbers on the server. After this change Prizm reads them
+Items Vitrine previously saved carry the shifted numbers on the server. After this change Vitrine reads them
 the way every other client does — which is the truth of what the browser will act on. Re-writing them
 would mean guessing what the user had meant to choose, and the app has no record of that. The
-consequence is stated plainly: **a rule the user set through Prizm's picker before this fix was never
+consequence is stated plainly: **a rule the user set through Vitrine's picker before this fix was never
 what they asked for, and this change does not retroactively repair it.** Anyone who set a match type in
-Prizm should re-check those entries once.
+Vitrine should re-check those entries once.
 
 ## D5 — Not verified
 
@@ -42,7 +42,7 @@ Prizm should re-check those entries once.
   accordingly" comes from the wire contract documented in `RawURI.match` and Bitwarden's own enum, not
   from watching an extension act on a rule.
 - **No server round trip.** Nothing was sent to a real Vaultwarden; the assertions are on the encoded
-  body. A live item with `match: 6` set in the web vault, opened and re-saved by Prizm, is the check
+  body. A live item with `match: 6` set in the web vault, opened and re-saved by Vitrine, is the check
   still outstanding.
 - **Old exports.** A JSON export written by a previous build contains the shifted numbers. They will now
   be read as their literal values, which is what any other client would do with them. Not tested.

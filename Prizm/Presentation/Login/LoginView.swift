@@ -15,20 +15,18 @@ struct LoginView: View {
 
     @ObservedObject var viewModel: LoginViewModel
 
-    /// Focus state used to advance through fields on Return.
-    @FocusState private var focusedField: Field?
-
-    private enum Field: Hashable {
-        case serverURL, email, password
-    }
+    /// Focus state used to advance through fields on Return, and to move to the field a rejected
+    /// submission named. `LoginField` rather than a local enum: the view model reports what is
+    /// missing in the same vocabulary the form is built from, so the two cannot drift apart.
+    @FocusState private var focusedField: LoginField?
 
     var body: some View {
         VStack(spacing: Spacing.authFootnoteGap) {
             AuthCard {
-                AuthHeader(title: "Prizm",
+                AuthHeader(title: L("Vitrine"),
                            subtitle: L("Sign in to your self-hosted vault"))
 
-                VStack(spacing: 12) {
+                VStack(spacing: Spacing.authFieldGap) {
                     AuthField(label: L("Email")) {
                         TextField("", text: $viewModel.email)
                             .textFieldStyle(.roundedBorder)
@@ -41,7 +39,7 @@ struct LoginView: View {
                         SecureField(L("Enter master password"), text: $viewModel.password)
                             .textFieldStyle(.roundedBorder)
                             .focused($focusedField, equals: .password)
-                            .onSubmit { signIn() }
+                            .onSubmit { viewModel.signIn() }
                             .accessibilityIdentifier(AccessibilityID.Login.passwordField)
                     }
                 }
@@ -49,28 +47,33 @@ struct LoginView: View {
                 if let error = viewModel.errorMessage {
                     AuthErrorBanner(message: error,
                                     identifier: AccessibilityID.Login.errorMessage)
-                        .padding(.top, 12)
+                        .padding(.top, Spacing.authActionTopGap)
                 }
 
-                AuthPrimaryButton(title: L("Sign In"), isBusy: isBusy, action: signIn)
-                    .disabled(isSignInDisabled)
+                // Live from the start. The button used to disable itself until all three fields were
+                // filled, so the screen's one action looked inert for the entire time a user was
+                // filling the form — and a first-time visitor could not tell it was waiting for the
+                // server address at the bottom. An incomplete submission is answered instead: the
+                // banner names what is missing and the insertion point moves there.
+                AuthPrimaryButton(title: L("Sign In"), isBusy: isBusy, action: viewModel.signIn)
+                    .disabled(isBusy)
                     .accessibilityIdentifier(AccessibilityID.Login.signInButton)
-                    .padding(.top, 14)
+                    .padding(.top, Spacing.authActionTopGap)
 
                 Divider()
-                    .padding(.vertical, 16)
+                    .padding(.vertical, Spacing.authDividerVertical)
 
                 AuthField(label: L("Server"), hint: serverHint) {
                     HStack(spacing: Spacing.fieldLabelGap) {
                         Image(systemName: "server.rack")
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Foreground.muted)
                             .accessibilityHidden(true)
                         TextField("", text: $viewModel.serverURL)
                             .textFieldStyle(.roundedBorder)
                             .font(.callout)
                             .focused($focusedField, equals: .serverURL)
-                            .onSubmit { signIn() }
+                            .onSubmit { viewModel.signIn() }
                             .accessibilityIdentifier(AccessibilityID.Login.serverURLField)
                     }
                 }
@@ -80,9 +83,13 @@ struct LoginView: View {
             // PBKDF2 server hash locally and `PrizmAPIClient.identityToken` sends *that* in the field
             // named `password`. The master password itself never goes on the wire. A claim this
             // pointed on a login screen should not be a guess.
+            //
+            // `Foreground.muted`, not `.secondary`: this is the sentence that tells a user their
+            // password is safe, and at 10pt in `secondaryLabelColor` it measured 3.95:1 — under the
+            // AA floor this project's own ACCESSIBILITY.md claims.
             Text(L("Your master password is never sent to the server — only a hash derived from it."))
                 .font(Typography.utility)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Foreground.muted)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(width: Spacing.authCardWidth)
@@ -94,6 +101,9 @@ struct LoginView: View {
         // a form that fits and one that gets cut off at both ends — it is not a stylistic floor.
         .frame(minWidth: 480, minHeight: 520)
         .onAppear { focusedField = .email }
+        .onChange(of: viewModel.fieldRequiringAttention) { _, field in
+            focusedField = field
+        }
     }
 
     // MARK: - Private helpers
@@ -110,15 +120,5 @@ struct LoginView: View {
     private var isBusy: Bool {
         if case .loading = viewModel.flowState { return true }
         return false
-    }
-
-    private var isSignInDisabled: Bool {
-        if isBusy { return true }
-        return viewModel.serverURL.isEmpty || viewModel.email.isEmpty || viewModel.password.isEmpty
-    }
-
-    private func signIn() {
-        guard !isSignInDisabled else { return }
-        viewModel.signIn()
     }
 }

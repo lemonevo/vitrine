@@ -177,7 +177,7 @@ nonisolated enum SSHWireError: Error, LocalizedError {
         case .truncated:
             return L("The SSH client sent an incomplete request.")
         case .unsupportedMessage(let type):
-            return L("The SSH client sent a request Prizm does not answer (%lld).", Int64(type))
+            return L("The SSH client sent a request Vitrine does not answer (%lld).", Int64(type))
         }
     }
 }

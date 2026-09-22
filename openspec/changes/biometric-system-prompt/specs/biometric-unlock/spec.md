@@ -37,7 +37,7 @@ raised a replacement would be a loop the user could only leave by authenticating
 
 #### Scenario: The prompt says who is asking
 - **WHEN** the system prompt is raised
-- **THEN** its reason line SHALL name the application and the sensor — "Open your Prizm vault with Touch ID"
+- **THEN** its reason line SHALL name the application and the sensor — "Open your Vitrine vault with Touch ID"
 - **AND** it SHALL NOT be a bare verb phrase that could belong to any process on the machine
 
 #### Scenario: Dismissing the prompt leaves the screen alone

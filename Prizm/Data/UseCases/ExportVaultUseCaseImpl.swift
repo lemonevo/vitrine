@@ -16,7 +16,7 @@ nonisolated struct ExportVaultUseCaseImpl: ExportVaultUseCase {
 
     private let vault: any VaultRepository
 
-    private static let logger = Logger(subsystem: "com.prizm", category: "VaultExport")
+    private static let logger = Logger(subsystem: "dev.lemonevo.vitrine", category: "VaultExport")
 
     init(vault: any VaultRepository) {
         self.vault = vault

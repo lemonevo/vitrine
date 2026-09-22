@@ -58,7 +58,7 @@ an icon — because they say different kinds of thing and one of them is a probl
 
 The tooltip's job is to prevent the wrong conclusion. A user who sees "3 items could not be read"
 with nothing else will wonder whether those items were deleted, and the honest answer is the one they
-cannot derive from inside the app: they are still on the server, Prizm just cannot read them right
+cannot derive from inside the app: they are still on the server, Vitrine just cannot read them right
 now.
 
 So the tooltip says both halves. This is the whole point of surfacing the number — a count with no
@@ -93,5 +93,5 @@ subsequent clean sync clears it; `clearSessionState()` clears it with the rest o
 singular and plural strings are the right ones at 1 and at 2.
 
 The manual check is the one that matters and cannot be unit-tested: make a server return a cipher
-Prizm cannot map, unlock, and confirm the sidebar says so while the rest of the vault is usable —
+Vitrine cannot map, unlock, and confirm the sidebar says so while the rest of the vault is usable —
 rather than the list quietly being short.

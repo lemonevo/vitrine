@@ -19,7 +19,7 @@ nonisolated struct ImportVaultUseCaseImpl: ImportVaultUseCase {
 
     private let vault: any VaultRepository
 
-    private static let logger = Logger(subsystem: "com.prizm", category: "VaultImport")
+    private static let logger = Logger(subsystem: "dev.lemonevo.vitrine", category: "VaultImport")
 
     init(vault: any VaultRepository) {
         self.vault = vault

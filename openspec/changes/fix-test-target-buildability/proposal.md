@@ -13,7 +13,7 @@ Root cause: the two targets disagree about default actor isolation.
 
 | target | `SWIFT_DEFAULT_ACTOR_ISOLATION` | `SWIFT_VERSION` |
 |---|---|---|
-| `Prizm` | `MainActor` | 6.0 |
+| `Vitrine` | `MainActor` | 6.0 |
 | `PrizmTests` | *(absent — defaults to nonisolated)* | 6.0 |
 
 Every `VaultItem`, `DraftVaultItem` and `CustomField` in the app module is therefore implicitly

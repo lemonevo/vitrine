@@ -17,10 +17,10 @@ final class AboutViewModelTests: XCTestCase {
     override func setUp() async throws {
         try await super.setUp()
         sut = AboutViewModel(
-            appName:  "Prizm",
+            appName:  "Vitrine",
             version:  "1.0",
             tagline:  "Your secrets. Your server. Our user interface.",
-            gitHubURL: URL(string: "https://github.com/b0x42/prizm")!,
+            gitHubURL: URL(string: "https://github.com/lemonevo/vitrine")!,
             acknowledgements: [
                 "Vaultwarden & Bitwarden — server API and vault format",
                 "Argon2Swift — Argon2id key derivation (RFC 9106)",
@@ -36,7 +36,7 @@ final class AboutViewModelTests: XCTestCase {
     func testGitHubURL_isCorrect() {
         XCTAssertEqual(
             sut.gitHubURL.absoluteString,
-            "https://github.com/b0x42/prizm"
+            "https://github.com/lemonevo/vitrine"
         )
     }
 
@@ -69,5 +69,18 @@ final class AboutViewModelTests: XCTestCase {
         let vm = AboutViewModel.forCurrentApp()
         XCTAssertFalse(vm.version.isEmpty, "CFBundleShortVersionString must be set in the app bundle")
         XCTAssertFalse(vm.appName.isEmpty, "CFBundleName must be set in the app bundle")
+    }
+
+    @MainActor
+    func testForCurrentApp_gitHubURLEqualsThisRepository() {
+        // The About window opens the repository link straight from this value, so the
+        // assertion has to read `forCurrentApp()` — the fixture-based test above only
+        // compares a value against itself and cannot notice a stale URL.
+        let vm = AboutViewModel.forCurrentApp()
+        XCTAssertEqual(
+            vm.gitHubURL.absoluteString,
+            "https://github.com/lemonevo/vitrine",
+            "The About window must link to the repository this build came from"
+        )
     }
 }

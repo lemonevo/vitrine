@@ -68,7 +68,7 @@ the server asked for, rather than reporting a generic unsupported method.
 - **GIVEN** the server offers only the Duo provider
 - **WHEN** the user attempts to log in
 - **THEN** the error SHALL name Duo
-- **AND** it SHALL state that Prizm cannot complete that method
+- **AND** it SHALL state that Vitrine cannot complete that method
 
 #### Scenario: WebAuthn is named
 - **GIVEN** the server offers only the WebAuthn provider

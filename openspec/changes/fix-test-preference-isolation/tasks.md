@@ -16,7 +16,7 @@
       for the `removeObject` calls and the direct `ItemSortPreference.load()` assertions.
 - [x] 2.2 `VaultBrowserViewModelBackupTests`: the same, so its `setUp`/`tearDown` clear its own
       domain rather than the shared one.
-- [x] 2.3 Confirm no test target file references `UserDefaults.standard` for a Prizm preference key
+- [x] 2.3 Confirm no test target file references `UserDefaults.standard` for a Vitrine preference key
       any more.
 
 ## 3. Verification

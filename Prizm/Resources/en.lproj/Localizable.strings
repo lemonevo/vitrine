@@ -1,4 +1,4 @@
-/* Prizm localizable strings
+/* Vitrine localizable strings
    Language: en.lproj
    Generated — keep keys in sync with the Swift literals. */
 
@@ -36,7 +36,7 @@
 "A single dictionary word" = "A single dictionary word";
 "A stored certificate could not be read." = "A stored certificate could not be read.";
 "A year or date" = "A year or date";
-"About Prizm" = "About Prizm";
+"About Vitrine" = "About Vitrine";
 "Account" = "Account";
 "Acknowledgements" = "Acknowledgements";
 "Action Failed" = "Action Failed";
@@ -52,8 +52,8 @@
 "Address Line 2" = "Address Line 2";
 "Address Line 3" = "Address Line 3";
 "All Items" = "All Items";
-"All local data will be cleared." = "All local data will be cleared.";
-"An application asked Prizm to sign with the SSH key “%@”." = "An application asked Prizm to sign with the SSH key “%@”.";
+"Session keys, tokens and the cached vault are removed from this Mac. Your preferences, this device's identifier and any certificate you have pinned are kept." = "Session keys, tokens and the cached vault are removed from this Mac. Your preferences, this device's identifier and any certificate you have pinned are kept.";
+"An application asked Vitrine to sign with the SSH key “%@”." = "An application asked Vitrine to sign with the SSH key “%@”.";
 "An item has no name." = "An item has no name.";
 "Anyone who can read the file can read your vault." = "Anyone who can read the file can read your vault.";
 "Argon2Swift — Argon2id key derivation (RFC 9106)" = "Argon2Swift — Argon2id key derivation (RFC 9106)";
@@ -202,7 +202,7 @@
 "Host" = "Host";
 "ID Numbers" = "ID Numbers";
 "Icons are loaded from your own server, never from a third party. Turn this off to skip the request entirely — items then show a generic symbol." = "Icons are loaded from your own server, never from a third party. Turn this off to skip the request entirely — items then show a generic symbol.";
-"Icons are loaded from your own server, never from a third party. Turn this off to skip the request entirely — items then show a generic symbol.\n\nThe clipboard is cleared only if Prizm's own value is still on it." = "Icons are loaded from your own server, never from a third party. Turn this off to skip the request entirely — items then show a generic symbol.\n\nThe clipboard is cleared only if Prizm's own value is still on it.";
+"Icons are loaded from your own server, never from a third party. Turn this off to skip the request entirely — items then show a generic symbol.\n\nThe clipboard is cleared only if Vitrine's own value is still on it." = "Icons are loaded from your own server, never from a third party. Turn this off to skip the request entirely — items then show a generic symbol.\n\nThe clipboard is cleared only if Vitrine's own value is still on it.";
 "Identity" = "Identity";
 "Import Complete" = "Import Complete";
 "Import Vault…" = "Import Vault…";
@@ -288,7 +288,7 @@
 "No server URL is configured." = "No server URL is configured.";
 "No stored session was found. Sign in again to continue." = "No stored session was found. Sign in again to continue.";
 "None" = "None";
-"Not an OpenSSH private key. Prizm needs the openssh-key-v1 format ssh-keygen writes." = "Not an OpenSSH private key. Prizm needs the openssh-key-v1 format ssh-keygen writes.";
+"Not an OpenSSH private key. Vitrine needs the openssh-key-v1 format ssh-keygen writes." = "Not an OpenSSH private key. Vitrine needs the openssh-key-v1 format ssh-keygen writes.";
 "Not available yet" = "Not available yet";
 "Not changed in over two years" = "Not changed in over two years";
 "Not favorited" = "Not favorited";
@@ -306,7 +306,7 @@
 "Offline — showing data from %@" = "Offline — showing data from %@";
 "On timeout" = "On timeout";
 "Only %d characters" = "Only %d characters";
-"Open your Prizm vault with %@" = "Open your Prizm vault with %@";
+"Open your Vitrine vault with %@" = "Open your Vitrine vault with %@";
 "Open" = "Open";
 "Open %@" = "Open %@";
 "Open in browser" = "Open in browser";
@@ -320,7 +320,7 @@
 "Organizations" = "Organizations";
 "Passkeys" = "Passkeys";
 "Passphrase" = "Passphrase";
-"Passphrase-protected (%@). Prizm stores no passphrase for a key, so it cannot be used." = "Passphrase-protected (%@). Prizm stores no passphrase for a key, so it cannot be used.";
+"Passphrase-protected (%@). Vitrine stores no passphrase for a key, so it cannot be used." = "Passphrase-protected (%@). Vitrine stores no passphrase for a key, so it cannot be used.";
 "Passport Number" = "Passport Number";
 "Password" = "Password";
 "Password history" = "Password history";
@@ -339,21 +339,21 @@
 "Previous passwords stay masked. Revealing one will require confirming your master password." = "Previous passwords stay masked. Revealing one will require confirming your master password.";
 "Privacy" = "Privacy";
 "Private Key" = "Private Key";
-"Prizm Is Locked" = "Prizm Is Locked";
-"Prizm cannot complete the two-factor method “%@”. Sign in from another Bitwarden client, or use one to change the method this account asks for." = "Prizm cannot complete the two-factor method “%@”. Sign in from another Bitwarden client, or use one to change the method this account asks for.";
-"Prizm cannot use %@ keys." = "Prizm cannot use %@ keys.";
-"Prizm cannot use these passkeys to sign in. Register, use and remove them from another Bitwarden client." = "Prizm cannot use these passkeys to sign in. Register, use and remove them from another Bitwarden client.";
-"Prizm could not bind the agent socket at %@ (error %lld). Another agent may already be listening there." = "Prizm could not bind the agent socket at %@ (error %lld). Another agent may already be listening there.";
-"Prizm could not create the agent socket (error %lld)." = "Prizm could not create the agent socket (error %lld).";
-"Prizm could not listen on the agent socket (error %lld)." = "Prizm could not listen on the agent socket (error %lld).";
-"Prizm could not prepare a private directory for the agent socket at %@: %@" = "Prizm could not prepare a private directory for the agent socket at %@: %@";
-"Prizm could not read the certificate for %@, so the connection was not made." = "Prizm could not read the certificate for %@, so the connection was not made.";
-"Prizm could not read the stored certificate settings for %@, so the connection was not made. %@" = "Prizm could not read the stored certificate settings for %@, so the connection was not made. %@";
-"Prizm could not sign with this SSH key." = "Prizm could not sign with this SSH key.";
-"Prizm could not use this SSH key." = "Prizm could not use this SSH key.";
-"Prizm is running sandboxed. A sandboxed app can only create sockets inside its own container, which ssh cannot reach, so the agent cannot be used in this build." = "Prizm is running sandboxed. A sandboxed app can only create sockets inside its own container, which ssh cannot reach, so the agent cannot be used in this build.";
+"Vitrine Is Locked" = "Vitrine Is Locked";
+"Vitrine cannot complete the two-factor method “%@”. Sign in from another Bitwarden client, or use one to change the method this account asks for." = "Vitrine cannot complete the two-factor method “%@”. Sign in from another Bitwarden client, or use one to change the method this account asks for.";
+"Vitrine cannot use %@ keys." = "Vitrine cannot use %@ keys.";
+"Vitrine cannot use these passkeys to sign in. Register, use and remove them from another Bitwarden client." = "Vitrine cannot use these passkeys to sign in. Register, use and remove them from another Bitwarden client.";
+"Vitrine could not bind the agent socket at %@ (error %lld). Another agent may already be listening there." = "Vitrine could not bind the agent socket at %@ (error %lld). Another agent may already be listening there.";
+"Vitrine could not create the agent socket (error %lld)." = "Vitrine could not create the agent socket (error %lld).";
+"Vitrine could not listen on the agent socket (error %lld)." = "Vitrine could not listen on the agent socket (error %lld).";
+"Vitrine could not prepare a private directory for the agent socket at %@: %@" = "Vitrine could not prepare a private directory for the agent socket at %@: %@";
+"Vitrine could not read the certificate for %@, so the connection was not made." = "Vitrine could not read the certificate for %@, so the connection was not made.";
+"Vitrine could not read the stored certificate settings for %@, so the connection was not made. %@" = "Vitrine could not read the stored certificate settings for %@, so the connection was not made. %@";
+"Vitrine could not sign with this SSH key." = "Vitrine could not sign with this SSH key.";
+"Vitrine could not use this SSH key." = "Vitrine could not use this SSH key.";
+"Vitrine is running sandboxed. A sandboxed app can only create sockets inside its own container, which ssh cannot reach, so the agent cannot be used in this build." = "Vitrine is running sandboxed. A sandboxed app can only create sockets inside its own container, which ssh cannot reach, so the agent cannot be used in this build.";
 "Public Key" = "Public Key";
-"Put that line in your shell profile and open a new terminal. Prizm has to be running with the vault unlocked; anything that reads the key asks Prizm to sign with it, and the first request for each key asks for your master password." = "Put that line in your shell profile and open a new terminal. Prizm has to be running with the vault unlocked; anything that reads the key asks Prizm to sign with it, and the first request for each key asks for your master password.";
+"Put that line in your shell profile and open a new terminal. Vitrine has to be running with the vault unlocked; anything that reads the key asks Vitrine to sign with it, and the first request for each key asks for your master password." = "Put that line in your shell profile and open a new terminal. Vitrine has to be running with the vault unlocked; anything that reads the key asks Vitrine to sign with it, and the first request for each key asks for your master password.";
 "Put the cursor in the field below, then tap the metal contact on your YubiKey. The key types the code for you." = "Put the cursor in the field below, then tap the metal contact on your YubiKey. The key types the code for you.";
 "Re-enable %@" = "Re-enable %@";
 "Reading the file" = "Reading the file";
@@ -433,7 +433,7 @@
 "Text" = "Text";
 "That file does not contain a certificate. Choose a .pem, .crt or .cer file exported from your server." = "That file does not contain a certificate. Choose a .pem, .crt or .cer file exported from your server.";
 "That is not the master password for this account." = "That is not the master password for this account.";
-"The SSH client sent a request Prizm does not answer (%lld)." = "The SSH client sent a request Prizm does not answer (%lld).";
+"The SSH client sent a request Vitrine does not answer (%lld)." = "The SSH client sent a request Vitrine does not answer (%lld).";
 "The SSH client sent an incomplete request." = "The SSH client sent an incomplete request.";
 "The account fingerprint could not be derived." = "The account fingerprint could not be derived.";
 "The certificate for %@ is not the one this app recorded. It was replaced, or something is intercepting the connection." = "The certificate for %@ is not the one this app recorded. It was replaced, or something is intercepting the connection.";
@@ -441,25 +441,25 @@
 "The export file could not be read." = "The export file could not be read.";
 "The exported file is not encrypted. Store it somewhere safe." = "The exported file is not encrypted. Store it somewhere safe.";
 "The file is not encrypted. It contains every password, note, one-time-code seed and previous password in plain text." = "The file is not encrypted. It contains every password, note, one-time-code seed and previous password in plain text.";
-"The key type “%@” is not supported. Prizm can use ed25519 and RSA keys." = "The key type “%@” is not supported. Prizm can use ed25519 and RSA keys.";
+"The key type “%@” is not supported. Vitrine can use ed25519 and RSA keys." = "The key type “%@” is not supported. Vitrine can use ed25519 and RSA keys.";
 "The server response could not be read. Please try again." = "The server response could not be read. Please try again.";
 "The socket path is too long (%lld characters is the maximum): %@" = "The socket path is too long (%lld characters is the maximum): %@";
-"The timeout applies while the vault is unlocked and is measured from your last input in Prizm. Input in other applications does not count, so an untouched vault locks even if you are working elsewhere." = "The timeout applies while the vault is unlocked and is measured from your last input in Prizm. Input in other applications does not count, so an untouched vault locks even if you are working elsewhere.";
+"The timeout applies while the vault is unlocked and is measured from your last input in Vitrine. Input in other applications does not count, so an untouched vault locks even if you are working elsewhere." = "The timeout applies while the vault is unlocked and is measured from your last input in Vitrine. Input in other applications does not count, so an untouched vault locks even if you are working elsewhere.";
 "The vault is locked. Please unlock to continue." = "The vault is locked. Please unlock to continue.";
 "There is nothing to export — the vault is empty." = "There is nothing to export — the vault is empty.";
 "This SSH key could not be read." = "This SSH key could not be read.";
-"This build is not signed with an Apple Developer certificate, so macOS cannot protect the key itself. Prizm asks for %@ instead — the same prompt, checked by the app rather than by the system." = "This build is not signed with an Apple Developer certificate, so macOS cannot protect the key itself. Prizm asks for %@ instead — the same prompt, checked by the app rather than by the system.";
-"This build of Prizm is not signed with an Apple Developer certificate, so macOS does not allow it to store the key Touch ID unlock needs." = "This build of Prizm is not signed with an Apple Developer certificate, so macOS does not allow it to store the key Touch ID unlock needs.";
+"This build is not signed with an Apple Developer certificate, so macOS cannot protect the key itself. Vitrine asks for %@ instead — the same prompt, checked by the app rather than by the system." = "This build is not signed with an Apple Developer certificate, so macOS cannot protect the key itself. Vitrine asks for %@ instead — the same prompt, checked by the app rather than by the system.";
+"This build of Vitrine is not signed with an Apple Developer certificate, so macOS does not allow it to store the key Touch ID unlock needs." = "This build of Vitrine is not signed with an Apple Developer certificate, so macOS does not allow it to store the key Touch ID unlock needs.";
 "This file is not an unencrypted Bitwarden export." = "This file is not an unencrypted Bitwarden export.";
 "This file is not encrypted. Delete it when you no longer need it." = "This file is not encrypted. Delete it when you no longer need it.";
 "This includes %d items that belong to an organisation. The official Bitwarden export leaves those out." = "This includes %d items that belong to an organisation. The official Bitwarden export leaves those out.";
-"This is an encrypted export. Prizm can only import unencrypted exports." = "This is an encrypted export. Prizm can only import unencrypted exports.";
+"This is an encrypted export. Vitrine can only import unencrypted exports." = "This is an encrypted export. Vitrine can only import unencrypted exports.";
 "This is not a secret — read it aloud to compare. If it differs from the phrase another Bitwarden client shows for this account, you may not be talking to the same server." = "This is not a secret — read it aloud to compare. If it differs from the phrase another Bitwarden client shows for this account, you may not be talking to the same server.";
-"This is not an OpenSSH private key. Prizm reads the OpenSSH format ssh-keygen writes." = "This is not an OpenSSH private key. Prizm reads the OpenSSH format ssh-keygen writes.";
+"This is not an OpenSSH private key. Vitrine reads the OpenSSH format ssh-keygen writes." = "This is not an OpenSSH private key. Vitrine reads the OpenSSH format ssh-keygen writes.";
 "This item holds no private key." = "This item holds no private key.";
 "This item is in Trash." = "This item is in Trash.";
 "This key could not be read: %@" = "This key could not be read: %@";
-"This key is protected with a passphrase. Prizm does not store one for an SSH key, so it cannot use this key." = "This key is protected with a passphrase. Prizm does not store one for an SSH key, so it cannot use this key.";
+"This key is protected with a passphrase. Vitrine does not store one for an SSH key, so it cannot use this key." = "This key is protected with a passphrase. Vitrine does not store one for an SSH key, so it cannot use this key.";
 "This key will not produce a code." = "This key will not produce a code.";
 "This key will not produce a code. Paste the secret, or the otpauth:// URL the site shows when you cannot scan its QR code." = "This key will not produce a code. Paste the secret, or the otpauth:// URL the site shows when you cannot scan its QR code.";
 "This server doesn't appear to be a Bitwarden instance." = "This server doesn't appear to be a Bitwarden instance.";
@@ -509,7 +509,7 @@
 "Websites" = "Websites";
 "Words: %lld" = "Words: %lld";
 "You can also enable this in Settings at any time." = "You can also enable this in Settings at any time.";
-"Your %@ settings changed — a fingerprint was added or removed. For your security, Prizm disabled %@ unlock. Would you like to re-enable it?" = "Your %@ settings changed — a fingerprint was added or removed. For your security, Prizm disabled %@ unlock. Would you like to re-enable it?";
+"Your %@ settings changed — a fingerprint was added or removed. For your security, Vitrine disabled %@ unlock. Would you like to re-enable it?" = "Your %@ settings changed — a fingerprint was added or removed. For your security, Vitrine disabled %@ unlock. Would you like to re-enable it?";
 "Your Touch ID settings have changed. Please enter your master password to continue." = "Your Touch ID settings have changed. Please enter your master password to continue.";
 "Your secrets. Your server. Our user interface." = "Your secrets. Your server. Our user interface.";
 "Your session has expired. Try signing out and signing in again." = "Your session has expired. Try signing out and signing in again.";
@@ -523,7 +523,7 @@
 "save" = "save";
 "the directory could not be created" = "the directory could not be created";
 "the directory is not private to this user" = "the directory is not private to this user";
-"“%@” asked Prizm to sign with the SSH key “%@”." = "“%@” asked Prizm to sign with the SSH key “%@”.";
+"“%@” asked Vitrine to sign with the SSH key “%@”." = "“%@” asked Vitrine to sign with the SSH key “%@”.";
 "“%@” is protected. Enter your master password to continue." = "“%@” is protected. Enter your master password to continue.";
 "“%@” will be moved to Trash." = "“%@” will be moved to Trash.";
 "“%@” will be permanently deleted and cannot be recovered." = "“%@” will be permanently deleted and cannot be recovered.";
@@ -532,9 +532,9 @@
 "…and %d more." = "…and %d more.";
 "→ %@" = "→ %@";
 "%d items could not be read" = "%d items could not be read";
-"%d items could not be read. They are still on the server; Prizm could not decrypt them." = "%d items could not be read. They are still on the server; Prizm could not decrypt them.";
+"%d items could not be read. They are still on the server; Vitrine could not decrypt them." = "%d items could not be read. They are still on the server; Vitrine could not decrypt them.";
 "1 item could not be read" = "1 item could not be read";
-"1 item could not be read. It is still on the server; Prizm could not decrypt it." = "1 item could not be read. It is still on the server; Prizm could not decrypt it.";
+"1 item could not be read. It is still on the server; Vitrine could not decrypt it." = "1 item could not be read. It is still on the server; Vitrine could not decrypt it.";
 "Generic" = "Generic";
 "Bank Account" = "Bank Account";
 "Driver's Licence" = "Driver's Licence";
@@ -551,11 +551,11 @@
 "PIN" = "PIN";
 "%d attempts left before the PIN is removed." = "%d attempts left before the PIN is removed.";
 "Unlock with a PIN" = "Unlock with a PIN";
-"Require the master password after restarting Prizm" = "Require the master password after restarting Prizm";
-"With this on, a PIN cannot unlock Prizm until you have entered your master password once since it started." = "With this on, a PIN cannot unlock Prizm until you have entered your master password once since it started.";
+"Require the master password after restarting Vitrine" = "Require the master password after restarting Vitrine";
+"With this on, a PIN cannot unlock Vitrine until you have entered your master password once since it started." = "With this on, a PIN cannot unlock Vitrine until you have entered your master password once since it started.";
 "A PIN is shorter than your master password, so it protects the local vault less. Five wrong PINs remove it and sign you out." = "A PIN is shorter than your master password, so it protects the local vault less. Five wrong PINs remove it and sign you out.";
 "Set a PIN" = "Set a PIN";
-"At least %d characters. It unlocks Prizm on this Mac only." = "At least %d characters. It unlocks Prizm on this Mac only.";
+"At least %d characters. It unlocks Vitrine on this Mac only." = "At least %d characters. It unlocks Vitrine on this Mac only.";
 "Confirm PIN" = "Confirm PIN";
 "Set PIN" = "Set PIN";
 "The two PINs do not match." = "The two PINs do not match.";
@@ -596,4 +596,24 @@
 "Unknown (%d)" = "Unknown (%d)";
 
 // MARK: - A stored key that would not delete
-"Prizm could not delete the stored key, so this is still enabled. Try turning it off again." = "Prizm could not delete the stored key, so this is still enabled. Try turning it off again.";
+"Vitrine could not delete the stored key, so this is still enabled. Try turning it off again." = "Vitrine could not delete the stored key, so this is still enabled. Try turning it off again.";
+
+// MARK: - One credential at a time on the unlock screen
+"Enter the PIN for %@ to unlock." = "Enter the PIN for %@ to unlock.";
+"%@ or enter the PIN for %@ to unlock." = "%@ or enter the PIN for %@ to unlock.";
+"Use PIN instead" = "Use PIN instead";
+"Use master password instead" = "Use master password instead";
+"Enter your PIN to unlock." = "Enter your PIN to unlock.";
+"Enter your master password to unlock." = "Enter your master password to unlock.";
+"Enter the address of your server." = "Enter the address of your server.";
+"Enter your email address." = "Enter your email address.";
+"Enter your master password." = "Enter your master password.";
+
+// MARK: - The sensor locked itself after repeated failures
+"Too many failed Touch ID attempts — enter your master password" = "Too many failed Touch ID attempts — enter your master password";
+
+// MARK: - Import refuses an oversized file before reading it
+"That file is too large to import: %@ MB. Vitrine imports exports up to %@ MB." = "That file is too large to import: %@ MB. Vitrine imports exports up to %@ MB.";
+
+// MARK: - The product name, as a bare title
+"Vitrine" = "Vitrine";

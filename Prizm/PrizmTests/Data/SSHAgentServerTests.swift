@@ -278,7 +278,7 @@ final class SSHAgentServerTests: XCTestCase {
     /// Settings text and the bind would leave the user exporting a socket that does not exist.
     func testDefaultPath_isUnderTheUsersLibraryAndShortEnoughToBind() {
         let path = SSHAgentSocketLocation.defaultPath()
-        XCTAssertTrue(path.hasSuffix("/Library/Application Support/Prizm/ssh-agent/agent.sock"),
+        XCTAssertTrue(path.hasSuffix("/Library/Application Support/Vitrine/ssh-agent/agent.sock"),
                       "unexpected socket location: \(path)")
         XCTAssertTrue(path.count < 103, "too long to bind: \(path)")
     }

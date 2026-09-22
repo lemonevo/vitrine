@@ -155,9 +155,9 @@ nonisolated enum SSHSignerError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .unusableKey:
-            return L("Prizm could not use this SSH key.")
+            return L("Vitrine could not use this SSH key.")
         case .signingFailed:
-            return L("Prizm could not sign with this SSH key.")
+            return L("Vitrine could not sign with this SSH key.")
         }
     }
 }

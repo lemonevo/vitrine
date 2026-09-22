@@ -75,7 +75,7 @@ struct PasskeysSection: View {
                     }
                 }
 
-                Text(L("Prizm cannot use these passkeys to sign in. Register, use and remove them from another Bitwarden client."))
+                Text(L("Vitrine cannot use these passkeys to sign in. Register, use and remove them from another Bitwarden client."))
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)

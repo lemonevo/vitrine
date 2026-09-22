@@ -241,6 +241,44 @@ final class VaultBrowserViewModelBackupTests: XCTestCase {
         XCTAssertEqual(importUseCase.callCount, 0)
     }
 
+    /// A file far too large to be a vault export is refused on its metadata, before any of its bytes
+    /// are read.
+    ///
+    /// The size is created with `truncate(atOffset:)` so the test allocates nothing: a sparse file
+    /// reports its full length to `fileSize` without 80 MB of I/O — which is exactly the property the
+    /// preflight depends on.
+    func test_requestImport_oversizedFile_isRefusedBeforeBeingRead() throws {
+        let fileURL = URL(fileURLWithPath: "/tmp/prizm-oversized-\(UUID().uuidString).json")
+        defer { try? FileManager.default.removeItem(at: fileURL) }
+        try Data("{}".utf8).write(to: fileURL)
+        let handle = try FileHandle(forWritingTo: fileURL)
+        try handle.truncate(atOffset: UInt64(80 * 1024 * 1024))
+        try handle.close()
+        files.pickerResult = fileURL
+
+        sut.requestImport()
+
+        XCTAssertNil(sut.backupSheet, "no progress sheet for a file that was never read")
+        XCTAssertEqual(importUseCase.callCount, 0)
+        XCTAssertTrue(sut.actionError?.contains("64.0") == true,
+                      "The message has to name the limit rather than just say \"too large\": \(sut.actionError ?? "nil")")
+    }
+
+    /// A file whose size cannot be read is let through rather than refused.
+    ///
+    /// The failure being prevented is a mistaken file selection, not a hostile one — and refusing a
+    /// legitimate export because a volume declined to report a length would trade a real breakage for
+    /// a hypothetical one.
+    func test_requestImport_unknownFileSize_stillAttemptsTheRead() async {
+        files.pickerResult = URL(fileURLWithPath: "/tmp/definitely-not-here-\(UUID().uuidString).json")
+
+        sut.requestImport()
+        await waitUntil { self.sut.actionError != nil }
+
+        XCTAssertTrue(sut.actionError?.contains("too large") == false,
+                      "A missing file must fail as a missing file, not as an oversized one")
+    }
+
     func test_requestImport_success_showsTheReport() async {
         let fileURL = URL(fileURLWithPath: "/tmp/export.json")
         try? Data("{}".utf8).write(to: fileURL)

@@ -117,7 +117,7 @@ struct SettingsView: View {
             } header: {
                 Text("Privacy")
             } footer: {
-                Text("Icons are loaded from your own server, never from a third party. Turn this off to skip the request entirely — items then show a generic symbol.\n\nThe clipboard is cleared only if Prizm's own value is still on it.")
+                Text("Icons are loaded from your own server, never from a third party. Turn this off to skip the request entirely — items then show a generic symbol.\n\nThe clipboard is cleared only if Vitrine's own value is still on it.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -134,7 +134,7 @@ struct SettingsView: View {
                     BiometricUnlockToggle(authRepository: authRepository, biometryName: name)
 
                     if !systemEnforced {
-                        Text(L("This build is not signed with an Apple Developer certificate, so macOS cannot protect the key itself. Prizm asks for %@ instead — the same prompt, checked by the app rather than by the system.", name))
+                        Text(L("This build is not signed with an Apple Developer certificate, so macOS cannot protect the key itself. Vitrine asks for %@ instead — the same prompt, checked by the app rather than by the system.", name))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -178,7 +178,7 @@ struct SettingsView: View {
             } header: {
                 Text("Security")
             } footer: {
-                Text("The timeout applies while the vault is unlocked and is measured from your last input in Prizm. Input in other applications does not count, so an untouched vault locks even if you are working elsewhere.")
+                Text("The timeout applies while the vault is unlocked and is measured from your last input in Vitrine. Input in other applications does not count, so an untouched vault locks even if you are working elsewhere.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

@@ -1,3 +1,4 @@
+import LocalAuthentication
 import Security
 import XCTest
 @testable import Prizm
@@ -176,6 +177,36 @@ final class AuthRepositoryImplBiometricTests: XCTestCase {
             XCTAssertFalse(UserDefaults.standard.bool(forKey: "biometricUnlockEnabled"))
             XCTAssertFalse(UserDefaults.standard.bool(forKey: "biometricEnrollmentPromptShown"))
         }
+    }
+
+    /// The system locked the sensor after repeated failures. Before this case existed the raw
+    /// `LAError` reached the unlock screen, whose generic handler prints `localizedDescription` — an
+    /// untranslated framework string that names neither the cause nor the way out.
+    func testUnlockWithBiometrics_sensorLockedOut_reportsLockout() async {
+        mockBiometricKeychain.readError = LAError(.biometryLockout)
+
+        do {
+            _ = try await sut.unlockWithBiometrics()
+            XCTFail("Expected biometricLockout")
+        } catch {
+            XCTAssertEqual(error as? AuthError, .biometricLockout)
+        }
+    }
+
+    /// Lockout is the sensor resting, not the enrollment changing. Turning biometric unlock off here
+    /// would punish the user for something macOS will undo on its own, and would mean the next launch
+    /// has no Touch ID at all for someone whose only crime was five bad fingers.
+    func testUnlockWithBiometrics_lockoutDoesNotDisableTheFeature() async {
+        UserDefaults.standard.set(true, forKey: "biometricUnlockEnabled")
+        UserDefaults.standard.set(true, forKey: "biometricEnrollmentPromptShown")
+        mockBiometricKeychain.readError = LAError(.biometryLockout)
+
+        _ = try? await sut.unlockWithBiometrics()
+
+        XCTAssertTrue(UserDefaults.standard.bool(forKey: "biometricUnlockEnabled"),
+                      "A locked-out sensor must leave the setting on")
+        XCTAssertTrue(UserDefaults.standard.bool(forKey: "biometricEnrollmentPromptShown"),
+                      "…and must not clear the seen-prompt flag, which would nag again on next unlock")
     }
 
     // MARK: - signOut clears biometric

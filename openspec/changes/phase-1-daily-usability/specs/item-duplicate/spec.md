@@ -22,7 +22,7 @@ The following SHALL NOT be copied, and each exclusion is deliberate:
   no attachments, and sharing the key would leave the original's attachments wrapped with a key
   that two ciphers now claim.
 - **Passkeys (`fido2Credentials`)** — a passkey is a credential for one account. Two ciphers holding
-  the same credential is a state no Bitwarden client expects, and Prizm offers no UI to inspect or
+  the same credential is a state no Bitwarden client expects, and Vitrine offers no UI to inspect or
   remove the copy.
 - **Password history** — that history belongs to the original cipher.
 - **Archived date** — a duplicate is a new item and is not archived.

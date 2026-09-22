@@ -21,7 +21,7 @@ final class LocalizationResourcesTests: XCTestCase {
     private func stringsBundle(for region: String) throws -> Bundle {
         let path = try XCTUnwrap(
             Bundle.main.path(forResource: region, ofType: "lproj"),
-            "Prizm.app carries no \(region).lproj — Localizable.strings is not in the build"
+            "Vitrine.app carries no \(region).lproj — Localizable.strings is not in the build"
         )
         return try XCTUnwrap(Bundle(path: path), "\(region).lproj is not a loadable bundle")
     }
@@ -30,7 +30,7 @@ final class LocalizationResourcesTests: XCTestCase {
         for region in regions {
             let bundle = try stringsBundle(for: region)
             // Any real key will do as a probe; this one is on the unlock screen every user sees.
-            let value = bundle.localizedString(forKey: "Prizm Is Locked", value: "§missing§", table: nil)
+            let value = bundle.localizedString(forKey: "Vitrine Is Locked", value: "§missing§", table: nil)
             XCTAssertNotEqual(value, "§missing§", "\(region).lproj has no Localizable.strings entry")
             XCTAssertFalse(value.isEmpty, "\(region).lproj translated a heading to nothing")
         }

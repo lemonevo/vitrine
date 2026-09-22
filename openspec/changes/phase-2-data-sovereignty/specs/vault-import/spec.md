@@ -6,7 +6,7 @@ The application SHALL offer a command that reads a Bitwarden **unencrypted** JSO
 the items it contains. The command SHALL be unavailable unless the vault is unlocked.
 
 An input with `encrypted: true`, or without an `items` array, SHALL be refused with an explanation
-that Prizm imports unencrypted exports only. Nothing SHALL be created in that case.
+that Vitrine imports unencrypted exports only. Nothing SHALL be created in that case.
 
 #### Scenario: Importing creates the items
 - **GIVEN** a file containing 12 items

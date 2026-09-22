@@ -28,7 +28,7 @@
 
 - [x] 3.1 `SyncStatusView` takes the count and renders it below the freshness label when it is
       non-zero, with a warning treatment (icon + colour) distinct from the label.
-- [x] 3.2 The tooltip states that the items are still on the server and that Prizm could not read
+- [x] 3.2 The tooltip states that the items are still on the server and that Vitrine could not read
       them. Both halves — a count alone invites the conclusion that the items were deleted.
 - [x] 3.3 `VaultBrowserView` passes it through from the view model.
 - [x] 3.4 Accessibility: the row has a label that reads as a sentence, and an accessibility identifier,
@@ -52,11 +52,11 @@
 
 - [x] 6.1 Full suite green except the baseline recorded in `fix-test-target-buildability`.
       → **1321 passed / 0 failures.**
-- [x] 6.2 Manual: with a server that returns a cipher Prizm cannot map, unlock and confirm the sidebar
+- [x] 6.2 Manual: with a server that returns a cipher Vitrine cannot map, unlock and confirm the sidebar
       reports the count while the rest of the vault is usable.
 - [x] 6.3 Manual: confirm the count disappears after a sync that reads everything.
 
-> **6.2–6.3 are outstanding.** They need a signed app and a server that will return a cipher Prizm
+> **6.2–6.3 are outstanding.** They need a signed app and a server that will return a cipher Vitrine
 > cannot map — neither is available to the agent that wrote this change. What is unproven is the last
 > inch: that the line renders in the footer and clears on the next good sync. The count's path from
 > the repository to `unreadableItemCount`, and the strings it renders, are covered by

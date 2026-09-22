@@ -6,11 +6,11 @@
       (`Prizm/Prizm.xcodeproj/project.pbxproj`, config `4309FD132F68121F0031C9F4`).
 - [x] 1.2 `PrizmTests` Release configuration gains the same setting (config
       `4309FD142F68121F0031C9F4`).
-- [x] 1.3 `PrizmTests` `SWIFT_VERSION` becomes `5.0` in both configurations. `Prizm` stays at `6.0`.
-- [x] 1.4 Confirmed no other `PrizmTests` setting diverges from `Prizm` in a way that matters. The
+- [x] 1.3 `PrizmTests` `SWIFT_VERSION` becomes `5.0` in both configurations. `Vitrine` stays at `6.0`.
+- [x] 1.4 Confirmed no other `PrizmTests` setting diverges from `Vitrine` in a way that matters. The
       full comparison, read from `project.pbxproj`:
 
-      | setting | `Prizm` | `PrizmTests` | note |
+      | setting | `Vitrine` | `PrizmTests` | note |
       | --- | --- | --- | --- |
       | `SWIFT_VERSION` | 6.0 | **5.0** | the intended divergence — Design Decision 1 |
       | `SWIFT_DEFAULT_ACTOR_ISOLATION` | MainActor | MainActor | now matched |
@@ -35,7 +35,7 @@
         That string is emitted by **`xcpretty`**, which CI pipes through and a local run does not.
         Without it the markers are `** TEST SUCCEEDED **` and one `Test case '…' passed on` line per
         case. Check for those two, not for `Executed`.
-- [x] 2.2 The app target still builds, and this change did not touch it. `Prizm` config `434D9EC3`/
+- [x] 2.2 The app target still builds, and this change did not touch it. `Vitrine` config `434D9EC3`/
       `434D9EC7` are unmodified (`SWIFT_VERSION = 6.0`, `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`,
       as before); `git diff` on `project.pbxproj` is confined to the two `PrizmTests` configs.
 
@@ -65,7 +65,7 @@
 **Captured 2026-09-21.**
 
 ```
-xcodebuild test -project "Prizm/Prizm.xcodeproj" -scheme "Prizm" -destination "platform=macOS" \
+xcodebuild test -project "Prizm/Prizm.xcodeproj" -scheme "Vitrine" -destination "platform=macOS" \
   CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
 ```
 
@@ -84,7 +84,7 @@ and the note names that as the cause: "seven `PasswordGeneratorTests` and one
 `PasswordGeneratorViewModelTests`, all of which need `Assets.car` or the EFF wordlist, neither of
 which exists when `Bundle.main` is the xctest runner", plus one `CardBackground`.
 
-Under the Xcode project the test bundle is hosted by the app (`TEST_HOST = …/Prizm.app/…/Prizm`), so
+Under the Xcode project the test bundle is hosted by the app (`TEST_HOST = …/Vitrine.app/…/Prizm`), so
 `Bundle.main` **is** the app bundle, the resources are present, and those same tests pass. Verified
 directly: 36 `PasswordGenerator*` cases ran and passed, and `CardBackgroundTests` ran and passed.
 

@@ -18,7 +18,7 @@ import os.log
 /// zeroed.
 actor AccountKeyCache {
 
-    private let logger = Logger(subsystem: "com.prizm", category: "AccountKeyCache")
+    private let logger = Logger(subsystem: "dev.lemonevo.vitrine", category: "AccountKeyCache")
 
     /// The account's RSA public key, SPKI DER — the exact bytes the reference hashes.
     private var publicKey: Data?

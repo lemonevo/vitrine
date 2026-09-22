@@ -138,15 +138,20 @@ final class AccountFingerprintPhraseTests: XCTestCase {
 
     // MARK: - Fixture
 
-    /// Read from the repository rather than `Bundle.main`: `swift test` has no resource bundle,
-    /// which is why the generator's own word-list cases are among the known baseline failures.
+        /// The reference word list, read the way production reads it: from the app bundle.
+    ///
+    /// This used to reach into the source tree via `#filePath`, with a comment justifying it by
+    /// "`swift test` has no resource bundle" — a build recipe this project does not support and whose
+    /// failures are not real. That choice also made the suite depend on reading a file under
+    /// `~/Desktop`, which is a TCC-protected location: when the bundle identifier changed, macOS
+    /// treated the test host as a new application and the `open()` blocked on a consent decision no
+    /// one was there to make. Reading the shipped resource cannot hang that way, and it asserts
+    /// against the copy that actually reaches users.
     private static func wordList() throws -> [String] {
-        let url = URL(fileURLWithPath: #filePath)          // .../Prizm/PrizmTests/Data/<file>
-            .deletingLastPathComponent()                    // Data
-            .deletingLastPathComponent()                    // PrizmTests
-            .deletingLastPathComponent()                    // Prizm
-            .deletingLastPathComponent()                    // repository root
-            .appendingPathComponent("Prizm/Resources/eff-large-wordlist.txt")
+        let url = try XCTUnwrap(
+            Bundle.main.url(forResource: "eff-large-wordlist", withExtension: "txt"),
+            "Vitrine.app carries no eff-large-wordlist.txt — the resource is not in the build"
+        )
         let text = try String(contentsOf: url, encoding: .utf8)
         let words = text.split(separator: "\n").map(String.init).filter { !$0.isEmpty }
         guard words.count == 7776 else {

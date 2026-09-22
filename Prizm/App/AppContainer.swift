@@ -120,6 +120,14 @@ final class AppContainer: ObservableObject {
     /// to "is this session still running", and it would be the copy that says yes.
     let sessionEpoch = SessionEpoch()
 
+    /// Which credential the unlock screen asks for first, for as long as this process runs.
+    ///
+    /// One instance because the answer belongs to the launch, not to a screen: `RootViewModel` builds
+    /// a fresh `UnlockViewModel` every time the vault locks (`PrizmApp.swift:803`), so a shortcut the
+    /// user earned with a successful PIN would be forgotten at the next lock if it lived in the view
+    /// model. Deliberately never written to disk — see `UnlockCredentialPreference`.
+    let unlockCredentialPreference = UnlockCredentialPreference()
+
     // MARK: - Session-scoped, memory-only state
 
     /// The values generated and used during this session, newest first.
@@ -318,7 +326,10 @@ final class AppContainer: ObservableObject {
 
     /// Creates an `UnlockViewModel` for a returning user with a stored session.
     func makeUnlockViewModel(account: Account) -> UnlockViewModel {
-        UnlockViewModel(auth: authRepository, sync: syncUseCase, account: account)
+        UnlockViewModel(auth: authRepository,
+                        sync: syncUseCase,
+                        account: account,
+                        credentialPreference: unlockCredentialPreference)
     }
 
     /// Creates a `VaultBrowserViewModel` backed by the live vault store.

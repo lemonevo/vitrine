@@ -2,7 +2,7 @@
 
 ## Why
 
-Renaming a collection in Prizm wipes every other member's and group's access to it.
+Renaming a collection in Vitrine wipes every other member's and group's access to it.
 
 ```
 RawCollection            decodes id, organizationId, name — and nothing else
@@ -39,7 +39,7 @@ is a whitelist, and the encoder invents whatever the whitelist left out.**
 
 ## Non-goals
 
-- **Editing permissions.** Prizm has no UI for granting a member or group access, and adding one is a
+- **Editing permissions.** Vitrine has no UI for granting a member or group access, and adding one is a
   separate feature. This change makes the client *stop destroying* permissions it was given; it does
   not introduce managing them.
 - **Modelling the permission shape.** Deliberately opaque: `readOnly`, `hidePasswords` and `manage`

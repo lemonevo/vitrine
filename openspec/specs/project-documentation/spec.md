@@ -2,21 +2,21 @@
 
 ### Requirement: README exists and is release-quality
 The repository SHALL contain a `README.md` at the root that serves as the primary
-landing page for users discovering Prizm on GitHub. It SHALL follow this structure:
-app icon → centered headline → badges → one-liner → tagline → screenshot → Why Prizm →
+landing page for users discovering Vitrine on GitHub. It SHALL follow this structure:
+app icon → centered headline → badges → one-liner → tagline → screenshot → Why Vitrine →
 Privacy → Security → Features → Requirements → Install → Roadmap →
 Known Limitations → Contributing → Mission & Principles.
 
 #### Scenario: User lands on the GitHub repo
 - **WHEN** a user visits the GitHub repository
-- **THEN** they see the Prizm app icon centered above the headline, followed by a centered `# Prizm` headline, badges (build status, Swift version, macOS version, license), a one-sentence description ("Native macOS client for Vaultwarden and self-hosted Bitwarden, built in Swift."), and the tagline "Your secrets. Your server. Our user interface."
+- **THEN** they see the Vitrine app icon centered above the headline, followed by a centered `# Vitrine` headline, badges (build status, Swift version, macOS version, license), a one-sentence description ("Native macOS client for Vaultwarden and self-hosted Bitwarden, built in Swift."), and the tagline "Your secrets. Your server. Our user interface."
 
 #### Scenario: User scans badges
 - **WHEN** a user glances at the badge row
 - **THEN** they can immediately confirm: CI build status, Swift 6.2, macOS 26+, and the license
 
-#### Scenario: User reads Why Prizm
-- **WHEN** a user reads the Why Prizm section
+#### Scenario: User reads Why Vitrine
+- **WHEN** a user reads the Why Vitrine section
 - **THEN** they find a direct honest comparison to the official Bitwarden macOS client explaining the Mac Gap (native vs. Electron, macOS conventions, first-class UI)
 
 #### Scenario: User reads the Privacy section
@@ -91,10 +91,10 @@ The repository SHALL contain a `SECURITY.md` at the root satisfying CONSTITUTION
 The app SHALL show a custom SwiftUI About window (replacing the default macOS About panel)
 containing: app name, version, tagline, clickable GitHub repository link, "Built with"
 section (Swift 6.2, open source, auditable), and acknowledgements (Vaultwarden/Bitwarden
-API, Argon2Swift). No copyright line. Accessible via Prizm → About Prizm menu item.
+API, Argon2Swift). No copyright line. Accessible via Vitrine → About Vitrine menu item.
 
-#### Scenario: User opens About Prizm
-- **WHEN** a user selects Prizm → About Prizm from the menu bar
+#### Scenario: User opens About Vitrine
+- **WHEN** a user selects Vitrine → About Vitrine from the menu bar
 - **THEN** a window appears showing the app name, current version, tagline ("Your secrets. Your server. Our user interface."), a clickable link to the GitHub repository, the "Built with" section, and acknowledgements
 
 #### Scenario: User clicks the GitHub link
@@ -105,15 +105,15 @@ API, Argon2Swift). No copyright line. Accessible via Prizm → About Prizm menu 
 - **WHEN** the About window is shown
 - **THEN** the version number matches the value in `Info.plist` (CFBundleShortVersionString + CFBundleVersion)
 
-### Requirement: GitHub repository About section reflects Prizm
+### Requirement: GitHub repository About section reflects Vitrine
 The GitHub repository About section (description, website, topics) SHALL be updated
-to reflect the Prizm identity. Description: "Native macOS client for Vaultwarden and
+to reflect the Vitrine identity. Description: "Native macOS client for Vaultwarden and
 self-hosted Bitwarden." Topics: `macos`, `swift`, `swiftui`, `bitwarden`, `vaultwarden`,
 `password-manager`, `open-source`.
 
 #### Scenario: User lands on the GitHub repo page
 - **WHEN** a user visits the repository on GitHub
-- **THEN** the About section shows the Prizm description and relevant topics, not the old Prizm text
+- **THEN** the About section shows the Vitrine description and relevant topics, not the old Vitrine text
 
 ### Requirement: GitHub repository is renamed to match the app name
 The GitHub repository SHALL be renamed from `prizm` to `prizm` and the local git
@@ -152,7 +152,7 @@ social media or messaging apps.
 
 #### Scenario: Repo link is shared
 - **WHEN** a user shares the GitHub URL in Slack, Twitter, or iMessage
-- **THEN** the preview card shows the Prizm icon, name, and tagline — not a blank or generic GitHub card
+- **THEN** the preview card shows the Vitrine icon, name, and tagline — not a blank or generic GitHub card
 
 ### Requirement: Branch protection on main
 The `main` branch SHALL be protected: direct pushes are disallowed, CI must pass before
@@ -163,18 +163,18 @@ merge, and at least one review is required. Configured in GitHub Settings → Br
 - **THEN** GitHub rejects the push and instructs them to open a pull request
 
 ### Requirement: README screenshot is a real app capture (macOS only)
-The screenshot in `README.md` SHALL be an actual capture of the running Prizm app, not
+The screenshot in `README.md` SHALL be an actual capture of the running Vitrine app, not
 a placeholder. Capture is automated via `screencapture` on macOS and committed to
 `assets/screenshot.png`. The app icon PNG for the README header is stored at `assets/icon.png`.
 This task MUST be run on a macOS host — it cannot be automated on Linux.
 
 #### Scenario: User sees a screenshot in the README
 - **WHEN** a user visits the GitHub repository
-- **THEN** the screenshot shows the real Prizm UI (vault list + detail pane), not a placeholder image
+- **THEN** the screenshot shows the real Vitrine UI (vault list + detail pane), not a placeholder image
 
 #### Scenario: Screenshot is captured automatically
 - **WHEN** this task is executed on macOS
-- **THEN** Prizm is launched, the main window ID is retrieved via AppleScript, `screencapture -l` captures it losslessly, and the result is saved to `assets/screenshot.png`
+- **THEN** Vitrine is launched, the main window ID is retrieved via AppleScript, `screencapture -l` captures it losslessly, and the result is saved to `assets/screenshot.png`
 
 ### Requirement: LocalConfig.xcconfig.template exists
 The repository SHALL contain `Prizm/LocalConfig.xcconfig.template` so contributors

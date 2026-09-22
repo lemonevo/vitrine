@@ -46,7 +46,7 @@ Probing `https://vault.example.com` directly:
 | TLS | verifies clean; served by Cloudflare |
 
 So the certificate was never the problem, and the icon service simply is not reachable at the URL
-Prizm builds. Prizm's construction — `ServerEnvironment.iconsURL` = `{base}/icons`
+Vitrine builds. Vitrine's construction — `ServerEnvironment.iconsURL` = `{base}/icons`
 (`Account.swift:28`) — is the canonical Bitwarden/Vaultwarden path, so this is a server-side routing
 choice: the reverse proxy exposes Vaultwarden under `/api` and leaves `/icons` to the web vault's
 static catch-all.
@@ -60,7 +60,7 @@ old wiring would have failed exactly as described. What it does not do is explai
 There is no in-app way to point the icon service elsewhere. `ServerURLOverrides.icons` exists on the
 model but is always `nil` in production and has no UI — recorded in
 `FEATURE-GAP-ANALYSIS.md` §3. So a user on this style of deployment cannot turn icons on from inside
-Prizm at all, and **the item list has to be designed assuming favicons are absent.**
+Vitrine at all, and **the item list has to be designed assuming favicons are absent.**
 
 ## Non-goals
 

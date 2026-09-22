@@ -1,10 +1,10 @@
 # Design — phase 2 (data sovereignty and security tools)
 
-## D1. The export format is Bitwarden's own unencrypted JSON, not a Prizm format
+## D1. The export format is Bitwarden's own unencrypted JSON, not a Vitrine format
 
-A backup that only Prizm can read is not an escape hatch — it is a second lock. The file is
+A backup that only Vitrine can read is not an escape hatch — it is a second lock. The file is
 therefore the format every Bitwarden client already imports, so the vault can be restored by
-Prizm, by the official desktop app, by `bw`, or by any Vaultwarden-compatible tool.
+Vitrine, by the official desktop app, by `bw`, or by any Vaultwarden-compatible tool.
 
 **The shape below was read out of Bitwarden's own export classes, not reconstructed from
 memory** — `libs/common/src/models/export/*.export.ts` and
@@ -68,12 +68,12 @@ merely incomplete:
 | `attachments` | The reference export puts blobs in a separate ZIP (`getDecryptedExportZip`); the plain JSON carries none. A file listing attachment names without their contents is a false promise, so the names are not written either. |
 | Items in Trash | Matches the reference implementation. |
 
-**Prizm exports organisation items; the reference individual export does not.** The official
+**Vitrine exports organisation items; the reference individual export does not.** The official
 individual export filters `c.organizationId != null` out, which means an official "export my
-vault" silently omits everything the user holds through an organisation. Prizm includes them, with
+vault" silently omits everything the user holds through an organisation. Vitrine includes them, with
 `organizationId` and `collectionIds` populated exactly as the official *org* export does. Every
 field used is one of the reference classes' own fields, so the file is still readable by any
-client; the difference is that it does not throw data away. Importing such a file into Prizm drops
+client; the difference is that it does not throw data away. Importing such a file into Vitrine drops
 the organisation membership and reports it (D4).
 
 The export therefore has a **documented boundary**, and the consent sheet names it. Silently
@@ -86,7 +86,7 @@ vault export operation."* A modal sheet states, before anything is written:
 
 - the file contains **every password in the vault, in plain text**;
 - anyone who can read the file can read the vault;
-- it will not be encrypted and Prizm cannot protect it afterwards.
+- it will not be encrypted and Vitrine cannot protect it afterwards.
 
 The user must confirm. Cancelling writes nothing and leaves no partial file.
 
@@ -140,7 +140,7 @@ all three counts and lists the reasons; it does not show a green tick.
 
 ## D5. The strength estimator is local and pattern-aware, and says what it is
 
-Bitwarden uses `zxcvbn`. Prizm does not, and the reason is the Constitution: *"Prefer Apple-first
+Bitwarden uses `zxcvbn`. Vitrine does not, and the reason is the Constitution: *"Prefer Apple-first
 APIs; minimize external dependencies"* and the third-party crypto prohibition. `zxcvbn` is not
 crypto, but a password-strength estimate is security-relevant input to a security decision, and
 its value is almost entirely its dictionaries — 30k+ common passwords and a full English word
@@ -182,7 +182,7 @@ cannot see.
 |---|---|---|
 | Weak | strength score ≤ *weak* | The estimator's output, applied across the vault. |
 | Reused | the same non-empty password on ≥ 2 login items | One breach becomes several. |
-| Stale | `preserved.passwordRevisionDate` is absent, or older than 2 years | The server maintains this date; ignoring it wastes a field Prizm already carries. |
+| Stale | `preserved.passwordRevisionDate` is absent, or older than 2 years | The server maintains this date; ignoring it wastes a field Vitrine already carries. |
 | Unsecured site | a URI whose scheme is `http` | Plaintext credentials on the wire, and it is a one-line check. |
 | Missing TOTP | a login with a password and no `totp` seed | Bitwarden's "inactive 2FA". The seed is already decrypted and already in `LoginContent`. |
 
@@ -273,7 +273,7 @@ user never asked for and cannot see the contents of.
 
 `GeneratorHistory` is therefore a bounded ring buffer — the most recent 20 values, each with the
 timestamp it was generated — held in `AppContainer`, cleared by `lockVault()` and `signOut()`
-alongside the key caches. Nothing is written anywhere. Quitting Prizm loses it, which is the
+alongside the key caches. Nothing is written anywhere. Quitting Vitrine loses it, which is the
 correct behaviour and is stated in the section footer.
 
 The generator sheet reads it; the entry is only added when the user copies or accepts a value, not
@@ -300,7 +300,7 @@ password is frequently the current password of the account next door.
 
 ## D11. Two-factor: two new methods, and an honest name for the rest
 
-Provider numbers are the server's `TwoFactorProviderType` enum. Prizm now handles:
+Provider numbers are the server's `TwoFactorProviderType` enum. Vitrine now handles:
 
 | # | Method | How it is completed |
 |---|---|---|
@@ -334,7 +334,7 @@ implementation precisely.
 
 **This item is therefore gated on verifying the algorithm against the Bitwarden client source
 before any code is written.** If the algorithm cannot be confirmed, the feature is dropped rather
-than shipped as "a phrase Prizm computes", and the gap analysis records why. A five-word phrase
+than shipped as "a phrase Vitrine computes", and the gap analysis records why. A five-word phrase
 that does not match the official client would be actively misleading in exactly the situation it
 exists for.
 

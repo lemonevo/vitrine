@@ -83,7 +83,7 @@ final class SSHAgentCoordinator: ObservableObject {
     private let vault:      any VaultRepository
     private let authorizer: SSHAgentAuthorizer
     private let defaults:   UserDefaults
-    private let logger = Logger(subsystem: "com.prizm", category: "SSHAgent")
+    private let logger = Logger(subsystem: "dev.lemonevo.vitrine", category: "SSHAgent")
 
     private let configuredPath: String
 

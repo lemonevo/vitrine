@@ -9,7 +9,7 @@ import os.log
 final class EmptyTrashUseCaseImpl: EmptyTrashUseCase {
 
     private let repository: any VaultRepository
-    private let logger = Logger(subsystem: "com.prizm", category: "EmptyTrashUseCase")
+    private let logger = Logger(subsystem: "dev.lemonevo.vitrine", category: "EmptyTrashUseCase")
 
     init(repository: any VaultRepository) {
         self.repository = repository

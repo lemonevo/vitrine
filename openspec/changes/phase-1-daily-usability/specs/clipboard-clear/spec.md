@@ -36,9 +36,9 @@ Choosing "never" SHALL leave the copied value on the clipboard indefinitely.
 - **THEN** only one clear SHALL be pending, and it SHALL be the one for the second password
 
 #### Scenario: A value copied from elsewhere is not cleared
-- **GIVEN** the user copied a value from Prizm
+- **GIVEN** the user copied a value from Vitrine
 - **WHEN** the user copies something else from another application before the interval elapses
-- **THEN** Prizm SHALL NOT clear the clipboard
+- **THEN** Vitrine SHALL NOT clear the clipboard
 
 #### Scenario: Interval persists
 - **WHEN** the user selects an interval and relaunches the application

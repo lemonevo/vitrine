@@ -1,11 +1,11 @@
 # Contributing
 
-Contributions are welcome — whether it's a bug report, a feature idea, or a pull request. Every bit helps make Prizm better.
+Contributions are welcome — whether it's a bug report, a feature idea, or a pull request. Every bit helps make Vitrine better.
 
 ## Quick Start
 
 ```bash
-git clone https://github.com/b0x42/prizm.git
+git clone https://github.com/lemonevo/vitrine.git
 cd prizm
 cp Prizm/LocalConfig.xcconfig.template Prizm/LocalConfig.xcconfig
 # Fill in your Apple Team ID in LocalConfig.xcconfig
@@ -18,14 +18,14 @@ No package managers needed. Build with `⌘R`, run tests with `⌘U`.
 
 ## Found a Bug? Have an Idea?
 
-[Open an issue](https://github.com/b0x42/prizm/issues/new). A short description with steps to reproduce is plenty. Screenshots help too.
+[Open an issue](https://github.com/lemonevo/vitrine/issues/new). A short description with steps to reproduce is plenty. Screenshots help too.
 
 ## Want to Submit Code?
 
 1. Fork the repo, branch off `main`
 2. Make your change — keep it focused (one thing per PR)
 3. Run `⌘U` and make sure tests pass
-4. [Open a PR](https://github.com/b0x42/prizm/compare)
+4. [Open a PR](https://github.com/lemonevo/vitrine/compare)
 
 That's it. No CLA, no lengthy process.
 

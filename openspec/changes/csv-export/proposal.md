@@ -2,7 +2,7 @@
 
 ## Why
 
-Prizm exports one format: unencrypted Bitwarden JSON. Bitwarden offers `.json` (plaintext), `.csv`
+Vitrine exports one format: unencrypted Bitwarden JSON. Bitwarden offers `.json` (plaintext), `.csv`
 (plaintext), `.json (Encrypted)` and `.zip (with attachments)`.
 
 CSV is the format a user needs to **leave**. Every other manager reads it, and the official docs
@@ -31,7 +31,7 @@ CSV that the official client refuses to import is worse than no CSV, because the
 the moment they were relying on it.
 
 **Every omitted item is counted and reported.** The official docs say the unencrypted formats exclude
-cards, identities, passkeys and SSH keys — so omitting them is the official behaviour, not a Prizm
+cards, identities, passkeys and SSH keys — so omitting them is the official behaviour, not a Vitrine
 shortfall. Doing it *silently* would not be: a user who exports 400 items and gets 300 rows has to be
 told. `VaultExport` carries the count and the done sheet shows it.
 
