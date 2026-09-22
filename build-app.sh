@@ -39,8 +39,17 @@ cp "$BIN" "$APP/Contents/MacOS/Prizm"
 cp "$ROOT/Prizm/Resources/eff-large-wordlist.txt" "$APP/Contents/Resources/"
 
 # Localizations. `Bundle.main` looks for `Localizable.strings` inside
-# Contents/Resources/<lang>.lproj, which is exactly where Xcode would put them.
+# Contents/Resources/<lang>.lproj, so that is where they go.
+#
+# This duplicates what the Xcode project now does — `Localizable.strings` is a variant group in the
+# app target's Resources phase, registered on 2026-09-22 after having been in no build phase at all.
+# It stays because this script does not go through Xcode's resource pipeline: SwiftPM has no notion of
+# an `.lproj`, so without this copy the ad-hoc bundle would ship untranslated.
+#
 # `cp -R src dst/` nests src inside dst when dst already exists, so copy the contents.
+#
+# `LocalizationResourcesTests` checks the Xcode-built bundle carries these files; it runs against
+# `TEST_HOST`, so it guards the copy step above is not the only thing keeping Chinese alive.
 for lproj in "$ROOT"/Prizm/Resources/*.lproj; do
   [[ -d "$lproj" ]] || continue
   dest="$APP/Contents/Resources/$(basename "$lproj")"

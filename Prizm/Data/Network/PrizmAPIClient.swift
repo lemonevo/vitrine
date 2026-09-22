@@ -73,6 +73,17 @@ protocol PrizmAPIClientProtocol: Actor {
     /// Throws `SyncError.unauthorized` on HTTP 401.
     func fetchSync() async throws -> SyncResponse
 
+    /// GET `/sync?excludeDomains=true` — returns the decoded vault **and the response body as
+    /// received**.
+    ///
+    /// For callers that need to keep the server's bytes verbatim (the offline vault cache). The
+    /// body is a by-product of the same single decode `fetchSync` performs; it is not a second
+    /// parse and it is not a re-encoding of `SyncResponse`.
+    ///
+    /// Requires a valid `Authorization: Bearer <accessToken>` header.
+    /// Throws `SyncError.unauthorized` on HTTP 401.
+    func fetchSyncPayload() async throws -> (response: SyncResponse, body: Data)
+
     /// POST `/identity/connect/token` with `grant_type=refresh_token` — exchanges a refresh token
     /// for a new access token. Updates the stored access token on success.
     ///
@@ -210,7 +221,8 @@ protocol PrizmAPIClientProtocol: Actor {
     func createCollection(organizationId: String, encryptedName: String) async throws -> RawCollection
 
     /// PUT `/api/organizations/{orgId}/collections/{id}` — renames an existing collection.
-    func renameCollection(id: String, organizationId: String, encryptedName: String) async throws -> RawCollection
+    func renameCollection(id: String, organizationId: String, encryptedName: String,
+                          preserved: PreservedCollectionFields) async throws -> RawCollection
 
     /// DELETE `/api/organizations/{orgId}/collections/{id}` — deletes a collection.
     func deleteCollection(id: String, organizationId: String) async throws
@@ -419,7 +431,13 @@ actor PrizmAPIClientImpl: PrizmAPIClientProtocol {
 
     // MARK: - Init
 
-    init(session: URLSession = .shared, trustDelegate: ServerTrustDelegate? = nil) {
+    /// - Parameters:
+    ///   - session: The session to send with. Required, with no default: see `FaviconLoader.init`,
+    ///     which documents the failure mode of quietly building network code on `URLSession.shared`
+    ///     — a self-hosted server's certificate trust lives in the delegate, not in the shared session.
+    ///   - trustDelegate: The pinning delegate, or `nil` where the caller has no server to pin.
+    ///     Required as an explicit argument so passing nothing is a decision rather than an oversight.
+    init(session: URLSession, trustDelegate: ServerTrustDelegate?) {
         self.session       = session
         self.trustDelegate = trustDelegate
     }
@@ -666,6 +684,28 @@ actor PrizmAPIClientImpl: PrizmAPIClientProtocol {
     // MARK: - fetchSync
 
     func fetchSync() async throws -> SyncResponse {
+        let request = try syncRequest()
+        let response: SyncResponse = try await perform(request: request)
+        if DebugConfig.isEnabled {
+            logger.debug("[debug] fetchSync ← ciphers=\(response.ciphers.count, privacy: .public) folders=\(response.folders.count, privacy: .public) profileEmail=\(response.profile.email, privacy: .private) hasPrivateKey=\(response.profile.privateKey != nil, privacy: .public)")
+        }
+        return response
+    }
+
+    func fetchSyncPayload() async throws -> (response: SyncResponse, body: Data) {
+        let request = try syncRequest()
+        // One fetch, one decode — `decode` is the same routine `perform` uses, so a body that
+        // `fetchSync` accepts cannot be rejected here, or vice versa.
+        let body = try await performRaw(request: request)
+        let response = try decode(body, as: SyncResponse.self)
+        if DebugConfig.isEnabled {
+            logger.debug("[debug] fetchSyncPayload ← ciphers=\(response.ciphers.count, privacy: .public) folders=\(response.folders.count, privacy: .public) bodyBytes=\(body.count, privacy: .public)")
+        }
+        return (response, body)
+    }
+
+    /// Builds the `/api/sync` request, shared by both fetch forms so they cannot drift.
+    private func syncRequest() throws -> URLRequest {
         guard let base = baseURL else { throw APIError.baseURLNotSet }
         var components   = URLComponents(url: base.appendingPathComponent("api/sync"), resolvingAgainstBaseURL: false)!
         components.queryItems = [URLQueryItem(name: "excludeDomains", value: "true")]
@@ -680,12 +720,7 @@ actor PrizmAPIClientImpl: PrizmAPIClientProtocol {
         if let token = accessToken {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
-
-        let response: SyncResponse = try await perform(request: request)
-        if DebugConfig.isEnabled {
-            logger.debug("[debug] fetchSync ← ciphers=\(response.ciphers.count, privacy: .public) folders=\(response.folders.count, privacy: .public) profileEmail=\(response.profile.email, privacy: .private) hasPrivateKey=\(response.profile.privateKey != nil, privacy: .public)")
-        }
-        return response
+        return request
     }
 
     // MARK: - updateCipher
@@ -991,11 +1026,20 @@ actor PrizmAPIClientImpl: PrizmAPIClientProtocol {
 
     // MARK: - Collection CRUD
 
-    /// Bitwarden collection body for create/rename — `groups` and `users` default to empty.
+    /// Bitwarden collection body for create/rename.
+    ///
+    /// `groups`, `users` and `externalId` are **not optional here, on purpose**: Vaultwarden stores the
+    /// collection verbatim, so a field left out of this body is deleted from the collection. Sending
+    /// empty arrays instead of what was read is what used to revoke every other member's access on a
+    /// rename, so making them required means a caller has to decide rather than default.
+    ///
+    /// `JSONValue` because the permission objects' shape varies by server version and this build has no
+    /// business being right about it — see `PreservedCollectionFields`.
     private struct CollectionBody: Encodable {
         let name: String
-        let groups: [String]
-        let users: [String]
+        let groups: [JSONValue]
+        let users: [JSONValue]
+        let externalId: String?
     }
 
     func createCollection(organizationId: String, encryptedName: String) async throws -> RawCollection {
@@ -1007,11 +1051,20 @@ actor PrizmAPIClientImpl: PrizmAPIClientProtocol {
         if let token = accessToken {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
-        request.httpBody = try JSONEncoder().encode(CollectionBody(name: encryptedName, groups: [], users: []))
+        // A collection that does not exist yet has no membership — this is the one place empty is the
+        // truth rather than a deletion.
+        request.httpBody = try JSONEncoder().encode(CollectionBody(
+            name: encryptedName, groups: [], users: [], externalId: nil
+        ))
         return try await perform(request: request)
     }
 
-    func renameCollection(id: String, organizationId: String, encryptedName: String) async throws -> RawCollection {
+    func renameCollection(
+        id: String,
+        organizationId: String,
+        encryptedName: String,
+        preserved: PreservedCollectionFields
+    ) async throws -> RawCollection {
         guard let base = baseURL else { throw APIError.baseURLNotSet }
         let url = base.appendingPathComponent("api/organizations/\(organizationId)/collections/\(id)")
         var request = baseRequest(url: url)
@@ -1020,7 +1073,14 @@ actor PrizmAPIClientImpl: PrizmAPIClientProtocol {
         if let token = accessToken {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
-        request.httpBody = try JSONEncoder().encode(CollectionBody(name: encryptedName, groups: [], users: []))
+        // Sent back exactly as read. Inventing empty arrays here is the defect this parameter exists
+        // to prevent: it revoked every other member's and group's access to the collection.
+        request.httpBody = try JSONEncoder().encode(CollectionBody(
+            name: encryptedName,
+            groups: preserved.groups,
+            users: preserved.users,
+            externalId: preserved.externalId
+        ))
         return try await perform(request: request)
     }
 
@@ -1111,6 +1171,17 @@ actor PrizmAPIClientImpl: PrizmAPIClientProtocol {
     ///
     /// - Throws: `APIError.httpError` on non-2xx status codes; `APIError.decodingFailed` on JSON errors.
     private func perform<T: Decodable>(request: URLRequest) async throws -> T {
+        try decode(try await performRaw(request: request), as: T.self)
+    }
+
+    /// Sends `request`, checks the HTTP status code, and returns the body **as received**.
+    ///
+    /// The bytes are the server's, untouched. Callers that keep them (the offline vault cache)
+    /// must not re-encode a decoded model instead: re-encoding writes back only the fields the
+    /// model decodes, so any field this client does not yet model would be silently destroyed.
+    ///
+    /// - Throws: `APIError.httpError` on non-2xx status codes.
+    private func performRaw(request: URLRequest) async throws -> Data {
         let (data, response) = try await send(request)
 
         guard let http = response as? HTTPURLResponse else {
@@ -1138,6 +1209,13 @@ actor PrizmAPIClientImpl: PrizmAPIClientProtocol {
             throw APIError.httpError(statusCode: http.statusCode, body: body)
         }
 
+        return data
+    }
+
+    /// Decodes a response body that `performRaw` already accepted.
+    ///
+    /// - Throws: `APIError.decodingFailed`.
+    private func decode<T: Decodable>(_ data: Data, as type: T.Type) throws -> T {
         do {
             let decoded = try JSONDecoder().decode(T.self, from: data)
             if DebugConfig.isEnabled {

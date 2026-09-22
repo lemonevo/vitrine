@@ -48,11 +48,18 @@ actor FaviconLoader {
     /// - Parameters:
     ///   - iconsBase: Icon service base URL. Defaults to `nil` — nothing is fetched until
     ///                `configure(iconsBase:)` supplies the signed-in account's value.
-    ///   - session:   `URLSession` to use; defaults to the shared cache-enabled session.
+    ///   - session:   The URLSession to fetch with. **Required, with no default.**
+    ///
+    /// **Why there is no default for `session`.** The icon service lives on the same host as the API,
+    /// and that host is frequently a self-hosted Vaultwarden whose certificate only works because of
+    /// `ServerTrustDelegate`. `URLSession.shared` has no such delegate, so a loader built on it fails
+    /// TLS against a server the rest of the app reaches fine — and because failures here are silent by
+    /// design, the only symptom is that every login row quietly shows the fallback glyph. This was the
+    /// behaviour until it was fixed; a defaulted parameter is what let the wrong value compile.
     ///   - defaults:  Preference store for `WebsiteIconsPreference`. Injectable for tests.
     init(
         iconsBase: URL? = nil,
-        session: URLSession = .shared,
+        session: URLSession,
         defaults: UserDefaults = .standard
     ) {
         self.iconsBase = iconsBase
@@ -114,10 +121,5 @@ actor FaviconLoader {
             logger.debug("Favicon fetch failed for \(domain, privacy: .public): \(error.localizedDescription, privacy: .public)")
             return nil
         }
-    }
-
-    /// Clears the in-memory cache (e.g. on sign-out or low-memory warning).
-    func clearCache() {
-        cache.removeAllObjects()
     }
 }

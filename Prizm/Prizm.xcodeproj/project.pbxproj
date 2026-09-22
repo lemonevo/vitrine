@@ -11,6 +11,7 @@
 		11F92917BA7B80CC07DDBB6D /* LocalizationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B76B4C114A41E332B71A2F92 /* LocalizationManager.swift */; };
 		02606EB154B6BFB37C4B93FE /* SSHAgentCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AC13A19D5CF36538FB94F5C /* SSHAgentCoordinator.swift */; };
 		9F8DDFF38397E7D0B5CFEBC9 /* VaultIdleMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9B1DCFF140D48ABAC7F7D41 /* VaultIdleMonitor.swift */; };
+		CA0E0011000000000000B011 /* BackgroundSyncMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0E0010000000000000F010 /* BackgroundSyncMonitor.swift */; };
 		4CDACE943001437A8329DDB7 /* AccountKeyCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7D4BC5786EBC2E9503ACBCE /* AccountKeyCache.swift */; };
 		C95E58F6F1D8493B1068040F /* ConstantTimeCompare.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF1C0F136814B6196A3A00B1 /* ConstantTimeCompare.swift */; };
 		4089C2E62820840F065D8BE7 /* TOTPGeneratorImpl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 154C898CB5652F96F8370BE0 /* TOTPGeneratorImpl.swift */; };
@@ -110,6 +111,19 @@
 		3B3721D2F8C646EC91512FDA /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00802736F25046A0BD600128 /* SidebarView.swift */; };
 		3BC539D6D63240D0B5315A0D /* RestoreVaultItemUseCaseImpl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75776838723C412E94327CDD /* RestoreVaultItemUseCaseImpl.swift */; };
 		3CE951E495E649489E3DADAC /* SyncRepositoryImpl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6A671692BE497AA7E39F45 /* SyncRepositoryImpl.swift */; };
+		CA0E0003000000000000B003 /* VaultCacheStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0E0001000000000000F001 /* VaultCacheStore.swift */; };
+		CA0E0021000000000000B021 /* SessionEpoch.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0E0020000000000000F020 /* SessionEpoch.swift */; };
+		CA0E0031000000000000B031 /* SecureNoteSubtypeLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0E0030000000000000F030 /* SecureNoteSubtypeLabel.swift */; };
+		CA0E0041000000000000B041 /* CardFieldOptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0E0040000000000000F040 /* CardFieldOptions.swift */; };
+		CA0E0051000000000000B051 /* UsernameGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0E0050000000000000F050 /* UsernameGenerator.swift */; };
+		CA0E0061000000000000B061 /* PinUnlockService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0E0060000000000000F060 /* PinUnlockService.swift */; };
+		CA0E0081000000000000B081 /* PinUnlockSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0E0080000000000000F080 /* PinUnlockSettings.swift */; };
+		CA0E0091000000000000B091 /* PinUnlockSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0E0090000000000000F090 /* PinUnlockSection.swift */; };
+		CA0E00A1000000000000B0A1 /* VaultExportCSV.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0E00A0000000000000F0A0 /* VaultExportCSV.swift */; };
+		CA0E00B1000000000000B0B1 /* VerificationCodesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0E00B0000000000000F0B0 /* VerificationCodesViewModel.swift */; };
+		CA0E00C1000000000000B0C1 /* VerificationCodesSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0E00C0000000000000F0C0 /* VerificationCodesSheet.swift */; };
+		CA0E0071000000000000B071 /* KeychainPinUnlockService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0E0070000000000000F070 /* KeychainPinUnlockService.swift */; };
+		CA0E0004000000000000B004 /* VaultCacheStoreImpl.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0E0002000000000000F002 /* VaultCacheStoreImpl.swift */; };
 		3E04D7AC0223458CB329663C /* CustomField.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAB323D45FF2440C95C0BA70 /* CustomField.swift */; };
 		421368787851407FBCA9D99F /* TrashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 212734E66AE74662AD28E6CB /* TrashView.swift */; };
 		4309FCE32F6807970031C9F4 /* PrizmApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4309FCE12F6807970031C9F4 /* PrizmApp.swift */; };
@@ -147,7 +161,6 @@
 		9B3412B1F4F648DEBC7BFC94 /* ContrastAwareOpacity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 505C5126B6264355A140762B /* ContrastAwareOpacity.swift */; };
 		9D5A14583F6A4B3BAF956201 /* LoginViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 713C4F352B6B4E8C92BB72B1 /* LoginViewModel.swift */; };
 		A1B0C1D2E3F4003930405060 /* IdentityEditForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C1D2E3F400A04A40506070 /* IdentityEditForm.swift */; };
-		A1B2C3D4E5F64789A1B2C3D4 /* VerticalLabeledContentStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4C3B2A1F6E54789D4C3B2A1 /* VerticalLabeledContentStyle.swift */; };
 		A1B2C3D4E5F647A8B9C0D1E2 /* CryptoKeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1307284FEED04829B5C4B587 /* CryptoKeys.swift */; };
 		A1B2C3D4E5F6A7B8C9D0E1F3 /* FolderTreeNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3C4D5E6F7A8B9C0D1E2 /* FolderTreeNode.swift */; };
 		A1C2D3E4F506172839A4B56C /* DraftVaultItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2D3E4F506172839A4B5C6D7 /* DraftVaultItem.swift */; };
@@ -164,6 +177,7 @@
 		AA0001050000000500000005 /* PasswordGeneratorViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0002050000000500000005 /* PasswordGeneratorViewModel.swift */; };
 		AA0001060000000600000006 /* PasswordGeneratorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0002060000000600000006 /* PasswordGeneratorView.swift */; };
 		AA0001070000000700000007 /* eff-large-wordlist.txt in Resources */ = {isa = PBXBuildFile; fileRef = AA0002070000000700000007 /* eff-large-wordlist.txt */; };
+		AA0004040000000100000004 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = AA0004010000000100000001 /* Localizable.strings */; };
 		AA001CC0001CC0001CC0002A /* CreateCollectionUseCaseImpl.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA001CC0001CC0001CC0001A /* CreateCollectionUseCaseImpl.swift */; };
 		AA001CC0001CC0001CC0004A /* RenameCollectionUseCaseImpl.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA001CC0001CC0001CC0003A /* RenameCollectionUseCaseImpl.swift */; };
 		AA001CC0001CC0001CC0006A /* DeleteCollectionUseCaseImpl.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA001CC0001CC0001CC0005A /* DeleteCollectionUseCaseImpl.swift */; };
@@ -223,6 +237,7 @@
 		DB95790F466448D78246B723 /* VaultRepositoryImpl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AED13455B194BB48EDC3459 /* VaultRepositoryImpl.swift */; };
 		DD1001000000000000000001 /* EmbeddedBiometricUnlock.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC1001000000000000000001 /* EmbeddedBiometricUnlock.swift */; };
 		DD1002000000000000000002 /* EmbeddedTouchIDView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC1002000000000000000002 /* EmbeddedTouchIDView.swift */; };
+		DD10030000000000000000A1 /* AuthChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC10030000000000000000A1 /* AuthChrome.swift */; };
 		DD1003000000000000000003 /* LocalAuthenticationEmbeddedUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CC1003000000000000000003 /* LocalAuthenticationEmbeddedUI.framework */; };
 		E0F1A2B3C4D54896E1F2A3B4 /* SyncLabelFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3C4D5E64896F2A3B4C5 /* SyncLabelFormatter.swift */; };
 		E17D4DA652374B49BC2CD6B1 /* VaultBrowserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7D9916B5072420494DE6F9F /* VaultBrowserView.swift */; };
@@ -255,6 +270,7 @@
 		B76B4C114A41E332B71A2F92 /* LocalizationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalizationManager.swift; sourceTree = "<group>"; };
 		6AC13A19D5CF36538FB94F5C /* SSHAgentCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SSHAgentCoordinator.swift; sourceTree = "<group>"; };
 		B9B1DCFF140D48ABAC7F7D41 /* VaultIdleMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultIdleMonitor.swift; sourceTree = "<group>"; };
+		CA0E0010000000000000F010 /* BackgroundSyncMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundSyncMonitor.swift; sourceTree = "<group>"; };
 		E7D4BC5786EBC2E9503ACBCE /* AccountKeyCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountKeyCache.swift; sourceTree = "<group>"; };
 		DF1C0F136814B6196A3A00B1 /* ConstantTimeCompare.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConstantTimeCompare.swift; sourceTree = "<group>"; };
 		154C898CB5652F96F8370BE0 /* TOTPGeneratorImpl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TOTPGeneratorImpl.swift; sourceTree = "<group>"; };
@@ -368,6 +384,23 @@
 		4929412F2A6B4670960BFB53 /* RestoreVaultItemUseCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestoreVaultItemUseCase.swift; sourceTree = "<group>"; };
 		4ABEC630F6934ED883504C9D /* About/AboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = About/AboutView.swift; sourceTree = "<group>"; };
 		4D6A671692BE497AA7E39F45 /* SyncRepositoryImpl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncRepositoryImpl.swift; sourceTree = "<group>"; };
+		CA0E0001000000000000F001 /* VaultCacheStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultCacheStore.swift; sourceTree = "<group>"; };
+		CA0E0020000000000000F020 /* SessionEpoch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionEpoch.swift; sourceTree = "<group>"; };
+		CA0E0030000000000000F030 /* SecureNoteSubtypeLabel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecureNoteSubtypeLabel.swift; sourceTree = "<group>"; };
+		CA0E0040000000000000F040 /* CardFieldOptions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardFieldOptions.swift; sourceTree = "<group>"; };
+		CA0E0050000000000000F050 /* UsernameGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsernameGenerator.swift; sourceTree = "<group>"; };
+		CA0E0070000000000000F070 /* KeychainPinUnlockService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainPinUnlockService.swift; sourceTree = "<group>"; };
+		CA0E0060000000000000F060 /* PinUnlockService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinUnlockService.swift; sourceTree = "<group>"; };
+		CA0E0080000000000000F080 /* PinUnlockSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinUnlockSettings.swift; sourceTree = "<group>"; };
+		CA0E0090000000000000F090 /* PinUnlockSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinUnlockSection.swift; sourceTree = "<group>"; };
+		CA0E00A0000000000000F0A0 /* VaultExportCSV.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultExportCSV.swift; sourceTree = "<group>"; };
+		CA0E00B0000000000000F0B0 /* VerificationCodesViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerificationCodesViewModel.swift; sourceTree = "<group>"; };
+		CA0E00C0000000000000F0C0 /* VerificationCodesSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerificationCodesSheet.swift; sourceTree = "<group>"; };
+		CA0E00D0000000000000A0D0 /* VerificationCodes */ = {isa = PBXGroup; children = (
+			CA0E00B0000000000000F0B0 /* VerificationCodesViewModel.swift */,
+			CA0E00C0000000000000F0C0 /* VerificationCodesSheet.swift */,
+		); path = VerificationCodes; sourceTree = "<group>"; };
+		CA0E0002000000000000F002 /* VaultCacheStoreImpl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultCacheStoreImpl.swift; sourceTree = "<group>"; };
 		4F246F209ADA45F99C9B17DB /* LoginDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginDetailView.swift; sourceTree = "<group>"; };
 		50445584AD814B6EBD971FDA /* FaviconLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaviconLoader.swift; sourceTree = "<group>"; };
 		505C5126B6264355A140762B /* ContrastAwareOpacity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContrastAwareOpacity.swift; sourceTree = "<group>"; };
@@ -409,6 +442,9 @@
 		AA0002050000000500000005 /* PasswordGeneratorViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PasswordGeneratorViewModel.swift; sourceTree = "<group>"; };
 		AA0002060000000600000006 /* PasswordGeneratorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PasswordGeneratorView.swift; sourceTree = "<group>"; };
 		AA0002070000000700000007 /* eff-large-wordlist.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "eff-large-wordlist.txt"; sourceTree = "<group>"; };
+		AA0004020000000100000002 /* Localizable.strings */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
+		AA0004030000000100000003 /* Localizable.strings */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/Localizable.strings"; sourceTree = "<group>"; };
+		AA0005010000000100000005 /* PrizmTests.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = PrizmTests.xctestplan; sourceTree = "<group>"; };
 		AA001CC0001CC0001CC0001A /* CreateCollectionUseCaseImpl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateCollectionUseCaseImpl.swift; sourceTree = "<group>"; };
 		AA001CC0001CC0001CC0003A /* RenameCollectionUseCaseImpl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RenameCollectionUseCaseImpl.swift; sourceTree = "<group>"; };
 		AA001CC0001CC0001CC0005A /* DeleteCollectionUseCaseImpl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeleteCollectionUseCaseImpl.swift; sourceTree = "<group>"; };
@@ -449,10 +485,10 @@
 		CAB323D45FF2440C95C0BA70 /* CustomField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomField.swift; sourceTree = "<group>"; };
 		CC1001000000000000000001 /* EmbeddedBiometricUnlock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmbeddedBiometricUnlock.swift; sourceTree = "<group>"; };
 		CC1002000000000000000002 /* EmbeddedTouchIDView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmbeddedTouchIDView.swift; sourceTree = "<group>"; };
+		CC10030000000000000000A1 /* AuthChrome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthChrome.swift; sourceTree = "<group>"; };
 		CC1003000000000000000003 /* LocalAuthenticationEmbeddedUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = LocalAuthenticationEmbeddedUI.framework; path = System/Library/Frameworks/LocalAuthenticationEmbeddedUI.framework; sourceTree = SDKROOT; };
 		CC2233445566778899001122 /* CollectionTreeNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionTreeNode.swift; sourceTree = "<group>"; };
 		CF2F621523214454973153CC /* Organization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Organization.swift; sourceTree = "<group>"; };
-		D4C3B2A1F6E54789D4C3B2A1 /* VerticalLabeledContentStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerticalLabeledContentStyle.swift; sourceTree = "<group>"; };
 		D4E3F400A1B2C06C60708090 /* SecureNoteEditForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecureNoteEditForm.swift; sourceTree = "<group>"; };
 		D4E5F6071829304AC6D7E8F9 /* EditVaultItemUseCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditVaultItemUseCase.swift; sourceTree = "<group>"; };
 		D7044163F8FD4199B4925DD2 /* SidebarSelection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarSelection.swift; sourceTree = "<group>"; };
@@ -562,6 +598,7 @@
 				1A301C6100E9A0227A9B0A5A /* AccountFingerprintSection.swift */,
 				A1724585F8F45A7697A6B16D /* SSHAgentSection.swift */,
 				2A13E3E6E69F5372B74F394C /* ServerTrustSection.swift */,
+				CA0E0090000000000000F090 /* PinUnlockSection.swift */,
 			);
 			path = Settings;
 			sourceTree = "<group>";
@@ -608,6 +645,7 @@
 				B76B4C114A41E332B71A2F92 /* LocalizationManager.swift */,
 				6AC13A19D5CF36538FB94F5C /* SSHAgentCoordinator.swift */,
 				B9B1DCFF140D48ABAC7F7D41 /* VaultIdleMonitor.swift */,
+				CA0E0010000000000000F010 /* BackgroundSyncMonitor.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -619,6 +657,7 @@
 				4309FCEE2F680ADE0031C9F4 /* UseCases */,
 				4309FCED2F680AD60031C9F4 /* Repositories */,
 				4309FCEC2F680AC80031C9F4 /* Entities */,
+				CA0E0020000000000000F020 /* SessionEpoch.swift */,
 			);
 			path = Domain;
 			sourceTree = "<group>";
@@ -650,6 +689,8 @@
 				B65E7D6288C347DCA88A20DF /* AuthRepository.swift */,
 				7D25874A14B2430FB85D7DC9 /* VaultRepository.swift */,
 				3A087E4D3AC14598A3CB7F00 /* SyncRepository.swift */,
+				CA0E0001000000000000F001 /* VaultCacheStore.swift */,
+				CA0E0060000000000000F060 /* PinUnlockService.swift */,
 				A1B2C4D5E6F74891A2B3C4D5 /* SyncTimestampRepository.swift */,
 				AA1002000000000000000002 /* AttachmentRepository.swift */,
 				AA1003000000000000000003 /* VaultKeyService.swift */,
@@ -657,6 +698,14 @@
 				2AE6D46288C3A349324081CD /* TOTPGenerator.swift */,
 			);
 			path = Repositories;
+			sourceTree = "<group>";
+		};
+		CA0E0005000000000000A005 /* Cache */ = {
+			isa = PBXGroup;
+			children = (
+				CA0E0002000000000000F002 /* VaultCacheStoreImpl.swift */,
+			);
+			path = Cache;
 			sourceTree = "<group>";
 		};
 		4309FCEE2F680ADE0031C9F4 /* UseCases */ = {
@@ -700,6 +749,7 @@
 			children = (
 				FF2563714D2C473EA1DFE89E /* UseCases */,
 				4309FCF52F680BF70031C9F4 /* Repositories */,
+				CA0E0005000000000000A005 /* Cache */,
 				4309FCF42F680BF00031C9F4 /* Mappers */,
 				4309FCF32F680BEA0031C9F4 /* Keychain */,
 				4309FCF12F680BD10031C9F4 /* Network */,
@@ -773,6 +823,7 @@
 				F0DA2B1AD4924580BCE20BF3 /* AuthRepositoryImpl.swift */,
 				4D6A671692BE497AA7E39F45 /* SyncRepositoryImpl.swift */,
 				9AED13455B194BB48EDC3459 /* VaultRepositoryImpl.swift */,
+				CA0E0070000000000000F070 /* KeychainPinUnlockService.swift */,
 				E4F5A6B7C8D94893E5F6A7B8 /* SyncTimestampRepositoryImpl.swift */,
 				AA1009000000000000000009 /* AttachmentRepositoryImpl.swift */,
 				AA100A00000000000000000A /* VaultKeyCache.swift */,
@@ -809,9 +860,11 @@
 				F5F177A6089741F69C02E285 /* VaultBrowserViewModel.swift */,
 				E7D9916B5072420494DE6F9F /* VaultBrowserView.swift */,
 				F1A2B3C4D5E64896F2A3B4C5 /* SyncLabelFormatter.swift */,
+				CA0E0030000000000000F030 /* SecureNoteSubtypeLabel.swift */,
 				AA2000000000000000000001 /* Attachments */,
 				4309FCFB2F680CC60031C9F4 /* Detail */,
 				8A9B0C1D2E3F4050A1B2C3D4 /* Edit */,
+				CA0E00D0000000000000A0D0 /* VerificationCodes */,
 				4309FCFA2F680CBD0031C9F4 /* ItemList */,
 				4309FCF92F680CB40031C9F4 /* Sidebar */,
 				7F9C2582320343D997856712 /* Trash */,
@@ -869,9 +922,9 @@
 				BB2233445566778899001122 /* OptionKeyMonitor.swift */,
 				3E105187F1E54E0E91E82B14 /* FieldRowView.swift */,
 				87629CFF5CFE4B4FA41EFC3C /* FaviconView.swift */,
-				D4C3B2A1F6E54789D4C3B2A1 /* VerticalLabeledContentStyle.swift */,
 				1A2B3C4D5E6F7A8B9C0D1E2F /* CardBackground.swift */,
 				CC1002000000000000000002 /* EmbeddedTouchIDView.swift */,
+				CC10030000000000000000A1 /* AuthChrome.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -884,6 +937,7 @@
 				4309FCEB2F680ABF0031C9F4 /* Domain */,
 				4309FCE62F6808620031C9F4 /* App */,
 				AA0003020000000200000002 /* Resources */,
+				AA0005010000000100000005 /* PrizmTests.xctestplan */,
 				434D9EBC2F670B9C00052BCB /* Prizm */,
 				4309FD0E2F68121F0031C9F4 /* PrizmTests */,
 				434D9EBB2F670B9C00052BCB /* Products */,
@@ -949,6 +1003,7 @@
 				5C607080900A10E4E5F60718 /* EditFieldRow.swift */,
 				7E8090A01B2C300607182930 /* LoginEditForm.swift */,
 				90A0B1C2D3E4F02829304050 /* CardEditForm.swift */,
+				CA0E0040000000000000F040 /* CardFieldOptions.swift */,
 				B2C1D2E3F400A04A40506070 /* IdentityEditForm.swift */,
 				D4E3F400A1B2C06C60708090 /* SecureNoteEditForm.swift */,
 				F600A1B2C3D4E08E80900A1B /* SSHKeyEditForm.swift */,
@@ -967,6 +1022,7 @@
 				AA0002010000000100000001 /* RandomnessProvider.swift */,
 				AA0002020000000200000002 /* PasswordGeneratorConfig.swift */,
 				AA0002030000000300000003 /* PasswordGenerator.swift */,
+				CA0E0050000000000000F050 /* UsernameGenerator.swift */,
 				1CB90862F5182B8B04B59048 /* AccountFingerprintPhrase.swift */,
 				790F11836FAEF82A3F86A0B5 /* ClipboardClearInterval.swift */,
 				91ADE95586528ADB416CC065 /* DataZeroing.swift */,
@@ -981,8 +1037,10 @@
 				BF77A0995C11CDA372E1B5F2 /* TwoFactorProvider.swift */,
 				43B6A8FAA995E9BF78541D01 /* VaultExportDocument+Import.swift */,
 				6C8A6B1EB300032AA4730F21 /* VaultExportDocument.swift */,
+				CA0E00A0000000000000F0A0 /* VaultExportCSV.swift */,
 				82CD6C3CB6AD4BB928026A46 /* VaultHealthReport.swift */,
 				74EC7415FC893D9E0F1A6BF8 /* VaultTimeoutSettings.swift */,
+				CA0E0080000000000000F080 /* PinUnlockSettings.swift */,
 				BA69644F960AD8631B48B686 /* WebsiteIconsPreference.swift */,
 			);
 			path = Utilities;
@@ -992,6 +1050,7 @@
 			isa = PBXGroup;
 			children = (
 				AA0002070000000700000007 /* eff-large-wordlist.txt */,
+				AA0004010000000100000001 /* Localizable.strings */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -1166,6 +1225,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				AA0001070000000700000007 /* eff-large-wordlist.txt in Resources */,
+				AA0004040000000100000004 /* Localizable.strings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1193,6 +1253,19 @@
 				2489593B92144CA7A107D531 /* AuthRepository.swift in Sources */,
 				87D4D13FF5F24C46B3588820 /* VaultRepository.swift in Sources */,
 				018ED7880B384B399D0C3A98 /* SyncRepository.swift in Sources */,
+				CA0E0003000000000000B003 /* VaultCacheStore.swift in Sources */,
+				CA0E0021000000000000B021 /* SessionEpoch.swift in Sources */,
+				CA0E0031000000000000B031 /* SecureNoteSubtypeLabel.swift in Sources */,
+				CA0E0041000000000000B041 /* CardFieldOptions.swift in Sources */,
+				CA0E0051000000000000B051 /* UsernameGenerator.swift in Sources */,
+				CA0E0061000000000000B061 /* PinUnlockService.swift in Sources */,
+				CA0E0081000000000000B081 /* PinUnlockSettings.swift in Sources */,
+				CA0E0091000000000000B091 /* PinUnlockSection.swift in Sources */,
+				CA0E00A1000000000000B0A1 /* VaultExportCSV.swift in Sources */,
+				CA0E00B1000000000000B0B1 /* VerificationCodesViewModel.swift in Sources */,
+				CA0E00C1000000000000B0C1 /* VerificationCodesSheet.swift in Sources */,
+				CA0E0071000000000000B071 /* KeychainPinUnlockService.swift in Sources */,
+				CA0E0004000000000000B004 /* VaultCacheStoreImpl.swift in Sources */,
 				B1C2D3E4F5A64791B2C3D4E5 /* SyncTimestampRepository.swift in Sources */,
 				D3E4F5A6B7C84892D4E5F6A7 /* GetLastSyncDateUseCase.swift in Sources */,
 				C290678FFC8F4FDDB215C261 /* LoginUseCase.swift in Sources */,
@@ -1226,7 +1299,6 @@
 				AA1122334455667788990011 /* OptionKeyMonitor.swift in Sources */,
 				B11759DE56D34E4199773C2D /* FieldRowView.swift in Sources */,
 				98E8E51C9AD5496C88E0ABD3 /* FaviconView.swift in Sources */,
-				A1B2C3D4E5F64789A1B2C3D4 /* VerticalLabeledContentStyle.swift in Sources */,
 				C3DDB598E8834E85833D86FE /* VaultBrowserViewModel.swift in Sources */,
 				E17D4DA652374B49BC2CD6B1 /* VaultBrowserView.swift in Sources */,
 				3B3721D2F8C646EC91512FDA /* SidebarView.swift in Sources */,
@@ -1330,10 +1402,12 @@
 				60067C5087C547F4B96C3493 /* Presentation/Settings/BiometricUnlockToggle.swift in Sources */,
 				DD1001000000000000000001 /* EmbeddedBiometricUnlock.swift in Sources */,
 				DD1002000000000000000002 /* EmbeddedTouchIDView.swift in Sources */,
+				DD10030000000000000000A1 /* AuthChrome.swift in Sources */,
 				FD8B7C520CEBB28118EE5564 /* AppLanguage.swift in Sources */,
 				11F92917BA7B80CC07DDBB6D /* LocalizationManager.swift in Sources */,
 				02606EB154B6BFB37C4B93FE /* SSHAgentCoordinator.swift in Sources */,
 				9F8DDFF38397E7D0B5CFEBC9 /* VaultIdleMonitor.swift in Sources */,
+				CA0E0011000000000000B011 /* BackgroundSyncMonitor.swift in Sources */,
 				4CDACE943001437A8329DDB7 /* AccountKeyCache.swift in Sources */,
 				C95E58F6F1D8493B1068040F /* ConstantTimeCompare.swift in Sources */,
 				4089C2E62820840F065D8BE7 /* TOTPGeneratorImpl.swift in Sources */,
@@ -1424,6 +1498,18 @@
 		};
 /* End PBXTargetDependency section */
 
+/* Begin PBXVariantGroup section */
+		AA0004010000000100000001 /* Localizable.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				AA0004020000000100000002 /* Localizable.strings */,
+				AA0004030000000100000003 /* Localizable.strings */,
+			);
+			name = Localizable.strings;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
 /* Begin XCBuildConfiguration section */
 		4309FD132F68121F0031C9F4 /* Debug */ = {
 			isa = XCBuildConfiguration;
@@ -1440,9 +1526,10 @@
 				SDKROOT = macosx;
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 6.0;
+				SWIFT_VERSION = 5.0;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Prizm.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Prizm";
 			};
 			name = Debug;
@@ -1462,9 +1549,10 @@
 				SDKROOT = macosx;
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 6.0;
+				SWIFT_VERSION = 5.0;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Prizm.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Prizm";
 			};
 			name = Release;

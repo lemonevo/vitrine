@@ -1,0 +1,25 @@
+{
+  "configurations" : [
+    {
+      "id" : "6C1F0B4E-2A7D-4C3B-9E5A-1F2D3C4B5A69",
+      "name" : "Defaults",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "language" : "en",
+    "region" : "US"
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:Prizm.xcodeproj",
+        "identifier" : "4309FD0C2F68121F0031C9F4",
+        "name" : "PrizmTests"
+      }
+    }
+  ],
+  "version" : 1
+}

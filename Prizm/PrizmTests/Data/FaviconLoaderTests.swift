@@ -130,7 +130,7 @@ final class FaviconLoaderTests: XCTestCase {
     // MARK: - No account, no request
 
     func test_noConfiguredBaseMakesNoRequest() async {
-        let loader = FaviconLoader(defaults: defaults)
+        let loader = FaviconLoader(session: .shared, defaults: defaults)
         let image  = await loader.favicon(for: "github.com")
 
         XCTAssertNil(image)

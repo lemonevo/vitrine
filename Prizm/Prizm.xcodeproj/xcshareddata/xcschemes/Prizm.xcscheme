@@ -40,6 +40,12 @@
             </BuildableReference>
          </TestableReference>
       </Testables>
+      <TestPlans>
+         <TestPlanReference
+            reference = "container:PrizmTests.xctestplan"
+            default = "YES">
+         </TestPlanReference>
+      </TestPlans>
    </TestAction>
    <LaunchAction
       buildConfiguration = "Debug"

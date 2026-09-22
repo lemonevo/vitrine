@@ -106,6 +106,20 @@ final class AppContainer: ObservableObject {
     /// install one.
     let idleMonitor: any VaultIdleMonitoring
 
+    /// Refreshes the vault on a timer, and when the app or the machine comes back.
+    ///
+    /// Injected into `RootViewModel` through `RootViewModelDependencies` alongside `idleMonitor`, so
+    /// tests substitute a double rather than installing a `Timer` and two notification observers.
+    let backgroundSyncMonitor: any BackgroundSyncMonitoring
+
+    /// The identity of the current unlocked session.
+    ///
+    /// One instance, shared by everything that has to notice a lock: the sync repository refuses to
+    /// write for a session that has ended, the browser view model refuses to show its result, and
+    /// the lock and sign-out paths advance it. A second instance anywhere would be a second answer
+    /// to "is this session still running", and it would be the copy that says yes.
+    let sessionEpoch = SessionEpoch()
+
     // MARK: - Session-scoped, memory-only state
 
     /// The values generated and used during this session, newest first.
@@ -151,14 +165,18 @@ final class AppContainer: ObservableObject {
         let keyCache      = VaultKeyCache()
         let orgKeyCache   = OrgKeyCache()
         let accountKeys   = AccountKeyCache()
+        let vaultCache    = VaultCacheStoreImpl()
         let vault         = VaultRepositoryImpl(apiClient: api, crypto: crypto, orgKeyCache: orgKeyCache)
         let vaultKeyService = VaultKeyServiceImpl(cache: keyCache, crypto: crypto)
 
+        let pinUnlock = KeychainPinUnlockService(keychain: keychain, crypto: crypto)
         let auth = AuthRepositoryImpl(
             apiClient: api,
             crypto:    crypto,
             keychain:  keychain,
-            biometricKeychain: biometricKeychain
+            biometricKeychain: biometricKeychain,
+            vaultCache: vaultCache,
+            pinUnlock: pinUnlock
         )
         let sync = SyncRepositoryImpl(
             apiClient:       api,
@@ -166,7 +184,13 @@ final class AppContainer: ObservableObject {
             vaultRepository: vault,
             vaultKeyCache:   keyCache,
             orgKeyCache:     orgKeyCache,
-            accountKeyCache: accountKeys
+            accountKeyCache: accountKeys,
+            vaultCache:      vaultCache,
+            sessionEpoch:    sessionEpoch,
+            // Resolved per use rather than captured, so the id that names the cache directory is
+            // always the signed-in account's. Read from the Keychain (the authority for the active
+            // session) instead of being mirrored into a second variable that could fall behind.
+            currentUserId:   { await auth.storedAccount()?.userId }
         )
 
         let attachmentRepo = AttachmentRepositoryImpl(
@@ -188,7 +212,11 @@ final class AppContainer: ObservableObject {
         self.keychain        = keychain
         self.biometricKeychain = biometricKeychain
         self.vaultStore      = vault
-        self.faviconLoader   = FaviconLoader()
+        // The same session the API client uses, deliberately. The icon endpoint is on the account's
+        // own host, so a request to it needs the certificate trust that host was configured with;
+        // `FaviconLoader`'s default used to be `URLSession.shared`, which has no delegate, and every
+        // favicon then failed TLS silently — the symptom was just "no site icons, everywhere".
+        self.faviconLoader   = FaviconLoader(session: session)
         self.totpGenerator   = TOTPGeneratorImpl()
         self.vaultKeyCache   = keyCache
         self.orgKeyCache     = orgKeyCache
@@ -239,6 +267,7 @@ final class AppContainer: ObservableObject {
         // Reads the timeout settings on every poll, so changing them in Settings takes effect
         // immediately without recreating the monitor.
         self.idleMonitor               = VaultIdleMonitor(settings: { VaultTimeoutSettings.load() })
+        self.backgroundSyncMonitor     = BackgroundSyncMonitor()
         self.generatorHistory          = GeneratorHistory()
         // Built as a local first: the coordinator needs the same authorizer instance, and reading
         // the stored property back mid-init to hand it over is the kind of thing that stops
@@ -316,7 +345,8 @@ final class AppContainer: ObservableObject {
             importVault:      importVaultUseCase,
             verifyMasterPassword: verifyMasterPasswordUseCase,
             fileSaver:        Self.defaultExportSaver,
-            filePicker:       Self.defaultImportPicker
+            filePicker:       Self.defaultImportPicker,
+            sessionEpoch:     sessionEpoch
         )
     }
 
@@ -514,6 +544,20 @@ final class AppContainer: ObservableObject {
     /// something that is already in hand. Per item rather than shared — the view model's clock
     /// belongs to the row that is on screen, and a shared one would keep ticking for an item the
     /// user has moved away from.
+    /// The verification-codes list, over the live vault and the browser view model's gate.
+    ///
+    /// `gateFor` is the browser's own `revealGate(for:)` rather than a second builder here: a list that
+    /// decided for itself what "gated" means is exactly how a convenience screen becomes a bypass of the
+    /// gate the detail pane still shows.
+    @MainActor
+    func makeVerificationCodesViewModel(browser: VaultBrowserViewModel) -> VerificationCodesViewModel {
+        VerificationCodesViewModel(
+            vault:     vaultStore,
+            generator: totpGenerator,
+            gateFor:   { [weak browser] item in browser?.revealGate(for: item) ?? .none }
+        )
+    }
+
     @MainActor
     func makeTOTPCodeViewModel(itemId: String, secret: String?) -> TOTPCodeViewModel {
         TOTPCodeViewModel(itemId: itemId, secret: secret, generator: totpGenerator)
