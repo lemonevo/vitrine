@@ -302,6 +302,8 @@
 "Number" = "号码";
 "OK" = "好";
 "Off. Turn it on to serve the SSH keys in this vault." = "已关闭。打开后才会把此保险库中的 SSH 密钥提供给 ssh。";
+"Offline — showing a saved copy of your vault" = "离线 —— 显示的是已保存的保险库副本";
+"Offline — showing data from %@" = "离线 —— 显示的是 %@ 的数据";
 "On timeout" = "超时后";
 "Only %d characters" = "仅 %d 个字符";
 "Open" = "打开";
@@ -528,3 +530,67 @@
 "“%@” will be permanently deleted. Items in this collection will remain in the vault." = "「%@」将被永久删除。集合中的项目仍会保留在保险库中。";
 "…and %d more." = "…还有 %d 项。";
 "→ %@" = "→ %@";
+"%d items could not be read" = "有 %d 个条目无法读取";
+"%d items could not be read. They are still on the server; Prizm could not decrypt them." = "有 %d 个条目无法读取。它们仍在服务器上，只是 Prizm 解不开。";
+"1 item could not be read" = "有 1 个条目无法读取";
+"1 item could not be read. It is still on the server; Prizm could not decrypt it." = "有 1 个条目无法读取。它仍在服务器上，只是 Prizm 解不开。";
+"Generic" = "通用";
+"Bank Account" = "银行账户";
+"Driver's Licence" = "驾照";
+"Passport" = "护照";
+"Medical Record" = "医疗记录";
+"Membership" = "会员";
+"Social Security Number" = "社保号码";
+"WiFi" = "WiFi";
+"Software Licence" = "软件许可证";
+"Unrecognised type (%d)" = "无法识别的类型（%d）";
+"Type" = "类型";
+"Custom…" = "自定义…";
+"Items in Trash are permanently deleted automatically." = "废纸篓中的条目会被自动永久删除。";
+"PIN" = "PIN";
+"%d attempts left before the PIN is removed." = "PIN 还剩余 %d 次尝试机会。";
+"Unlock with a PIN" = "使用 PIN 解锁";
+"Require the master password after restarting Prizm" = "重启 Prizm 后要求输入主密码";
+"With this on, a PIN cannot unlock Prizm until you have entered your master password once since it started." = "开启后，本次启动未输入过主密码之前，PIN 无法解锁 Prizm。";
+"A PIN is shorter than your master password, so it protects the local vault less. Five wrong PINs remove it and sign you out." = "PIN 比主密码短，对本地保险库的保护更弱。连续输错五次会移除 PIN 并登出。";
+"Set a PIN" = "设置 PIN";
+"At least %d characters. It unlocks Prizm on this Mac only." = "至少 %d 个字符。仅在这台 Mac 上用于解锁 Prizm。";
+"Confirm PIN" = "确认 PIN";
+"Set PIN" = "设置 PIN";
+"The two PINs do not match." = "两次输入的 PIN 不一致。";
+"Format" = "格式";
+"JSON (all item types)" = "JSON（全部条目类型）";
+"CSV (logins only)" = "CSV（仅登录项）";
+"CSV holds logins only. Cards, identities, secure notes and SSH keys cannot be written to it — choose JSON to export everything." = "CSV 只能保存登录项。信用卡、身份、安全笔记和 SSH 密钥都写不进去 —— 要导出全部请选 JSON。";
+"%d items were not written: this format holds logins only. Export as JSON to include everything." = "有 %d 个条目未写出：该格式只能保存登录项。要包含全部请导出为 JSON。";
+"This format cannot carry any of your items. CSV holds logins only — use JSON to export everything." = "该格式无法保存你的任何条目。CSV 只能保存登录项 —— 请改用 JSON 导出全部。";
+"Verification Codes" = "动态验证码";
+"Copy code" = "复制验证码";
+"%@ code for %@, %d seconds left" = "%2$@ 的验证码 %1$@，剩余 %3$d 秒";
+"No verification codes" = "没有动态验证码";
+"Codes appear here for any login that has a one-time-code key stored on it." = "任何存有一次一码密钥的登录项，其验证码都会出现在这里。";
+"Codes are derived from each item's stored key. The key itself is never shown or copied." = "验证码由条目的密钥推导得出，密钥本身永远不会显示或被复制。";
+"No code" = "无验证码";
+
+// MARK: - 保管库界面重设计（详情头部）
+"Copy password" = "复制密码";
+"Open website" = "打开网站";
+"Personal vault" = "个人保管库";
+"Updated %@  ·  Created %@" = "更新于 %@ · 创建于 %@";
+
+// MARK: - 折叠区块（通行密钥、历史密码）
+"Expand" = "展开";
+"Loading…" = "载入中…";
+
+// MARK: - 认证界面改用共享卡片外观
+"Sign in to your self-hosted vault" = "登录你的自托管保管库";
+"Server" = "服务器";
+"Required. For example https://vault.example.com" = "必填。例如 https://vault.example.com";
+"The address of your Vaultwarden or Bitwarden server" = "你的 Vaultwarden 或 Bitwarden 服务器地址";
+"Your master password is never sent to the server — only a hash derived from it." = "你的主密码绝不会发送到服务器——发送的只是由它派生的哈希值。";
+"Unlock" = "解锁";
+
+// MARK: - 网址匹配策略（线上取值，对齐 Bitwarden 的 UriMatchStrategySetting）
+"Base domain" = "根域名";
+"Unknown (%d)" = "未知（%d）";
+"Prizm could not delete the stored key, so this is still enabled. Try turning it off again." = "Prizm 无法删除已存储的密钥，因此该项仍然开启。请再次尝试关闭。";

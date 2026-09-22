@@ -302,6 +302,8 @@
 "Number" = "Number";
 "OK" = "OK";
 "Off. Turn it on to serve the SSH keys in this vault." = "Off. Turn it on to serve the SSH keys in this vault.";
+"Offline — showing a saved copy of your vault" = "Offline — showing a saved copy of your vault";
+"Offline — showing data from %@" = "Offline — showing data from %@";
 "On timeout" = "On timeout";
 "Only %d characters" = "Only %d characters";
 "Open" = "Open";
@@ -528,3 +530,69 @@
 "“%@” will be permanently deleted. Items in this collection will remain in the vault." = "“%@” will be permanently deleted. Items in this collection will remain in the vault.";
 "…and %d more." = "…and %d more.";
 "→ %@" = "→ %@";
+"%d items could not be read" = "%d items could not be read";
+"%d items could not be read. They are still on the server; Prizm could not decrypt them." = "%d items could not be read. They are still on the server; Prizm could not decrypt them.";
+"1 item could not be read" = "1 item could not be read";
+"1 item could not be read. It is still on the server; Prizm could not decrypt it." = "1 item could not be read. It is still on the server; Prizm could not decrypt it.";
+"Generic" = "Generic";
+"Bank Account" = "Bank Account";
+"Driver's Licence" = "Driver's Licence";
+"Passport" = "Passport";
+"Medical Record" = "Medical Record";
+"Membership" = "Membership";
+"Social Security Number" = "Social Security Number";
+"WiFi" = "WiFi";
+"Software Licence" = "Software Licence";
+"Unrecognised type (%d)" = "Unrecognised type (%d)";
+"Type" = "Type";
+"Custom…" = "Custom…";
+"Items in Trash are permanently deleted automatically." = "Items in Trash are permanently deleted automatically.";
+"PIN" = "PIN";
+"%d attempts left before the PIN is removed." = "%d attempts left before the PIN is removed.";
+"Unlock with a PIN" = "Unlock with a PIN";
+"Require the master password after restarting Prizm" = "Require the master password after restarting Prizm";
+"With this on, a PIN cannot unlock Prizm until you have entered your master password once since it started." = "With this on, a PIN cannot unlock Prizm until you have entered your master password once since it started.";
+"A PIN is shorter than your master password, so it protects the local vault less. Five wrong PINs remove it and sign you out." = "A PIN is shorter than your master password, so it protects the local vault less. Five wrong PINs remove it and sign you out.";
+"Set a PIN" = "Set a PIN";
+"At least %d characters. It unlocks Prizm on this Mac only." = "At least %d characters. It unlocks Prizm on this Mac only.";
+"Confirm PIN" = "Confirm PIN";
+"Set PIN" = "Set PIN";
+"The two PINs do not match." = "The two PINs do not match.";
+"Format" = "Format";
+"JSON (all item types)" = "JSON (all item types)";
+"CSV (logins only)" = "CSV (logins only)";
+"CSV holds logins only. Cards, identities, secure notes and SSH keys cannot be written to it — choose JSON to export everything." = "CSV holds logins only. Cards, identities, secure notes and SSH keys cannot be written to it — choose JSON to export everything.";
+"%d items were not written: this format holds logins only. Export as JSON to include everything." = "%d items were not written: this format holds logins only. Export as JSON to include everything.";
+"This format cannot carry any of your items. CSV holds logins only — use JSON to export everything." = "This format cannot carry any of your items. CSV holds logins only — use JSON to export everything.";
+"Verification Codes" = "Verification Codes";
+"Copy code" = "Copy code";
+"%@ code for %@, %d seconds left" = "%@ code for %@, %d seconds left";
+"No verification codes" = "No verification codes";
+"Codes appear here for any login that has a one-time-code key stored on it." = "Codes appear here for any login that has a one-time-code key stored on it.";
+"Codes are derived from each item's stored key. The key itself is never shown or copied." = "Codes are derived from each item's stored key. The key itself is never shown or copied.";
+"No code" = "No code";
+
+// MARK: - Vault UI redesign (detail header)
+"Copy password" = "Copy password";
+"Open website" = "Open website";
+"Personal vault" = "Personal vault";
+"Updated %@  ·  Created %@" = "Updated %@  ·  Created %@";
+
+// MARK: - Collapsed section cards (passkeys, password history)
+"Expand" = "Expand";
+"Loading…" = "Loading…";
+
+// MARK: - Auth screens rebuilt on the shared card chrome
+"Sign in to your self-hosted vault" = "Sign in to your self-hosted vault";
+"Server" = "Server";
+"Required. For example https://vault.example.com" = "Required. For example https://vault.example.com";
+"The address of your Vaultwarden or Bitwarden server" = "The address of your Vaultwarden or Bitwarden server";
+"Your master password is never sent to the server — only a hash derived from it." = "Your master password is never sent to the server — only a hash derived from it.";
+"Unlock" = "Unlock";
+
+// MARK: - URI match strategies (wire values, Bitwarden's UriMatchStrategySetting)
+"Base domain" = "Base domain";
+"Unknown (%d)" = "Unknown (%d)";
+
+// MARK: - A stored key that would not delete
+"Prizm could not delete the stored key, so this is still enabled. Try turning it off again." = "Prizm could not delete the stored key, so this is still enabled. Try turning it off again.";

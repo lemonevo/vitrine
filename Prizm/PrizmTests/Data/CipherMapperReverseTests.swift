@@ -49,7 +49,7 @@ final class CipherMapperReverseTests: XCTestCase {
             username: "user@example.com",
             password: "s3cret!",
             uris: [
-                LoginURI(uri: "https://example.com", matchType: .domain),
+                LoginURI(uri: "https://example.com", matchType: .defaultMatch),
                 LoginURI(uri: "https://other.example.com", matchType: nil)
             ],
             totp: "TOTP_SEED",
@@ -198,9 +198,10 @@ final class CipherMapperReverseTests: XCTestCase {
         XCTAssertEqual(res.privateKey, orig.privateKey)
         XCTAssertEqual(res.publicKey, orig.publicKey)
         XCTAssertEqual(res.notes, orig.notes)
-        // keyFingerprint is not sent to the API; the forward-mapped result will have nil.
-        // This is expected — the server returns the authoritative fingerprint post-save.
-        XCTAssertNil(res.keyFingerprint)
+        // The fingerprint is client-derived and stored by the server as an opaque EncString — it has
+        // no key to compute one with. Sending `nil` therefore does not defer to the server; it erases
+        // the field on every save, which is what this test used to assert as correct.
+        XCTAssertEqual(res.keyFingerprint, orig.keyFingerprint)
     }
 
     // MARK: - Name and favorite preserved

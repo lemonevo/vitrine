@@ -185,12 +185,17 @@ final class VaultExportDocumentImportTests: XCTestCase {
         XCTAssertEqual(content.username, "octocat")
         XCTAssertEqual(content.password, "hunter2")
         XCTAssertEqual(content.uris.first?.uri, "https://github.com")
-        XCTAssertEqual(content.uris.first?.matchType, .domain)
+        XCTAssertEqual(content.uris.first?.matchType, .defaultMatch)
     }
 
     /// An unknown match integer degrades to "use the default strategy" rather than dropping the
     /// URI. Losing the site to preserve a matching hint is the wrong trade.
-    func test_makeDraft_unknownURIMatch_keepsTheURIAndDropsTheHint() throws {
+    /// **Reversed on 2026-09-22.** This test used to assert that an unrecognised match integer was
+    /// dropped and the URI kept — "losing the site to preserve a matching hint would be the wrong
+    /// trade". The trade was mis-stated: dropping the hint is not free, because the next save writes
+    /// the field back as absent, and the server replaces the whole object. An unknown number now stays
+    /// an unknown number, which is what `URIMatchType.unknown` exists for.
+    func test_makeDraft_unknownURIMatch_carriesTheNumberUnchanged() throws {
         let doc = try VaultExportDocument.decode(from: json("""
         { "id": "a", "type": 1, "name": "A", "favorite": false, "reprompt": 0,
           "login": { "uris": [ { "uri": "https://example.com", "match": 99 } ] } }
@@ -202,7 +207,9 @@ final class VaultExportDocumentImportTests: XCTestCase {
             return XCTFail("expected a login draft")
         }
         XCTAssertEqual(content.uris.count, 1, "the URI must survive")
-        XCTAssertNil(content.uris.first?.matchType)
+        XCTAssertEqual(content.uris.first?.matchType, .unknown(99))
+        XCTAssertEqual(content.uris.first?.matchType?.rawValue, 99,
+                       "a value this build cannot name must go back out exactly as it came in")
     }
 
     /// A missing per-type payload degrades to an empty one, matching the reference's `toView`,

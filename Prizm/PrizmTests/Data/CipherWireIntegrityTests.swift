@@ -47,7 +47,7 @@ final class CipherWireIntegrityTests: XCTestCase {
             content: .login(LoginContent(
                 username: "alice@example.com",
                 password: "hunter2",
-                uris: [LoginURI(uri: "https://example.com", matchType: .domain)],
+                uris: [LoginURI(uri: "https://example.com", matchType: .defaultMatch)],
                 totp: nil,
                 notes: "notes",
                 customFields: []

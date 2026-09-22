@@ -31,7 +31,7 @@ final class DraftVaultItemTests: XCTestCase {
             username: "user@example.com",
             password: "hunter2",
             uris: [
-                LoginURI(uri: "https://example.com", matchType: .domain),
+                LoginURI(uri: "https://example.com", matchType: .defaultMatch),
                 LoginURI(uri: "https://sub.example.com", matchType: nil)
             ],
             totp: "TOTPSEED",

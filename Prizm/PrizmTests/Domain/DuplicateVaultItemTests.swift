@@ -27,7 +27,7 @@ final class DuplicateVaultItemTests: XCTestCase {
             creationDate: baseDate, revisionDate: baseDate,
             content: .login(LoginContent(
                 username: "octocat", password: "hunter2",
-                uris: [LoginURI(uri: "https://github.com", matchType: .domain)],
+                uris: [LoginURI(uri: "https://github.com", matchType: .defaultMatch)],
                 totp: "JBSWY3DPEHPK3PXP", notes: "notes here",
                 customFields: [CustomField(name: "env", value: "prod", type: .text, linkedId: nil)]
             )),

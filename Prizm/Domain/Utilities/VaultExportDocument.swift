@@ -18,7 +18,9 @@ import Foundation
 ///   builds `FolderWithIdExport`. An item's `folderId` therefore resolves inside the file.
 /// - **Items carry an `id`** (`CipherWithIdExport`). It is written but **never read back on
 ///   import** — the server assigns ids and a file-local one means nothing on another server.
-/// - **`match` on a URI is an integer**, not a string. `URIMatchType` is already `Int`-backed.
+/// - **`match` on a URI is an integer**, not a string — `URIMatchType.rawValue`, matching
+///   Bitwarden's `UriMatchStrategySetting`. 0 is "default" and 1 is "base domain"; a build that
+///   numbered its own cases from `domain = 0` would write every strategy one step off.
 /// - **`collectionIds` is `null`, not `[]`, for a personal item.** Modelled as an optional and
 ///   omitted when nil, which every conforming parser treats identically.
 /// - **`key` is deleted before writing.** The unencrypted export carries no per-item key.
@@ -161,7 +163,10 @@ nonisolated struct ExportLoginURI: Codable, Equatable {
     let match: Int?
 }
 
-/// `type` is always 0 (`SecureNoteType.Generic`), matching `SecureNoteExport`.
+/// The note's subtype, as Bitwarden's `SecureNoteType` integer.
+///
+/// This comment used to say the type was "always 0", and the code made that true by hardcoding it —
+/// so exporting a passport note wrote a generic one. It carries the item's actual subtype now.
 nonisolated struct ExportSecureNote: Codable, Equatable {
     let type: Int
 }
@@ -393,8 +398,8 @@ private nonisolated extension ItemContent {
     }
 
     var secureNotePayload: ExportSecureNote? {
-        guard case .secureNote = self else { return nil }
-        return ExportSecureNote(type: 0)
+        guard case .secureNote(let c) = self else { return nil }
+        return ExportSecureNote(type: c.subtype.rawValue)
     }
 
     var cardPayload: ExportCard? {

@@ -52,7 +52,7 @@ final class RootViewModelCopyCommandTests: XCTestCase {
             creationDate: Date(), revisionDate: Date(),
             content: .login(LoginContent(
                 username: "alice@example.com", password: "hunter2",
-                uris: [LoginURI(uri: "https://example.com", matchType: .domain)],
+                uris: [LoginURI(uri: "https://example.com", matchType: .defaultMatch)],
                 totp: totp, notes: nil, customFields: []
             ))
         )
@@ -66,6 +66,14 @@ final class RootViewModelCopyCommandTests: XCTestCase {
             try await Task.sleep(for: .milliseconds(5))
         }
         XCTAssertNotNil(sut.selectedLogin, "The selected item should reach the view model")
+        // The vault must be unlocked before the copy commands report themselves available: they now
+        // require it in addition to the selection holding the field, so that a locked vault yields
+        // no secrets even if a state-clearing path were to miss the selection.
+        //
+        // Set last, not first: the login flow's initial emission is delivered on the main queue and
+        // calls `handleLoginFlow(.login)`, which sets `screen` back to `.login`. Setting it here
+        // makes the unlocked state the last word rather than a value that gets overwritten.
+        sut.screen = .vault
     }
 
     private var pasteboardValue: String? {

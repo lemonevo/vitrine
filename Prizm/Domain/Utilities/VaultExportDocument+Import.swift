@@ -121,10 +121,11 @@ nonisolated extension VaultExportDocument {
                 username:     login.username,
                 password:     login.password,
                 uris:         (login.uris ?? []).map {
-                    // An unknown match integer degrades to `nil` — "use the default strategy" —
-                    // rather than dropping the URI. Losing the site to preserve a matching hint
-                    // would be the wrong trade.
-                    LoginURI(uri: $0.uri, matchType: $0.match.flatMap(URIMatchType.init))
+                    // Every integer names something: a value this build does not know becomes
+                    // `.unknown(raw)` and is written back unchanged. It used to degrade to `nil` —
+                    // "use the default strategy" — which quietly rewrote a strategy the file had
+                    // recorded.
+                    LoginURI(uri: $0.uri, matchType: $0.match.map(URIMatchType.init))
                 },
                 totp:         login.totp,
                 notes:        item.notes,
@@ -132,9 +133,12 @@ nonisolated extension VaultExportDocument {
             )))
 
         case .secureNote:
+            // An absent payload is Generic, which is also what the server sends for notes that
+            // predate the field.
             content = .secureNote(DraftSecureNoteContent(SecureNoteContent(
                 notes:        item.notes,
-                customFields: fields
+                customFields: fields,
+                subtype:      SecureNoteSubtype(rawValue: item.secureNote?.type ?? 0)
             )))
 
         case .card:

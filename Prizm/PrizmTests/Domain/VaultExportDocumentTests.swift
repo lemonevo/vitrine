@@ -25,7 +25,7 @@ final class VaultExportDocumentTests: XCTestCase {
         username: String? = "octocat",
         password: String? = "hunter2",
         totp: String? = "JBSWY3DPEHPK3PXP",
-        uris: [LoginURI] = [LoginURI(uri: "https://github.com", matchType: .domain)],
+        uris: [LoginURI] = [LoginURI(uri: "https://github.com", matchType: .defaultMatch)],
         notes: String? = "a note",
         customFields: [CustomField] = []
     ) -> VaultItem {
@@ -90,11 +90,12 @@ final class VaultExportDocumentTests: XCTestCase {
         XCTAssertEqual(item.login?.uris?.first?.uri, "https://github.com")
     }
 
-    /// `URIMatchType` is `Int`-backed and the format stores the integer, not the name.
+    /// The format stores Bitwarden's `UriMatchStrategySetting` integer, not a name — which is why
+    /// `URIMatchType` maps its cases to those numbers by hand rather than numbering itself from zero.
     func test_loginURIMatch_isAnInteger() throws {
         let item = document([login()]).items[0]
         let uri  = try XCTUnwrap(item.login?.uris?.first)
-        XCTAssertEqual(uri.match, 0, "`.domain` is raw value 0")
+        XCTAssertEqual(uri.match, 0, "`.defaultMatch` is raw value 0")
 
         let encoded = try JSONEncoder().encode(uri)
         let json    = try XCTUnwrap(

@@ -194,7 +194,7 @@ nonisolated final class CipherMapper: Sendable {
         // Reference: github.com/bitwarden/server CipherType.cs; vaultwarden CipherType enum.
         switch type {
         case 1: return try mapLogin(raw.login,       notes: notes, fields: fields, keys: keys)
-        case 2: return mapSecureNote(                notes: notes, fields: fields)
+        case 2: return mapSecureNote(raw.secureNote, notes: notes, fields: fields)
         case 3: return try mapCard(raw.card,         notes: notes, fields: fields, keys: keys)
         case 4: return try mapIdentity(raw.identity, notes: notes, fields: fields, keys: keys)
         case 5: return try mapSSHKey(raw.sshKey,     notes: notes, fields: fields, keys: keys)
@@ -215,7 +215,7 @@ nonisolated final class CipherMapper: Sendable {
         let uris: [LoginURI] = try (login.uris ?? []).compactMap { rawURI in
             guard let encUri = rawURI.uri else { return nil }
             let uriStr = try decryptRequired(encUri, field: "uri", keys: keys)
-            let match  = rawURI.match.flatMap { URIMatchType(rawValue: $0) }
+            let match  = rawURI.match.map { URIMatchType(rawValue: $0) }
             return LoginURI(uri: uriStr, matchType: match)
         }
         return .login(LoginContent(
@@ -230,8 +230,15 @@ nonisolated final class CipherMapper: Sendable {
 
     // MARK: - Secure Note
 
-    private func mapSecureNote(notes: String?, fields: [CustomField]) -> ItemContent {
-        .secureNote(SecureNoteContent(notes: notes, customFields: fields))
+    /// - Parameter data: The secure-note payload. `nil` for items that predate the subtype field,
+    ///   which decode as `.generic` — the same value a payload of `type: 0` carries, so the two are
+    ///   indistinguishable downstream and the UI can hide the row without a special case.
+    private func mapSecureNote(_ data: RawSecureNoteData?, notes: String?, fields: [CustomField]) -> ItemContent {
+        .secureNote(SecureNoteContent(
+            notes:        notes,
+            customFields: fields,
+            subtype:      SecureNoteSubtype(rawValue: data?.type ?? 0)
+        ))
     }
 
     // MARK: - Card
@@ -404,6 +411,16 @@ nonisolated final class CipherMapper: Sendable {
             notes:          encNotes,
             favorite:       draft.isFavorite,
             reprompt:       draft.reprompt,
+            // No source: `DraftVaultItem` keeps only `isDeleted`, so the timestamp is not available
+            // to send back. Timestamps are server-authoritative on a PUT, so `nil` is right for the
+            // latter two.
+            //
+            // `deletedDate` is different in kind, and is safe **only because nothing reaches it**:
+            // the edit sheet refuses trashed items and the trash toolbar replaces Edit with
+            // Restore/Delete, so a draft is never built from a trashed cipher. Vaultwarden also
+            // ignores the field on update. Both of those are load-bearing — a new path that builds a
+            // draft from a trashed item would send `nil` and un-trash it. See the sweep in
+            // `openspec/changes/collection-permission-round-trip/design.md`.
             deletedDate:    nil,
             creationDate:   nil,
             revisionDate:   nil,
@@ -473,8 +490,10 @@ nonisolated final class CipherMapper: Sendable {
         switch content {
         case .login(let c):
             return (1, try toRawLogin(c, preserved: preserved, keys: keys), nil, nil, nil, nil)
-        case .secureNote:
-            return (2, nil, nil, nil, RawSecureNoteData(type: 0), nil)
+        case .secureNote(let c):
+            // The subtype is round-tripped, not invented. Sending a literal 0 here reset every note
+            // to Generic on save, including notes whose subtype was set by another client.
+            return (2, nil, nil, nil, RawSecureNoteData(type: c.subtype.rawValue), nil)
         case .card(let c):
             return (3, nil, try toRawCard(c, keys: keys), nil, nil, nil)
         case .identity(let c):
@@ -550,12 +569,25 @@ nonisolated final class CipherMapper: Sendable {
 
     // MARK: - Private: SSH Key reverse map
 
+    /// Reverse map for an SSH key item.
+    ///
+    /// `keyFingerprint` is **client-derived** — whichever Bitwarden client created the item computed
+    /// it and encrypted it, and the server stores the resulting `EncString` opaquely. It has no vault
+    /// key, so it cannot derive or restore one. Omitting the field here therefore does not leave it
+    /// to the server; it **erases it on every save**. This used to send `nil` with a comment claiming
+    /// the opposite, and the erase happened on any edit at all — changing a note was enough.
+    ///
+    /// **Known limitation.** The fingerprint is round-tripped, not recomputed, so replacing the key
+    /// material in the edit form leaves the stored fingerprint describing the *previous* key. That is
+    /// a stale verification aid rather than a corruption: the key still works, and any client that
+    /// does derive the value corrects it on its next save. Recomputing needs SSH public-key wire
+    /// format parsing and is deliberately not part of this fix — see
+    /// `openspec/changes/ssh-key-fingerprint-preservation/`.
     private func toRawSSHKey(_ c: DraftSSHKeyContent, keys: CryptoKeys) throws -> RawSSHKeyData {
-        // keyFingerprint is auto-derived and not sent to the API — it is server-authoritative.
         RawSSHKeyData(
             privateKey:     try c.privateKey.map  { try encryptString($0, keys: keys) },
             publicKey:      try c.publicKey.map   { try encryptString($0, keys: keys) },
-            keyFingerprint: nil
+            keyFingerprint: try c.keyFingerprint.map { try encryptString($0, keys: keys) }
         )
     }
 

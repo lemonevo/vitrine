@@ -236,14 +236,65 @@ nonisolated struct LoginURI: Equatable, Hashable {
     let matchType: URIMatchType?
 }
 
-/// URI-matching strategy used when auto-filling (stored per URI, not used in v1 display).
-nonisolated enum URIMatchType: Int, Equatable, Hashable {
-    case domain = 0
-    case host = 1
-    case startsWith = 2
-    case exact = 3
-    case regularExpression = 4
-    case never = 5
+/// URI-matching strategy for one website entry.
+///
+/// **The integers are Bitwarden's `UriMatchStrategySetting`, and they are the contract.** This enum
+/// used to be `Int`-backed starting at `domain = 0`, which is one step short of the wire: Bitwarden
+/// reserves 0 for "default" and puts "base domain" at 1. Every choice above the first was therefore
+/// written as its neighbour — picking "Never" sent 5, which the wire reads as *regular expression* —
+/// and 6 ("Never") had no case at all, so a value set in the web vault decoded to nothing and the next
+/// save erased it. Because a favourite toggle goes through the same full `PUT`, one click on a star was
+/// enough to do it.
+///
+/// Held as an explicit mapping rather than a raw-value enum, so that a number this build does not know
+/// is carried through unchanged instead of being normalised away. `SecureNoteSubtype` learned the same
+/// lesson the hard way; see its comment for why a mapping that is wrong in both directions is worse
+/// than one that fails loudly.
+///
+/// `nil` on `LoginURI.matchType` means the user chose nothing, which the wire writes as `null`;
+/// `.defaultMatch` is an explicit 0. Both mean "the client decides", and both survive as themselves.
+nonisolated enum URIMatchType: Equatable, Hashable {
+    case defaultMatch
+    case baseDomain
+    case host
+    case startsWith
+    case exact
+    case regularExpression
+    case never
+    /// A strategy this build does not know. Carried, never normalised.
+    case unknown(Int)
+
+    init(rawValue: Int) {
+        switch rawValue {
+        case 0:  self = .defaultMatch
+        case 1:  self = .baseDomain
+        case 2:  self = .host
+        case 3:  self = .startsWith
+        case 4:  self = .exact
+        case 5:  self = .regularExpression
+        case 6:  self = .never
+        default: self = .unknown(rawValue)
+        }
+    }
+
+    var rawValue: Int {
+        switch self {
+        case .defaultMatch:      return 0
+        case .baseDomain:        return 1
+        case .host:              return 2
+        case .startsWith:        return 3
+        case .exact:             return 4
+        case .regularExpression: return 5
+        case .never:             return 6
+        case .unknown(let raw):  return raw
+        }
+    }
+
+    /// What the picker offers, in Bitwarden's order. `.unknown` is absent on purpose: it is what a
+    /// stored value becomes when this build cannot name it, not a thing to choose.
+    static let selectable: [URIMatchType] = [
+        .baseDomain, .host, .startsWith, .exact, .regularExpression, .never
+    ]
 }
 
 // MARK: - Card
@@ -286,9 +337,81 @@ nonisolated struct IdentityContent: Equatable, Hashable {
 
 // MARK: - Secure Note
 
+/// Bitwarden's secure-note subtype.
+///
+/// **Why this is not a closed enum.** A server newer than this build can serve a subtype the enum has
+/// never heard of, and a closed enum has only two ways to respond: throw, or fall back to `.generic`.
+/// The second is what a `switch` reaches for, and it is a data loss — a passport note becomes a
+/// generic one the next time it is saved, because the write path then sends `0`.
+///
+/// `.unknown` makes "not recognised" a value that can be *held*, so it survives a round trip
+/// whichever build opens the item. The UI shows the raw number for it, which is honest about what
+/// this build knows.
+nonisolated enum SecureNoteSubtype: Equatable, Hashable {
+    case generic
+    case bankAccount
+    case driversLicense
+    case passport
+    case medicalRecord
+    case membership
+    case socialSecurity
+    case wifi
+    case softwareLicense
+    /// A subtype this build does not know. Carried, never normalised.
+    case unknown(Int)
+
+    /// Bitwarden's `SecureNoteType` integers. Asserted in the tests per case, because a mapping that
+    /// is wrong in the same way in both directions would round-trip perfectly while mislabelling the
+    /// item — and a wrong label is recoverable, whereas a lost value is not.
+    init(rawValue: Int) {
+        switch rawValue {
+        case 0:  self = .generic
+        case 1:  self = .bankAccount
+        case 2:  self = .driversLicense
+        case 3:  self = .passport
+        case 4:  self = .medicalRecord
+        case 5:  self = .membership
+        case 6:  self = .socialSecurity
+        case 7:  self = .wifi
+        case 8:  self = .softwareLicense
+        default: self = .unknown(rawValue)
+        }
+    }
+
+    var rawValue: Int {
+        switch self {
+        case .generic:         return 0
+        case .bankAccount:     return 1
+        case .driversLicense:  return 2
+        case .passport:        return 3
+        case .medicalRecord:   return 4
+        case .membership:      return 5
+        case .socialSecurity:  return 6
+        case .wifi:            return 7
+        case .softwareLicense: return 8
+        case .unknown(let raw): return raw
+        }
+    }
+
+    /// The subtypes offered by the picker, in Bitwarden's order. `.unknown` is deliberately absent:
+    /// it is what a stored value becomes when this build cannot name it, not something to choose.
+    static let selectable: [SecureNoteSubtype] = [
+        .generic, .bankAccount, .driversLicense, .passport, .medicalRecord,
+        .membership, .socialSecurity, .wifi, .softwareLicense
+    ]
+}
+
 nonisolated struct SecureNoteContent: Equatable, Hashable {
     let notes: String?
     let customFields: [CustomField]
+    /// Defaults to `.generic`, which is also what the server sends for notes that predate the field.
+    let subtype: SecureNoteSubtype
+
+    init(notes: String?, customFields: [CustomField], subtype: SecureNoteSubtype = .generic) {
+        self.notes        = notes
+        self.customFields = customFields
+        self.subtype      = subtype
+    }
 }
 
 // MARK: - SSH Key

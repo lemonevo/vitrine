@@ -36,7 +36,7 @@ final class ExportVaultUseCaseTests: XCTestCase {
             creationDate: epoch, revisionDate: epoch,
             content: .login(LoginContent(
                 username: "octocat", password: "hunter2",
-                uris: [LoginURI(uri: "https://github.com", matchType: .domain)],
+                uris: [LoginURI(uri: "https://github.com", matchType: .defaultMatch)],
                 totp: nil, notes: nil, customFields: []
             )),
             organizationId: organizationId,
@@ -192,7 +192,7 @@ final class ExportVaultUseCaseTests: XCTestCase {
 
     /// `prizm_export_YYYYMMDDHHmmss.json`, mirroring the reference's `bitwarden_export_<ts>.json`.
     func test_filename_hasTheExpectedShape() {
-        let name = ExportVaultUseCaseImpl.filename(now: epoch)
+        let name = ExportVaultUseCaseImpl.filename(format: .json, now: epoch)
 
         XCTAssertTrue(name.hasPrefix("prizm_export_"), name)
         XCTAssertTrue(name.hasSuffix(".json"), name)
@@ -203,15 +203,15 @@ final class ExportVaultUseCaseTests: XCTestCase {
     /// The time is included so two exports in one session do not offer the same name.
     func test_filename_changesWithTheTime() {
         XCTAssertNotEqual(
-            ExportVaultUseCaseImpl.filename(now: epoch),
-            ExportVaultUseCaseImpl.filename(now: epoch.addingTimeInterval(1))
+            ExportVaultUseCaseImpl.filename(format: .json, now: epoch),
+            ExportVaultUseCaseImpl.filename(format: .json, now: epoch.addingTimeInterval(1))
         )
     }
 
     /// The second-resolution format is intentional: two exports a minute apart get different
     /// names, and the name is a valid filename on every platform the app runs on.
     func test_filename_isAPlainFilename() {
-        let name = ExportVaultUseCaseImpl.filename(now: epoch)
+        let name = ExportVaultUseCaseImpl.filename(format: .json, now: epoch)
 
         XCTAssertFalse(name.contains("/"))
         XCTAssertFalse(name.contains(":"))
@@ -230,7 +230,7 @@ final class ExportVaultUseCaseTests: XCTestCase {
             creationDate: epoch, revisionDate: epoch,
             content: .login(LoginContent(
                 username: "octocat", password: "hunter2",
-                uris: [LoginURI(uri: "https://github.com", matchType: .domain)],
+                uris: [LoginURI(uri: "https://github.com", matchType: .defaultMatch)],
                 totp: "JBSWY3DPEHPK3PXP", notes: "a note",
                 customFields: [CustomField(name: "PIN", value: "1234", type: .hidden, linkedId: nil)]
             )),
@@ -259,7 +259,7 @@ final class ExportVaultUseCaseTests: XCTestCase {
         XCTAssertEqual(content.totp, "JBSWY3DPEHPK3PXP", "losing the seed would disable 2FA")
         XCTAssertEqual(content.notes, "a note")
         XCTAssertEqual(content.uris.first?.uri, "https://github.com")
-        XCTAssertEqual(content.uris.first?.matchType, .domain)
+        XCTAssertEqual(content.uris.first?.matchType, .defaultMatch)
         XCTAssertEqual(content.customFields.first?.name, "PIN")
         XCTAssertEqual(content.customFields.first?.value, "1234")
         XCTAssertEqual(content.customFields.first?.type, .hidden)

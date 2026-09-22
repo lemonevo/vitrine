@@ -39,7 +39,7 @@ final class VaultHealthReportTests: XCTestCase {
             creationDate: now, revisionDate: now,
             content: .login(LoginContent(
                 username: "octocat", password: password,
-                uris: [LoginURI(uri: uri, matchType: .domain)],
+                uris: [LoginURI(uri: uri, matchType: .defaultMatch)],
                 totp: totp, notes: nil, customFields: []
             )),
             organizationId: nil,

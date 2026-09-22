@@ -180,9 +180,14 @@ private struct URIEditRow: View {
                         .padding(.leading, Spacing.rowHorizontal)
                     Spacer()
                     Picker("Match Type", selection: $uri.matchType) {
-                        Text("Default").tag(URIMatchType?.none)
-                        ForEach(URIMatchType.allCases, id: \.self) { type in
+                        Text(L("Default")).tag(URIMatchType?.none)
+                        ForEach(URIMatchType.selectable, id: \.self) { type in
                             Text(type.displayName).tag(URIMatchType?.some(type))
+                        }
+                        // A strategy this build cannot name is shown as the number it is, so the row
+                        // neither disappears nor silently becomes "Default" under the user's cursor.
+                        if let current = uri.matchType, case .unknown(let raw) = current {
+                            Text(L("Unknown (%d)", raw)).tag(URIMatchType?.some(current))
                         }
                     }
                     .labelsHidden()
@@ -198,18 +203,16 @@ private struct URIEditRow: View {
 // MARK: - URIMatchType + Helpers
 
 private extension URIMatchType {
-    static var allCases: [URIMatchType] {
-        [.domain, .host, .startsWith, .exact, .regularExpression, .never]
-    }
-
     var displayName: String {
         switch self {
-        case .domain:            return L("Domain")
+        case .defaultMatch:      return L("Default")
+        case .baseDomain:        return L("Base domain")
         case .host:              return L("Host")
         case .startsWith:        return L("Starts With")
         case .exact:             return L("Exact")
         case .regularExpression: return L("Regular Expression")
         case .never:             return L("Never")
+        case .unknown(let raw):  return L("Unknown (%d)", raw)
         }
     }
 }
