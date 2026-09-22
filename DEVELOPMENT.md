@@ -52,7 +52,7 @@ Or build from the command line:
 
 ```bash
 xcodebuild -project "Prizm/Prizm.xcodeproj" \
-           -scheme "Vitrine" \
+           -scheme "Prizm" \
            -configuration Debug \
            build
 ```
@@ -64,7 +64,7 @@ Press `⌘U` in Xcode, or from the command line:
 ```bash
 xcodebuild test \
   -project "Prizm/Prizm.xcodeproj" \
-  -scheme "Vitrine" \
+  -scheme "Prizm" \
   -destination "platform=macOS"
 ```
 

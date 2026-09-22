@@ -50,13 +50,15 @@ open "Prizm/Prizm.xcodeproj"
 
 # Build
 xcodebuild -project "Prizm/Prizm.xcodeproj" \
-           -scheme "Vitrine" -configuration Debug build
+           -scheme "Prizm" -configuration Debug build
 
-# Run all tests
+# Run all tests — the flags are what CI passes; without them a build with no
+# provisioning profile for the bundle id fails before any test runs
 xcodebuild test \
   -project "Prizm/Prizm.xcodeproj" \
-  -scheme "Vitrine" \
-  -destination "platform=macOS"
+  -scheme "Prizm" \
+  -destination "platform=macOS" \
+  CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
 ```
 
 ## Active Changes
