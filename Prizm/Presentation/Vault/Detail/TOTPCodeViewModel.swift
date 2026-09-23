@@ -41,6 +41,9 @@ final class TOTPCodeViewModel: ObservableObject {
 
     private var code: String?
     private var expiresAt: Date?
+    /// The step length the cached code was derived with, kept so the countdown can be recomputed
+    /// without asking the generator for the window again.
+    private var period: TimeInterval?
 
     private let secret: String?
     private let generator: any TOTPGenerator
@@ -84,7 +87,20 @@ final class TOTPCodeViewModel: ObservableObject {
     // MARK: - Refresh
 
     /// Recomputes everything from the stored value at `date`.
+    ///
+    /// **The derivation is skipped while the step has not changed.** `generator.window` computes an
+    /// HMAC, and a code lives for a whole period (30 seconds by default) while the countdown beside it
+    /// moves every second. Re-deriving on every tick therefore did N HMACs per second for a list of N
+    /// codes to produce the same N codes again — which is what made this screen feel slow. Below the
+    /// boundary only `secondsRemaining` and `remainingFraction` move; the code is already right.
     func refresh(at date: Date) {
+        if let expiresAt, let period, code != nil, date < expiresAt {
+            let remaining = Self.remainingSeconds(until: expiresAt, at: date, period: period)
+            secondsRemaining  = remaining
+            remainingFraction = Self.remainingFraction(secondsRemaining: remaining, period: period)
+            return
+        }
+
         guard let window = generator.window(for: secret, at: date) else {
             code             = nil
             displayCode      = nil
@@ -92,11 +108,13 @@ final class TOTPCodeViewModel: ObservableObject {
             remainingFraction = 0
             expiresAt        = nil
             isUnusable       = true
+            period           = nil
             return
         }
 
         isUnusable       = false
         code             = window.value
+        period           = window.period
         displayCode      = Self.grouped(window.value)
         expiresAt        = window.expiresAt
         let remaining    = Self.remainingSeconds(until: window.expiresAt, at: date, period: window.period)

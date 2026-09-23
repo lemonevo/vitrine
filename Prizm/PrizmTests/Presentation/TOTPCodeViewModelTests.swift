@@ -27,6 +27,26 @@ final class TOTPCodeViewModelTests: XCTestCase {
         }
     }
 
+    /// The same generator, counting how often it is asked.
+    ///
+    /// The thing under test is *how often* the code is recomputed, which no assertion about the code
+    /// itself can see — the same code is the correct answer either way.
+    private final class CountingGenerator: TOTPGenerator, @unchecked Sendable {
+        let period: TimeInterval
+        private(set) var calls = 0
+        init(period: TimeInterval) { self.period = period }
+
+        func window(for secret: String?, at date: Date) -> TOTPWindow? {
+            calls += 1
+            guard let secret, !secret.isEmpty else { return nil }
+            let step    = max(1, period)
+            let counter = floor(date.timeIntervalSince1970 / step)
+            return TOTPWindow(value:     String(format: "%06d", Int(counter) % 1_000_000),
+                              expiresAt: Date(timeIntervalSince1970: (counter + 1) * step),
+                              period:    step)
+        }
+    }
+
     private let seed = "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ"
 
     private func date(_ unixTime: TimeInterval) -> Date { Date(timeIntervalSince1970: unixTime) }
@@ -277,5 +297,35 @@ final class TOTPCodeViewModelTests: XCTestCase {
         spin(1.4)
         XCTAssertNotEqual(sut.displayCode, first)
         sut.stop()
+    }
+
+    // MARK: - What the refresh costs
+
+    /// The derivation is skipped while the step holds: only the countdown moves.
+    ///
+    /// **The defect this pins.** `refresh` derived the code on every tick, so a list of N codes paid N
+    /// HMACs a second — each preceded by re-parsing the `otpauth://` value and decoding its Base32 —
+    /// to produce N codes that could not have changed. That is what made the codes destination feel
+    /// slow, and it is invisible from the code's value, which is right either way.
+    func test_withinOneStep_onlyTheCountdownMoves() {
+        let generator = CountingGenerator(period: 30)
+        let sut = TOTPCodeViewModel(itemId: "item", secret: seed, generator: generator)
+
+        sut.refresh(at: date(31))
+        let firstCode = sut.displayCode
+        XCTAssertEqual(generator.calls, 1)
+        XCTAssertEqual(sut.secondsRemaining, 29)
+
+        sut.refresh(at: date(45))
+
+        XCTAssertEqual(generator.calls, 1,
+                       "a code cannot change inside its step, so deriving it again is work for nothing")
+        XCTAssertEqual(sut.secondsRemaining, 15, "the countdown is the part that does move")
+        XCTAssertEqual(sut.displayCode, firstCode)
+
+        sut.refresh(at: date(60))
+
+        XCTAssertEqual(generator.calls, 2, "the step rolled, so the code has to be derived again")
+        XCTAssertNotEqual(sut.displayCode, firstCode)
     }
 }
