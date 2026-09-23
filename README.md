@@ -170,8 +170,7 @@ adding a rule for Vitrine with the exact menu item name.
 | | Bitwarden cloud accounts | Passkey creation and sign-in |
 | | Conflict merging — detection ships | KDBX 4 (KeePass) reading |
 
-**Now** is in progress, **Next** is planned, **Later** has no schedule. Priorities follow the issue
-tracker rather than this table, so an issue is the way to move something up.
+**Now** is in progress, **Next** is planned, **Later** has no schedule.
 
 ## Known Limitations
 
@@ -195,7 +194,7 @@ tracker rather than this table, so an issue is the way to move something up.
 See [DEVELOPMENT.md](DEVELOPMENT.md) for prerequisites, build and test commands, and the architecture
 overview. Changes are proposed in `openspec/changes/` before the code is written.
 
-Pull requests are welcome. Please open an issue first for anything significant.
+Pull requests are welcome.
 
 ## Mission & Principles
 

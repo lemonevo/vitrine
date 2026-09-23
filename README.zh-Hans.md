@@ -154,8 +154,7 @@ xattr -dr com.apple.quarantine "/Applications/Prizm.app"
 | | Bitwarden 官方云账号 | passkey 的创建与登录 |
 | | 冲突合并（检测已实现） | 读取 KDBX 4（KeePass） |
 
-**正在做**是真的在做，**接下来**有排期，**更远**没有时间表。优先级由 issue 决定，不由这张表决定
-——想让某一项提前，开个 issue。
+**正在做**是真的在做，**接下来**有排期，**更远**没有时间表。
 
 ## 已知限制
 
@@ -174,7 +173,7 @@ xattr -dr com.apple.quarantine "/Applications/Prizm.app"
 构建、测试命令与架构概览见 [DEVELOPMENT.md](DEVELOPMENT.md)。改动先在 `openspec/changes/` 里提出，
 再写代码。
 
-欢迎提交 PR。比较大的改动请先开一个 issue。
+欢迎提交 PR。
 
 ## 使命与原则
 

@@ -61,3 +61,8 @@
 - [x] 5.6 The facts in `AGENTS.md` checked against the repository rather than recalled: the product
       names in `project.pbxproj` and `build-app.sh`, the executable the release workflow packages, the
       keychain services in `reset-keychain.sh`, and the absence of `UITests` from the target graph.
+- [x] 5.7 The two sentences that pointed at an issue tracker removed from both files. The roadmap's
+      legend stays, because it explains the three columns; only the claim about how priorities are set
+      goes, and the Contributing section ends with the welcome. Issues were disabled on the repository
+      at the time, which is why the claim was worth removing rather than relying on — and they are now
+      enabled, so the templates under `.github/ISSUE_TEMPLATE/` have somewhere to land.
