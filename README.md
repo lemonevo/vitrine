@@ -55,9 +55,8 @@ your signup through one. Both are refused, not deferred.
 - **Keys live in the macOS Keychain**, device-only and never synchronised, and they are zeroed when
   the vault locks.
 
-[SECURITY.md](SECURITY.md) has the full threat model, the algorithm specifications, and what the app
-does **not** protect against. [ACCESSIBILITY.md](ACCESSIBILITY.md) has the WCAG 2.1 conformance
-statement.
+What it does not protect against: a compromised or hostile server, malware already running as you, and
+anyone with physical access to an unlocked Mac.
 
 ## Features
 
@@ -123,7 +122,7 @@ cp Prizm/LocalConfig.xcconfig.template Prizm/LocalConfig.xcconfig
 open "Prizm/Prizm.xcodeproj"
 ```
 
-[DEVELOPMENT.md](DEVELOPMENT.md) covers the full setup, including how to get a free Team ID.
+A free Apple ID works as the Team ID; Xcode's Settings → Accounts shows it after your name.
 
 **Prebuilt downloads** appear in [Releases](https://github.com/lemonevo/vitrine/releases) when one is
 published. They are **unsigned and not notarised**, because there is no Apple Developer account behind
@@ -191,8 +190,8 @@ adding a rule for Vitrine with the exact menu item name.
 
 ## Contributing
 
-See [DEVELOPMENT.md](DEVELOPMENT.md) for prerequisites, build and test commands, and the architecture
-overview. Changes are proposed in `openspec/changes/` before the code is written.
+Open `Prizm/Prizm.xcodeproj` in Xcode: ⌘R builds and runs, ⌘U runs the tests. Changes are proposed in
+`openspec/changes/` before the code is written.
 
 Pull requests are welcome.
 

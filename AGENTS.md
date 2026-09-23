@@ -1,14 +1,36 @@
 # Working in this repository
 
 Operational notes for AI agents and for anyone else who has to build, run and verify this project.
-This is not user documentation — that is `README.md`; the deep conventions are `CLAUDE.md`.
+This is not user documentation — that is `README.md`.
 
 Read, in this order:
 
-1. `CONSTITUTION.md` — seven non-negotiable principles. Violating one is a blocking review failure.
-2. `CLAUDE.md` — design tokens, layer rules, comment standard, and the traps that have already bitten.
+1. `README.md` — what the application is, and what it claims to a user.
+2. `openspec/specs/**` — what it does, requirement by requirement. `openspec/changes/<name>/` holds
+   the work in flight.
 3. This file — how to build, verify, and avoid believing a green run that ran nothing.
-4. `openspec/` — the change records, and the specs they answer to.
+
+## Conventions that still bind
+
+The manual that used to hold these was removed on 2026-09-23; the full text is in git
+(`git show 0014016:CLAUDE.md`). What survives here are the rules that cost the most when broken:
+
+- **Three layers, one direction.** `Domain/` imports Foundation only; `Data/` is the only layer that
+  imports crypto, all of it behind `BitwardenCryptoService`; `Presentation/` imports SwiftUI and never
+  `Data/`.
+- **Typography and spacing come from `Prizm/Presentation/DesignSystem.swift`.** No raw font or spacing
+  literals in a view; a new role gets a token with a comment.
+- **Alpha derived from `Color.primary` or a semantic colour comes from `ContrastAwareOpacity.swift`**,
+  keyed on `colorSchemeContrast`, never written as a literal at a call site — that is what makes
+  Increase Contrast change anything. `.secondary` and `.tertiary` are not safe for copy a user has to
+  act on.
+- **Every user-facing string is `L("key")`, and the key is added to both `en.lproj` and
+  `zh-Hans.lproj`.** A missing key renders as the key itself, so Chinese silently reads as English.
+- **A view that shows a published value must observe the model that publishes it.** `let model: X`
+  where `X: ObservableObject` installs no subscription: the view draws once and freezes while every
+  unit test stays green.
+- **Item commands go in the item's header, not the window toolbar** — `NavigationSplitView` lays each
+  column's toolbar items out in column order, so they change the window's shape with the selection.
 
 ## Vitrine is the product; Prizm is the build
 
@@ -92,12 +114,15 @@ was true at the time.
 
 ## Documents that have drifted
 
-`CLAUDE.md` is authoritative on conventions and on the design system. It is not authoritative on
-detail — check the code before repeating a claim from any document, including this one.
+Check the code before repeating a claim from any document, including this one.
 
-- `CLEANUP.md` describes a restructure that has already happened.
-- `FEATURE-GAP-ANALYSIS.md` is a dated snapshot in Chinese, and it has a documented history of
-  stating official Bitwarden behaviour that no one had checked. Verify against
-  `bitwarden/clients` or the live product before acting on it.
+- `openspec/specs/**` still names documents that were removed on 2026-09-23 — `SECURITY.md`,
+  `DEVELOPMENT.md`, `ACCESSIBILITY.md`, `CODE_OF_CONDUCT.md`, `CONSTITUTION.md`, `CLAUDE.md`. The
+  deltas under `openspec/changes/bilingual-readme/specs/` correct them when that change is archived.
+- `openspec/specs/release-infrastructure/spec.md` requires a signed, notarised and stapled DMG, and
+  names `DEVELOPMENT.md` in a signing error message. `.github/workflows/release.yml` builds **unsigned**
+  and stops at a draft. That requirement has been false for longer than this change has existed.
+- Comment references to the removed documents survive in 19 Swift files under `Prizm/`.
 - `openspec/specs/project-documentation/spec.md` still names the old repository `b0x42/prizm`.
-- `DEVELOPMENT.md` quotes a test count from an earlier revision.
+- `openspec/changes/**` records from before that date cite them too. Those are history, like the
+  archive — leave them.

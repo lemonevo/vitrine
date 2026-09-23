@@ -51,8 +51,7 @@ Vitrine 不收集任何东西。没有遥测、没有统计、没有崩溃上报
   都是有公开规范的标准。
 - **密钥只存在 macOS 钥匙串里**，仅本机、不参与同步，并且锁定保险库时会被清零。
 
-[SECURITY.md](SECURITY.md) 有完整的威胁模型、算法规格，以及应用**不能**防住什么。
-[ACCESSIBILITY.md](ACCESSIBILITY.md) 是 WCAG 2.1 符合性声明。
+不能防住的：被攻陷或恶意的服务器、已经以你的身份运行的恶意软件、以及能物理接触到你未锁屏 Mac 的人。
 
 ## 功能
 
@@ -109,7 +108,7 @@ cp Prizm/LocalConfig.xcconfig.template Prizm/LocalConfig.xcconfig
 open "Prizm/Prizm.xcodeproj"
 ```
 
-完整的搭建步骤（包括怎么拿到免费的 Team ID）见 [DEVELOPMENT.md](DEVELOPMENT.md)。
+免费的 Apple ID 就能当 Team ID，Xcode 的"设置 → 账户"里名字后面括号中就是它。
 
 **预编译下载**在发布之后会出现在 [Releases](https://github.com/lemonevo/vitrine/releases)。产物
 **未签名、未公证**，因为本项目背后没有 Apple 开发者账号，所以首次打开时 macOS 会拒绝。请**右键
@@ -170,8 +169,8 @@ xattr -dr com.apple.quarantine "/Applications/Prizm.app"
 
 ## 参与开发
 
-构建、测试命令与架构概览见 [DEVELOPMENT.md](DEVELOPMENT.md)。改动先在 `openspec/changes/` 里提出，
-再写代码。
+用 Xcode 打开 `Prizm/Prizm.xcodeproj`：⌘R 构建并运行，⌘U 跑测试。改动先在 `openspec/changes/`
+里提出，再写代码。
 
 欢迎提交 PR。
 

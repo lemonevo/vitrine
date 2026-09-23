@@ -6,5 +6,4 @@ Prizm/Data/Crypto/ @lemonevo
 Prizm/Data/Keychain/ @lemonevo
 
 # Architecture contracts
-CONSTITUTION.md @lemonevo
-SECURITY.md @lemonevo
+openspec/specs/ @lemonevo

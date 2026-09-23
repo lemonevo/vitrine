@@ -66,3 +66,32 @@
       goes, and the Contributing section ends with the welcome. Issues were disabled on the repository
       at the time, which is why the claim was worth removing rather than relying on — and they are now
       enabled, so the templates under `.github/ISSUE_TEMPLATE/` have somewhere to land.
+
+## 6. The root document set, cut to three files
+
+- [x] 6.1 `CONSTITUTION.md`, `SECURITY.md`, `DEVELOPMENT.md`, `ACCESSIBILITY.md`, `CLAUDE.md`,
+      `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md` and `FEATURE-GAP-ANALYSIS.md` deleted at the owner's
+      instruction, leaving `README.md`, `README.zh-Hans.md` and `AGENTS.md`. `LICENSE` stays: it is the
+      MIT text and the fork's attribution, not a document about the project.
+- [x] 6.2 What pointed at them was followed rather than left dangling. The README's Security, Install
+      and Contributing sections now carry the facts they used to link to (what the app does not protect
+      against, how to get a Team ID, how to build and test); `AGENTS.md` points at `README.md` and
+      `openspec/specs/**`; `.github/pull_request_template.md` and `.github/CODEOWNERS` point at
+      `AGENTS.md` and the specs. A link check over those five files reports zero broken relative links.
+- [x] 6.3 The load-bearing conventions from `CLAUDE.md` moved into `AGENTS.md` as six bullets — layer
+      boundaries, design tokens, contrast-keyed alpha, `L("key")` strings, observing published values,
+      item commands in the item header — because the file they lived in is gone and they are the rules
+      that break silently.
+- [x] 6.4 Two capabilities' requirements removed rather than left unsatisfiable: `project-documentation`
+      (the `DEVELOPMENT.md` and `SECURITY.md` requirements, and `CODE_OF_CONDUCT.md` dropped from the
+      community-health list) and `accessibility-conformance` (all three, each of which was about a file
+      that no longer exists).
+- [x] 6.5 Deliberately untouched: `openspec/changes/**` records that predate this change and cite the
+      removed documents as they were — history, like the archive. 19 Swift files still carry comment
+      references; they are named in `AGENTS.md` and left for a separate decision, because editing them
+      is a code change.
+- [x] 6.6 What is lost, stated rather than smoothed over: the repository no longer contains a threat
+      model or a WCAG conformance statement. The README keeps one paragraph naming the out-of-scope
+      threats and three bullets on the cryptography; the accessibility behaviour is still asserted by
+      `AccessibilityTier2Tests` and `ContrastTokenTests`. Both files are recoverable with
+      `git show 0014016:<file>`.

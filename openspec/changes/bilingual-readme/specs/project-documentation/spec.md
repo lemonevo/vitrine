@@ -46,7 +46,9 @@ application, and this requirement can only be satisfied by reading the applicati
 
 - **WHEN** a user reads the Security section
 - **THEN** they find a short list (key derivation, authenticated encryption, keys in the macOS
-      Keychain and zeroed on lock) and a link to `SECURITY.md` for the full account
+      Keychain and zeroed on lock)
+- **AND** the threats the application does not defend against are named there, because the file that
+      used to hold the full account was removed from the repository
 
 #### Scenario: User reads the feature list
 
@@ -91,7 +93,8 @@ application, and this requirement can only be satisfied by reading the applicati
 #### Scenario: Technical user wants to contribute
 
 - **WHEN** a user reads the Contributing section
-- **THEN** they find a link to `DEVELOPMENT.md` and a brief mention of the openspec workflow
+- **THEN** they find how to build and test (`⌘R`, `⌘U`) and a brief mention of the openspec workflow,
+      because the file that used to hold the full instructions was removed from the repository
 
 #### Scenario: User reads the mission section
 
@@ -105,6 +108,29 @@ application, and this requirement can only be satisfied by reading the applicati
       build-system detail only a contributor needs, and no sentence explaining the project to itself
 - **AND** the notes that are for a maintainer or an agent are in `AGENTS.md`, which the README does not
       require a reader to open
+
+### Requirement: Community health files exist
+
+The repository SHALL contain the standard GitHub community health files so contributors know the
+expectations before opening issues or pull requests.
+
+- `.github/ISSUE_TEMPLATE/bug_report.md` — structured bug report template
+- `.github/ISSUE_TEMPLATE/feature_request.md` — structured feature request template
+- `.github/pull_request_template.md` — PR checklist
+
+`CODE_OF_CONDUCT.md` is removed from this list. It arrived with the fork, was never edited here, and
+was deleted with the rest of the root document set; the templates above are the files that are still
+read.
+
+#### Scenario: User opens a new issue
+
+- **WHEN** a user clicks "New issue" on GitHub
+- **THEN** they are offered the bug report and feature request templates with pre-filled fields to guide them
+
+#### Scenario: User opens a pull request
+
+- **WHEN** a user opens a pull request
+- **THEN** the PR description is pre-filled with the template checklist
 
 ## ADDED Requirements
 
@@ -137,6 +163,37 @@ document it mentions is wrong, the entry says so rather than the file staying si
 - **WHEN** an agent or contributor is about to repeat something a document asserts
 - **THEN** `AGENTS.md` names the documents that are known to have drifted from the code, so the claim
       is checked first
+
+## REMOVED Requirements
+
+### Requirement: DEVELOPMENT.md exists for contributors
+
+**Reason**: The root document set was cut to `README.md`, `README.zh-Hans.md` and `AGENTS.md` on
+2026-09-23. The instructions this requirement asked for were either folded into the README's Install
+and Contributing sections or are in `AGENTS.md`; a second copy under a heading of its own was the kind
+of document that goes stale unnoticed.
+
+**What still holds**: a contributor can still clone the repository, copy `LocalConfig.xcconfig.template`,
+fill in a Team ID, build with `⌘R` and test with `⌘U`. What is gone is the promise of a separate file
+that describes it — and with it, the release-signing secret table, which documented five secrets for a
+workflow that no longer uses them.
+
+**Migration**: none. The file is in git history (`git show 0014016:DEVELOPMENT.md`).
+
+### Requirement: SECURITY.md exists and documents the threat model
+
+**Reason**: Removed with the root document set. This is the one deletion with a cost worth stating
+plainly: the repository no longer contains a written threat model, an algorithm-by-algorithm account
+of what is encrypted, or the explicit list of out-of-scope threats. The README keeps a one-paragraph
+version of the last of those and names the cryptography in three bullets.
+
+**What still holds**: the cryptography itself is unchanged — Argon2id per RFC 9106, AES-256-CBC with
+HMAC-SHA256 encrypt-then-MAC, keys in the Keychain, zeroed on lock. Every algorithm is a public
+standard implemented in `Prizm/Data/Crypto/`, which is where a reader now has to go.
+
+**Migration**: none. The file is in git history (`git show 0014016:SECURITY.md`). Restoring a threat
+model means writing a new requirement, not repairing this one.
+
 
 ### Requirement: The README is available in both languages the application speaks
 
