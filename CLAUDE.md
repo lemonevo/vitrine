@@ -8,6 +8,10 @@ Observability (no silent failures), Simplicity/YAGNI, and Radical Transparency (
 publicly auditable). Before implementing any feature, adding a dependency, or making an
 architectural decision, consult the Constitution. Violations are blocking PR rejections.
 
+**Operational facts live in [AGENTS.md](AGENTS.md)** — the two build paths and which one delivers a
+change, the ad-hoc-signing keychain behaviour, the verification traps, and which documents have
+drifted. This file covers conventions; that one covers getting the work done.
+
 ## Active Technologies
 
 - **Language**: Swift 6.2 (Swift 6 language mode)
@@ -19,7 +23,7 @@ architectural decision, consult the Constitution. Violations are blocking PR rej
 - **Storage**: macOS Keychain (secrets), UserDefaults (UI prefs), in-memory (decrypted vault)
 - **Networking**: `URLSession` (no third-party networking library)
 - **Testing**: XCTest (unit + integration), XCUITest (UI journeys)
-- **Logging**: `os.Logger` with subsystem `com.prizm`
+- **Logging**: `os.Logger` with subsystem `dev.lemonevo.vitrine`
 
 ## Project Structure
 
@@ -61,20 +65,10 @@ xcodebuild test \
   CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
 ```
 
-## Active Changes
-
-| Change | Dir |
-|---|---|
-| csv-export | `openspec/changes/csv-export/` |
-| ui-redesign | `openspec/changes/ui-redesign/` |
-| favicon-trust-session | `openspec/changes/favicon-trust-session/` |
-| encoder-invariant-tests | `openspec/changes/encoder-invariant-tests/` |
-| auth-screens-redesign | `openspec/changes/auth-screens-redesign/` |
-| xcode-localisation-resources | `openspec/changes/xcode-localisation-resources/` |
-| item-actions-in-detail-header | `openspec/changes/item-actions-in-detail-header/` |
-| biometric-system-prompt | `openspec/changes/biometric-system-prompt/` |
-
 ## Change Workflow (openspec)
+
+Active changes are the directories under `openspec/changes/` — list them rather than trusting a table
+here, which went stale the last time one shipped.
 
 Feature changes live under `openspec/changes/<name>/`. Each change has design, spec, and task
 artifacts. Use `/opsx:new` to start a change, `/opsx:apply` to implement tasks, `/opsx:verify`

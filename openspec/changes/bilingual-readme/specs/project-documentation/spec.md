@@ -98,7 +98,45 @@ application, and this requirement can only be satisfied by reading the applicati
 - **WHEN** a user scrolls to the bottom of the README
 - **THEN** they find the Mission & Principles statement as a closing section
 
+#### Scenario: A reader who is not the author opens the README
+
+- **WHEN** a user with no involvement in the project reads the README
+- **THEN** nothing in it is addressed to a maintainer or to an agent: no process instructions, no
+      build-system detail only a contributor needs, and no sentence explaining the project to itself
+- **AND** the notes that are for a maintainer or an agent are in `AGENTS.md`, which the README does not
+      require a reader to open
+
 ## ADDED Requirements
+
+### Requirement: AGENTS.md carries the notes that are not a reader's
+
+The repository SHALL contain an `AGENTS.md` at the root holding the operational facts that a
+contributor or an agent needs and a user does not: how the two build paths differ, what the signing
+situation does to the keychain, how to tell a real test result from a green-looking one, and which
+documents have drifted away from the code. `README.md` SHALL NOT carry these; `CLAUDE.md` SHALL point
+at the file rather than repeat it.
+
+Every claim in it SHALL be a fact about this repository, checkable in the repository — and where a
+document it mentions is wrong, the entry says so rather than the file staying silent.
+
+#### Scenario: An agent is asked to change something and verify it
+
+- **WHEN** an agent reads `AGENTS.md` before working
+- **THEN** it learns that `xcodebuild test` does not update `dist/Vitrine.app`, that a change is only
+      visible in the running app after `./build-app.sh` and a relaunch, and that a test run reporting
+      success may have executed zero tests
+
+#### Scenario: An agent reads a name that looks wrong
+
+- **WHEN** an agent finds `Prizm` in a path, a scheme or a bundle name in a project called Vitrine
+- **THEN** `AGENTS.md` tells it which names were deliberately left alone, which is why, and where that
+      decision is recorded
+
+#### Scenario: A reader repeats a claim from the documentation
+
+- **WHEN** an agent or contributor is about to repeat something a document asserts
+- **THEN** `AGENTS.md` names the documents that are known to have drifted from the code, so the claim
+      is checked first
 
 ### Requirement: The README is available in both languages the application speaks
 

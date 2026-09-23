@@ -28,6 +28,13 @@ neither language is machine-translated.
   it demanded ("Swift 6.2") named a toolchain rather than the language mode the project compiles in,
   and two of its scenarios described the roadmap and the limitations as they were, not as they are.
 - A new requirement covers the Chinese file.
+- **A second pass over both files for register.** The first rewrite was accurate but still written in
+  the first person of the person who had done the work: process notes, asides explaining a decision to
+  nobody, and a build-script route a user cannot act on. Those are removed, and `AGENTS.md` added at
+  the root for the notes that are an agent's rather than a reader's — the two build paths, what an
+  ad-hoc signature does to the keychain, the ways a green test run can be a lie, and the documents
+  that have drifted from the code. `project-documentation` gains a requirement for it, and a scenario
+  forbidding the README from carrying that material.
 
 ## Non-goals
 

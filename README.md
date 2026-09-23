@@ -28,13 +28,12 @@ Native macOS client for Vaultwarden and self-hosted Bitwarden, built in Swift.
 
 ## Why Vitrine
 
-The official Bitwarden desktop app is built with Electron — a Chromium-based web wrapper. It works,
-but it does not feel like a Mac app: its menus, its keyboard handling, its scrolling and its
-autofill are the browser's, not the system's.
+The official Bitwarden desktop app is built with Electron, a Chromium-based web wrapper. It works, but
+it does not feel like a Mac app: its menus, its keyboard handling, its scrolling and its autofill are
+the browser's, not the system's.
 
-Vitrine is a fully native SwiftUI client for the same self-hosted server you already run. It is one
-process, it uses the system's own controls, and it follows the platform's conventions because it is
-built from the platform's own frameworks.
+Vitrine is a native SwiftUI client for the same self-hosted server, built from the platform's own
+frameworks instead.
 
 If you self-host your passwords and care about the software on your own machine, Vitrine is for you.
 
@@ -45,21 +44,20 @@ Vitrine server: the app talks only to your Vaultwarden or Bitwarden instance, an
 
 Two features the official clients have are deliberately absent for the same reason. **Breach
 reporting** would send part of your password to a third party. **Forwarded-email aliases** would route
-your signup through one. Both are refused rather than implemented, and the app says so on the screens
-where you would look for them.
+your signup through one. Both are refused, not deferred.
 
 ## Security
 
-- **Argon2id key derivation** (RFC 9106, memory-hard) — and PBKDF2 when your account was set up with
-  it, because the server decides and this client follows.
-- **AES-256-CBC with HMAC-SHA256**, encrypt-then-MAC, a fresh IV per field, and no hand-rolled
-  cryptography anywhere: every algorithm is a public standard.
+- **Argon2id key derivation** (RFC 9106, memory-hard), plus PBKDF2 for accounts that were set up with
+  it: the server decides, and this client follows.
+- **AES-256-CBC with HMAC-SHA256**, encrypt-then-MAC, a fresh IV per field. No hand-rolled
+  cryptography anywhere; every algorithm is a public standard.
 - **Keys live in the macOS Keychain**, device-only and never synchronised, and they are zeroed when
   the vault locks.
 
-[SECURITY.md](SECURITY.md) has the full threat model, the algorithm specifications, and — just as
-importantly — what the app does **not** protect against. [ACCESSIBILITY.md](ACCESSIBILITY.md) has the
-WCAG 2.1 conformance statement.
+[SECURITY.md](SECURITY.md) has the full threat model, the algorithm specifications, and what the app
+does **not** protect against. [ACCESSIBILITY.md](ACCESSIBILITY.md) has the WCAG 2.1 conformance
+statement.
 
 ## Features
 
@@ -74,8 +72,8 @@ WCAG 2.1 conformance statement.
 
 **Getting in**
 
-- Master password, PIN or Touch ID — and a PIN that is wrapped with a key rather than remembered as a
-  flag, so five wrong attempts remove it and sign you out
+- Master password, PIN or Touch ID. The PIN is wrapped with a key rather than remembered as a flag, so
+  five wrong attempts remove it and sign you out
 - Two-factor login by authenticator app, YubiKey OTP or email, with a per-account fingerprint phrase
   you can check out of band
 - Auto-lock on idle, sleep and screensaver, with the interval and the action configurable
@@ -85,7 +83,7 @@ WCAG 2.1 conformance statement.
 
 - TOTP codes for any login carrying a one-time-code key, derived on the device with a live countdown
 - A **Verification Codes** destination that lists every code in the vault in one place, searchable and
-  sortable, so signing in somewhere does not mean hunting for the item first
+  sortable, so you do not have to find the item first
 - A password, passphrase and username generator, and a read-only viewer for passkeys stored on an item
 - An **SSH agent** that serves the keys in your vault to `ssh` and `git` over a local socket, so a key
   that already lives in the vault does not have to be copied into `~/.ssh`
@@ -93,10 +91,10 @@ WCAG 2.1 conformance statement.
 
 **Everything else**
 
-- Offline reading from a cached copy of the last sync, saying plainly when that copy is from
+- Offline reading from a cached copy of the last sync, and a plain statement of how old that copy is
 - A vault health report: weak, reused, old and unsecured passwords
-- Import and export in Bitwarden's unencrypted JSON, plus CSV for logins, with a per-item report of
-  what was skipped rather than a silently smaller file
+- Import and export in Bitwarden's unencrypted JSON, plus CSV for logins, with a report of any item
+  that was skipped rather than a silently smaller file
 - English and 简体中文, switchable at runtime or following the system
 - VoiceOver labels on every control, keyboard navigation, and respect for Reduce Motion and Increase
   Contrast
@@ -111,11 +109,11 @@ Tested against Vaultwarden 1.35.4. Newer versions generally work; older ones are
 
 ## Install
 
-There is **no Homebrew tap**, and `brew install --cask prizm` installs a **different application** —
-the upstream project this one was forked from, which still carries the old name and its own releases.
-The two are not interchangeable.
+`brew install --cask prizm` installs a **different application** — the upstream project this one was
+forked from, which still carries the old name and its own releases. There is no Homebrew tap for
+Vitrine.
 
-**Build from source** — the only route today:
+**Build from source** is the only route today:
 
 ```bash
 git clone https://github.com/lemonevo/vitrine.git
@@ -128,13 +126,14 @@ open "Prizm/Prizm.xcodeproj"
 [DEVELOPMENT.md](DEVELOPMENT.md) covers the full setup, including how to get a free Team ID.
 
 **Prebuilt downloads** appear in [Releases](https://github.com/lemonevo/vitrine/releases) when one is
-published. They are **unsigned and not notarised** — signing needs an Apple Developer account this
-project does not have — so on first launch macOS will refuse the app.
-Right-click (or Control-click) it, choose **Open**, and confirm; you only have to do that once. macOS
-will also ask to use your login keychain the first time: click **Allow**. From a terminal:
+published. They are **unsigned and not notarised**, because there is no Apple Developer account behind
+this project, so macOS will refuse the app on first launch. Right-click (or Control-click) it, choose
+**Open**, and confirm; you only have to do that once. macOS will also ask to use your login keychain
+the first time: click **Allow**. Or do it from a terminal, with the app where you put it (the bundle
+is named `Prizm.app` after the build target):
 
 ```bash
-xattr -dr com.apple.quarantine /Applications/Vitrine.app
+xattr -dr com.apple.quarantine "/Applications/Prizm.app"
 ```
 
 ## Shortcuts
@@ -171,8 +170,8 @@ adding a rule for Vitrine with the exact menu item name.
 | | Bitwarden cloud accounts | Passkey creation and sign-in |
 | | Conflict merging — detection ships | KDBX 4 (KeePass) reading |
 
-**Now** is being worked on. **Next** is planned. **Later** is on the list with no fixed timeline.
-Priorities are driven by issues rather than by this table, so if something belongs higher up, say so.
+**Now** is in progress, **Next** is planned, **Later** has no schedule. Priorities follow the issue
+tracker rather than this table, so an issue is the way to move something up.
 
 ## Known Limitations
 
@@ -183,9 +182,8 @@ Priorities are driven by issues rather than by this table, so if something belon
   Apple Developer account to close.
 - **Passkeys are read-only.** A passkey stored on an item is listed, but Vitrine cannot create one or
   use one to sign in.
-- **The SSH agent needs an unsandboxed build.** The agent listens on a socket `ssh` has to be able to
-  reach, which a sandboxed build cannot create. It says so in Settings rather than failing quietly;
-  builds from `./build-app.sh` can run it.
+- **The SSH agent needs an unsandboxed build.** It listens on a socket `ssh` has to be able to reach,
+  which a sandboxed build cannot create. Vitrine says so in Settings rather than failing quietly.
 - **No offline writing.** Reading works from the cached copy of the last sync. Creating and editing
   need a connection.
 - **Attachments are capped at 500 MB**, and Bitwarden's own hosted service requires a paid plan for
@@ -195,10 +193,7 @@ Priorities are driven by issues rather than by this table, so if something belon
 ## Contributing
 
 See [DEVELOPMENT.md](DEVELOPMENT.md) for prerequisites, build and test commands, and the architecture
-overview.
-
-Changes follow an **openspec** workflow: each one lives in `openspec/changes/<name>/` with a proposal,
-a design and a task list, written before the code is. `openspec/` holds the active and archived ones.
+overview. Changes are proposed in `openspec/changes/` before the code is written.
 
 Pull requests are welcome. Please open an issue first for anything significant.
 
@@ -213,9 +208,8 @@ views, no compromise on what a Mac app should be.
 **Security-first.** No hand-rolled cryptography, and every security decision written down where you
 can check it — including the ones that cost a feature.
 
-**Radical transparency.** This is security software. You should be able to read the code, follow the
-cryptography, and decide for yourself whether to trust it. That is why it is open source and why
-`SECURITY.md` is as long as it is.
+**Radical transparency.** This is security software. You can read the code, follow the cryptography,
+and decide for yourself whether to trust it.
 
 **Simple and honest.** Build what is needed. Say what is not supported. No dark patterns, no growth
 hacks, no telemetry.
@@ -225,5 +219,4 @@ hacks, no telemetry.
 *Not affiliated with Bitwarden, Inc., 8bit Solutions LLC, or the Vaultwarden project.*
 
 *Vitrine began as a fork of [Prizm](https://github.com/b0x42/prizm) by Benjamin, who remains the
-copyright holder under its MIT licence. It has since been redesigned and largely rewritten; the two
-are separate projects, and the name change is what says so.*
+copyright holder under its MIT licence. It has since been redesigned and largely rewritten.*

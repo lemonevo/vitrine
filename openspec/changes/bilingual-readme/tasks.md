@@ -41,3 +41,23 @@
       code, which is the check that matters for a document.
 - [ ] 4.3 **Not verified:** that every sentence reads well in Chinese — that is a reader's call, and
       the person who asked for the file is the reader.
+
+## 5. Second pass: written for a reader
+
+- [x] 5.1 Both files read again for anything addressed to the maintainer or to an agent, and removed:
+      the openspec process paragraph under Contributing (now one clause), "and the name change is what
+      says so" in the footer, "just as importantly" in Security, the roadmap's "so if something
+      belongs higher up, say so", and the `./build-app.sh` route in the SSH-agent limitation, which is
+      a developer fact and lives in DEVELOPMENT.md.
+- [x] 5.2 The Gatekeeper command named `/Applications/Vitrine.app`, which is not the file a release
+      ships. It now names `Prizm.app` and says in one clause why the bundle is called that.
+- [x] 5.3 `AGENTS.md` added at the root: the two build paths and which one delivers a change, the
+      ad-hoc-signing keychain behaviour, the verification traps, the Vitrine-outside/Prizm-inside
+      boundary, and the documents that have drifted.
+- [x] 5.4 `CLAUDE.md` pointed at it, and the two claims in `CLAUDE.md` that had gone stale — the logging
+      subsystem (`com.prizm`) and the active-changes table — corrected and replaced with a directory
+      listing. `cd prizm` corrected to `cd vitrine` in `DEVELOPMENT.md` and `CONTRIBUTING.md`.
+- [x] 5.5 This delta extended: a scenario for the register, and a requirement for `AGENTS.md`.
+- [x] 5.6 The facts in `AGENTS.md` checked against the repository rather than recalled: the product
+      names in `project.pbxproj` and `build-app.sh`, the executable the release workflow packages, the
+      keychain services in `reset-keychain.sh`, and the absence of `UITests` from the target graph.

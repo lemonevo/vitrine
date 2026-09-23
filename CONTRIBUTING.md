@@ -6,7 +6,7 @@ Contributions are welcome — whether it's a bug report, a feature idea, or a pu
 
 ```bash
 git clone https://github.com/lemonevo/vitrine.git
-cd prizm
+cd vitrine
 cp Prizm/LocalConfig.xcconfig.template Prizm/LocalConfig.xcconfig
 # Fill in your Apple Team ID in LocalConfig.xcconfig
 open "Prizm/Prizm.xcodeproj"

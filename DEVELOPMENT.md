@@ -12,7 +12,7 @@ No package managers required. Dependencies are vendored under `LocalPackages/`.
 
 ```bash
 git clone https://github.com/lemonevo/vitrine.git
-cd prizm
+cd vitrine
 ```
 
 ### LocalConfig.xcconfig (required before building)
