@@ -1,15 +1,19 @@
 <div align="center">
 
+<img src="assets/icon.png" width="128" alt="Vitrine icon">
+
 # Vitrine
 
 [![CI](https://github.com/lemonevo/vitrine/actions/workflows/ci.yml/badge.svg)](https://github.com/lemonevo/vitrine/actions/workflows/ci.yml)
-[![Swift 6.2](https://img.shields.io/badge/Swift-6.2-orange.svg)](https://swift.org/)
+[![Swift 6](https://img.shields.io/badge/Swift-6-orange.svg)](https://swift.org/)
 [![macOS 26+](https://img.shields.io/badge/macOS-26%2B-blue.svg)](https://www.apple.com/macos/)
 [![MIT License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 Native macOS client for Vaultwarden and self-hosted Bitwarden, built in Swift.
 
 *Your secrets. Your server. Our user interface.*
+
+[English](README.md) · [简体中文](README.zh-Hans.md)
 
 </div>
 
@@ -24,83 +28,94 @@ Native macOS client for Vaultwarden and self-hosted Bitwarden, built in Swift.
 
 ## Why Vitrine
 
-The official Bitwarden desktop app is built with Electron — a Chromium-based web wrapper. It works, but it doesn't feel like a Mac app.
+The official Bitwarden desktop app is built with Electron — a Chromium-based web wrapper. It works,
+but it does not feel like a Mac app: its menus, its keyboard handling, its scrolling and its
+autofill are the browser's, not the system's.
 
-Vitrine fills that gap: a fully native macOS client, built in SwiftUI, that connects to the same self-hosted Vaultwarden or Bitwarden server you already run. It looks and behaves like a real Mac app because it is one.
+Vitrine is a fully native SwiftUI client for the same self-hosted server you already run. It is one
+process, it uses the system's own controls, and it follows the platform's conventions because it is
+built from the platform's own frameworks.
 
-If you self-host your passwords and care about software quality on your own machine, Vitrine is for you.
+If you self-host your passwords and care about the software on your own machine, Vitrine is for you.
 
-### Mission & Principles
+## Privacy
 
-Vitrine exists to give macOS users a native, auditable, trustworthy interface to their self-hosted password vault.
+Vitrine collects nothing. No telemetry, no analytics, no crash reporting, no usage data. There is no
+Vitrine server: the app talks only to your Vaultwarden or Bitwarden instance, and nothing leaves it.
 
-**Native-first.** SwiftUI only. No Electron, no web views, no compromise on the Mac experience.
+Two features the official clients have are deliberately absent for the same reason. **Breach
+reporting** would send part of your password to a third party. **Forwarded-email aliases** would route
+your signup through one. Both are refused rather than implemented, and the app says so on the screens
+where you would look for them.
 
-**Security-first.** No hand-rolled crypto. Every algorithm is a vetted standard with a public specification. Every security decision is documented so you can verify it.
+## Security
 
-**Radical transparency.** This is security software. You should be able to read the code, understand the cryptography, and decide whether to trust it. That's why it's open source and why the security documentation is thorough.
+- **Argon2id key derivation** (RFC 9106, memory-hard) — and PBKDF2 when your account was set up with
+  it, because the server decides and this client follows.
+- **AES-256-CBC with HMAC-SHA256**, encrypt-then-MAC, a fresh IV per field, and no hand-rolled
+  cryptography anywhere: every algorithm is a public standard.
+- **Keys live in the macOS Keychain**, device-only and never synchronised, and they are zeroed when
+  the vault locks.
 
-**Simple and honest.** Build what's needed. Say what's not supported. No dark patterns, no growth hacks, no telemetry.
+[SECURITY.md](SECURITY.md) has the full threat model, the algorithm specifications, and — just as
+importantly — what the app does **not** protect against. [ACCESSIBILITY.md](ACCESSIBILITY.md) has the
+WCAG 2.1 conformance statement.
 
 ## Features
 
-- **Full vault management** — browse, create, edit, delete, and restore all item types (logins, cards, identities, secure notes, SSH keys) with Trash and favourites support
-- **Organisation & collection support** — view and manage items across organisations; collections shown as a collapsible tree in the sidebar with item counts; create, rename, and delete collections (admin/manager role); org items encrypted with RSA-unwrapped organisation keys
-- **Folder organization** — create, rename, and delete folders; nested subfolders via `/` naming convention with collapsible tree view; drag-and-drop items onto folders; folder-scoped search
-- **Built for power users** — ⌘F global search with match highlighting, ⌘N new item, ⌘L lock, one-keystroke copy for username / password / website, Option to reveal masked fields. [Full shortcut list](#shortcuts)
-- **File attachments** — upload, download, open, and delete encrypted file attachments on any vault item; drag-and-drop batch upload; two-layer AES-256-CBC + HMAC-SHA256 encryption with per-attachment keys
-- **Password & passphrase generator** — configurable length, character sets, and word separators
-- **Touch ID / Face ID unlock** — unlock your vault with biometrics; auto-prompts on lock; graceful re-enrollment when fingerprints change
-- **Auto-lock** — locks on sleep and screensaver; sync status always visible in the sidebar
-- **Background refresh** — while the vault is unlocked, Vitrine re-syncs every five minutes and whenever you come back to the app or wake the machine, so an item changed elsewhere shows up without pressing anything. It never syncs while locked, and a refresh that fails stays out of your way: no banner, just a last-sync label that visibly ages
-- **TOTP codes** — shows the current code with a ring and a seconds countdown for any login carrying a TOTP secret, and lists every code in the vault in one place (**Verification Codes**, from the sidebar) so signing in somewhere does not mean hunting for the item first. Codes are derived from the stored key; the key itself is never shown or copied
-- **PIN unlock** — a short code that opens the vault on this Mac, wrapped cryptographically rather than stored as a gate flag. Five wrong attempts remove it and sign you out; the remaining count is shown only after you have spent a try, because a limit you cannot see is a trap
-- **Two-factor login** — authenticator app (TOTP), YubiKey OTP, and email challenges, plus a per-account public-key fingerprint you can verify out of band
-- **Vault import & export** — Bitwarden-compatible unencrypted JSON, or CSV for logins only, with a per-item report of what was imported and what was skipped. The CSV warning names exactly what it cannot carry rather than exporting a silently smaller vault
-- **Password, passphrase and username generator** — configurable length, character sets and word separators, plus a memorable-username mode
-- **Vault health report** — flags weak, reused, and old passwords, and items with no second factor
-- **Password strength & history** — per-item strength estimate, and the previous passwords kept on a login
-- **Master-password re-prompt** — per-item gate that asks for the master password before revealing or copying a protected field
-- **Certificate pinning** — per-server trust decision, recorded on first use and re-verified on every connection
-- **Passkey viewer** — passkeys attached to a vault item are listed, read-only
-- **SSH agent** — serves SSH keys from the vault over a local socket. Requires a build without the App Sandbox; see [Known Limitations](#known-limitations)
-- **Accessible** — VoiceOver labels and hints on all controls, keyboard navigable, respects Reduce Motion and Increase Contrast; targets WCAG 2.1 AA. See [ACCESSIBILITY.md](ACCESSIBILITY.md)
-- **English and 简体中文** — switchable at runtime in Settings, or follow macOS. Nothing is machine-translated; the strings are written for both
+**Your vault**
+
+- Every item type — logins, cards, identities, secure notes (all nine subtypes), SSH keys — readable,
+  editable, duplicable, deletable and restorable
+- Folders with nesting and drag-and-drop, favourites, and Trash with restore and permanent delete
+- Organisations and collections, including creating and renaming collections where your role allows it
+- Attachments: upload, download, open and delete, with drag-and-drop batch upload for the common case
+- Full-text search across the vault, with matches highlighted in the list
+
+**Getting in**
+
+- Master password, PIN or Touch ID — and a PIN that is wrapped with a key rather than remembered as a
+  flag, so five wrong attempts remove it and sign you out
+- Two-factor login by authenticator app, YubiKey OTP or email, with a per-account fingerprint phrase
+  you can check out of band
+- Auto-lock on idle, sleep and screensaver, with the interval and the action configurable
+- Per-item master-password re-prompt, so a protected item stays protected
+
+**Codes and keys**
+
+- TOTP codes for any login carrying a one-time-code key, derived on the device with a live countdown
+- A **Verification Codes** destination that lists every code in the vault in one place, searchable and
+  sortable, so signing in somewhere does not mean hunting for the item first
+- A password, passphrase and username generator, and a read-only viewer for passkeys stored on an item
+- An **SSH agent** that serves the keys in your vault to `ssh` and `git` over a local socket, so a key
+  that already lives in the vault does not have to be copied into `~/.ssh`
+- Certificate pinning, decided per server, recorded on first use and re-verified on every connection
+
+**Everything else**
+
+- Offline reading from a cached copy of the last sync, saying plainly when that copy is from
+- A vault health report: weak, reused, old and unsecured passwords
+- Import and export in Bitwarden's unencrypted JSON, plus CSV for logins, with a per-item report of
+  what was skipped rather than a silently smaller file
+- English and 简体中文, switchable at runtime or following the system
+- VoiceOver labels on every control, keyboard navigation, and respect for Reduce Motion and Increase
+  Contrast
+
+## Requirements
+
+- macOS 26 or later
+- A self-hosted [Vaultwarden](https://github.com/dani-garcia/vaultwarden) or
+  [Bitwarden](https://bitwarden.com/) server
+
+Tested against Vaultwarden 1.35.4. Newer versions generally work; older ones are not validated.
 
 ## Install
 
-### Requirements
+There is **no Homebrew tap**, and `brew install --cask prizm` installs a **different application** —
+the upstream project this one was forked from, which still carries the old name and its own releases.
+The two are not interchangeable.
 
-- macOS 26 or later
-- A self-hosted [Vaultwarden](https://github.com/dani-garcia/vaultwarden) or [Bitwarden](https://bitwarden.com/) server
-
-Tested against Vaultwarden 1.35.4. Older versions may work but are not validated.
-
-### Homebrew
-
-**There is no Vitrine tap.** `brew install --cask prizm` installs a different application — the
-upstream project this one was forked from, which still carries the old name and its own releases. The
-two are not interchangeable, so that command is deliberately not offered here as an install route.
-
-A tap needs a repository of its own plus a published release to point at; neither exists yet. Until
-then, build from source below.
-
-### Direct Download
-
-**[Download Vitrine](https://github.com/lemonevo/vitrine/releases/latest)** — not published yet: this
-repository has no releases, so the link is a 404 today. See [Build from source](#build-from-source).
-
-The app is not notarized. After downloading, right-click (Control-click) the `.app` and choose **Open**, then confirm. You only need to do this once. After that, you can open it normally.
-
-macOS will also show a **"Vitrine wants to use your login keychain"** prompt on first launch — click **Allow**. This is expected for unsigned apps; Vitrine uses it to store credentials securely.
-
-Alternatively, from Terminal:
-
-```bash
-xattr -dr com.apple.quarantine /Applications/Vitrine.app
-```
-
-### Build from source
+**Build from source** — the only route today:
 
 ```bash
 git clone https://github.com/lemonevo/vitrine.git
@@ -110,74 +125,105 @@ cp Prizm/LocalConfig.xcconfig.template Prizm/LocalConfig.xcconfig
 open "Prizm/Prizm.xcodeproj"
 ```
 
-See [DEVELOPMENT.md](DEVELOPMENT.md) for full setup instructions, including how to get a free Team ID.
+[DEVELOPMENT.md](DEVELOPMENT.md) covers the full setup, including how to get a free Team ID.
 
-## Privacy & Security
+**Releases.** See [Releases](https://github.com/lemonevo/vitrine/releases) for a `.dmg`. It is
+**unsigned and not notarised** — building it needs an Apple Developer account, which this project does
+not have — so on first launch macOS will refuse it. Right-click (or Control-click) the app, choose
+**Open**, and confirm; you only have to do that once. macOS will also ask to use your login keychain
+the first time: click **Allow**. From a terminal:
 
-Vitrine collects nothing. No telemetry, no analytics, no crash reporting, no usage data. There is no Vitrine server — the app talks exclusively to your Vaultwarden or Bitwarden instance. Nothing leaves your server.
-
-All cryptography runs locally on your device:
-
-- **Argon2id key derivation** (RFC 9106, memory-hard) — makes offline brute-force attacks computationally infeasible
-- **AES-256-CBC + HMAC-SHA256** authenticated encryption — all vault data stays encrypted in memory and in transit
-- **RSA-OAEP-SHA1 organisation key unwrapping** (Security.framework) — organisation symmetric keys are RSA-wrapped per member; Vitrine unwraps them at sync time using your account's private key, following the Bitwarden protocol
-- **macOS Keychain** storage (device-only, `WhenUnlockedThisDeviceOnly`) — session keys never touch iCloud
-
-The app is open source. Verify these claims by reading the code. See [SECURITY.md](SECURITY.md) for the full threat model, algorithm specifications, and what the app does not protect against. See [ACCESSIBILITY.md](ACCESSIBILITY.md) for the WCAG 2.1 conformance statement.
+```bash
+xattr -dr com.apple.quarantine /Applications/Vitrine.app
+```
 
 ## Shortcuts
 
 | Shortcut | Action |
 |---|---|
-| ⌘F | Global search |
+| ⌘F | Search the vault |
 | ⌘N | New item |
-| ⌘L | Lock vault |
-| ⌘E | Edit selected item |
-| ⌘S | Save edits |
+| ⌥⌘N | New window |
+| ⌘E | Edit the selected item |
+| ⌘S | Save the item being edited |
+| ⌘D | Duplicate the selected item |
 | ⇧⌘C | Copy username |
 | ⌥⌘C | Copy password |
+| ⌃⌘C | Copy the selected item's one-time code |
 | ⌥⇧⌘C | Copy website |
+| ⌘R | Sync now |
+| ⌘L | Lock the vault |
+| ⇧⌘H | Vault health report |
+| ⇧⌘E | Export the vault |
+| ⇧⌘I | Import a vault |
 | ⇧⌘Q | Sign out |
 | ⌥ (hold) | Reveal masked fields |
+| ⌘, | Settings |
 
-Any shortcut can be remapped in **System Settings → Keyboard → Keyboard Shortcuts → App Shortcuts**. Add a rule for Vitrine with the exact menu item name and your preferred key combination.
+Any of them can be remapped in **System Settings → Keyboard → Keyboard Shortcuts → App Shortcuts** by
+adding a rule for Vitrine with the exact menu item name.
 
 ## Roadmap
 
 | Now | Next | Later |
 |---|---|---|
-| Offline vault write | Multiple accounts | Browser auto-fill extension |
-| | Bitwarden cloud login | Full support for KDBX 4 (KeePass) |
-| | Passkey creation & login | |
+| Offline vault writing | Multiple accounts | Native macOS autofill |
+| | Bitwarden cloud accounts | Passkey creation and sign-in |
+| | Conflict merging — detection ships | KDBX 4 (KeePass) reading |
 
-**Now** — actively in development. **Next** — planned for the following 3–6 months. **Later** — on the list with no fixed timeline.
-
-Shipped since this table was last written, and now simply part of the app: reading the vault offline from a cached copy of the last sync, background re-sync while unlocked, file attachments, the vault health report, PIN unlock, and the full interface redesign.
-
-> **Breach checking is deliberately not on this list.** Telling you whether a password appears in a breach dump means sending part of that password to a third party. For a client whose whole premise is that your secrets stay on your own server, that is not a trade worth making.
-
-Want to shift something up the list? [Open an issue](https://github.com/lemonevo/vitrine/issues) — priorities are driven by user feedback.
+**Now** is being worked on. **Next** is planned. **Later** is on the list with no fixed timeline.
+Priorities are driven by issues rather than by this table, so if something belongs higher up, say so.
 
 ## Known Limitations
 
-- **Not notarized** — The app is not signed with an Apple Developer ID. On first launch, right-click and choose Open to bypass Gatekeeper.
-- **No browser auto-fill** — There is no browser extension. Copy-paste is the current workflow.
-- **macOS 26 required** — The app uses SwiftUI features only available in macOS 26.
-- **Passkeys are read-only** — Passkeys attached to a vault item are listed, but Vitrine cannot create one or use one to log in.
-- **SSH agent needs an unsandboxed build** — The agent listens on a Unix socket that `ssh` has to be able to reach, which a build with the App Sandbox enabled cannot create. In that case Vitrine reports the agent as unavailable rather than failing silently. Builds produced by `./build-app.sh` disable the sandbox and can run it.
-- **No offline vault creation** — Reading the vault works offline, from a cached copy of the last successful sync; the app says so and reports how old that copy is. Creating or editing items still requires an active server connection.
-- **Attachment size limit** — Files larger than 500 MB are rejected. Bitwarden-hosted servers require a premium subscription for attachments; Vaultwarden is unaffected.
+- **Not notarised.** There is no Developer ID, so the app arrives unsigned and needs the right-click →
+  Open above.
+- **No browser autofill.** There is no Safari extension and no system credential provider, so
+  copy-paste is the workflow. This is the largest gap against the official client, and it needs an
+  Apple Developer account to close.
+- **Passkeys are read-only.** A passkey stored on an item is listed, but Vitrine cannot create one or
+  use one to sign in.
+- **The SSH agent needs an unsandboxed build.** The agent listens on a socket `ssh` has to be able to
+  reach, which a sandboxed build cannot create. It says so in Settings rather than failing quietly;
+  builds from `./build-app.sh` can run it.
+- **No offline writing.** Reading works from the cached copy of the last sync. Creating and editing
+  need a connection.
+- **Attachments are capped at 500 MB**, and Bitwarden's own hosted service requires a paid plan for
+  attachments at all. Vaultwarden has no such limit.
+- **macOS 26 is required.** The interface uses SwiftUI features that do not exist earlier.
 
 ## Contributing
 
-See [DEVELOPMENT.md](DEVELOPMENT.md) for prerequisites, build instructions, and the architecture overview.
+See [DEVELOPMENT.md](DEVELOPMENT.md) for prerequisites, build and test commands, and the architecture
+overview.
 
-Changes follow an **openspec** workflow: each feature lives in `openspec/changes/<name>/` with a proposal, design, and task list before any code is written. See `openspec/` for active and archived changes.
+Changes follow an **openspec** workflow: each one lives in `openspec/changes/<name>/` with a proposal,
+a design and a task list, written before the code is. `openspec/` holds the active and archived ones.
 
-Pull requests welcome. Please open an issue first for anything significant.
+Pull requests are welcome. Please open an issue first for anything significant.
+
+## Mission & Principles
+
+Vitrine exists to give macOS users a native, auditable, trustworthy interface to their self-hosted
+password vault.
+
+**Native-first.** SwiftUI, the system's controls, the platform's conventions. No Electron, no web
+views, no compromise on what a Mac app should be.
+
+**Security-first.** No hand-rolled cryptography, and every security decision written down where you
+can check it — including the ones that cost a feature.
+
+**Radical transparency.** This is security software. You should be able to read the code, follow the
+cryptography, and decide for yourself whether to trust it. That is why it is open source and why
+`SECURITY.md` is as long as it is.
+
+**Simple and honest.** Build what is needed. Say what is not supported. No dark patterns, no growth
+hacks, no telemetry.
 
 ---
 
 *Not affiliated with Bitwarden, Inc., 8bit Solutions LLC, or the Vaultwarden project.*
 
-*Vitrine began as a fork of [Prizm](https://github.com/b0x42/prizm) by Benjamin, who remains the copyright holder under its MIT licence. It has since been redesigned and rewritten substantially; the two are separate projects, and the name change is what says so.*
+*Vitrine began as a fork of [Prizm](https://github.com/b0x42/prizm) by Benjamin, who remains the
+copyright holder under its MIT licence. It has since been redesigned and largely rewritten; the two
+are separate projects, and the name change is what says so.*
