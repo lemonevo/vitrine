@@ -334,6 +334,14 @@ nonisolated enum APIError: Error, Equatable {
     /// refused handshake reported as "connection failed" sends the user to inspect their network
     /// when the answer is that the certificate is not the one it was.
     case serverTrustRefused(ServerTrustError)
+
+    /// The write was refused because this client's copy of the item is not the current one —
+    /// another client changed it after this client last synced. Nothing was written.
+    ///
+    /// Named rather than left as a generic `httpError` because the user has to do something the
+    /// generic text does not suggest: sync, then re-apply the edit. Reported by Vaultwarden as a
+    /// 400 whose body says the copy is "out of date", and by Bitwarden's own server as a 409.
+    case staleCopy
 }
 
 extension APIError: LocalizedError {
@@ -349,6 +357,8 @@ extension APIError: LocalizedError {
             return L("No server URL is configured.")
         case .serverTrustRefused(let trustError):
             return trustError.errorDescription
+        case .staleCopy:
+            return L("This item changed on another device since your last sync, so your edit was not saved. Sync, then make the change again.")
         }
     }
 }
@@ -1205,6 +1215,19 @@ actor PrizmAPIClientImpl: PrizmAPIClientProtocol {
                 } else {
                     logger.debug("[debug] error body (non-JSON, \(data.count, privacy: .public) bytes)")
                 }
+            }
+            // A refused stale write. Vaultwarden answers 400 with "The client copy of this cipher is
+            // out of date. Resync the client and try again."; Bitwarden's own server uses 409.
+            //
+            // The substring test is a message match, which is the kind of thing that breaks on a
+            // server upgrade — but the alternative is worse here: left as `httpError`, this reaches
+            // the user as "Server error 400", and the one action that resolves it (sync, then retry)
+            // is exactly what that text does not suggest. Failure to match degrades to the previous
+            // behaviour rather than to a wrong one.
+            if http.statusCode == 409
+                || (http.statusCode == 400
+                    && body.range(of: "out of date", options: .caseInsensitive) != nil) {
+                throw APIError.staleCopy
             }
             throw APIError.httpError(statusCode: http.statusCode, body: body)
         }

@@ -88,7 +88,7 @@ then, build from source below.
 ### Direct Download
 
 **[Download Vitrine](https://github.com/lemonevo/vitrine/releases/latest)** — not published yet: this
-repository is private and has no releases, so the link is a 404 today. See [Build from source](#build-from-source).
+repository has no releases, so the link is a 404 today. See [Build from source](#build-from-source).
 
 The app is not notarized. After downloading, right-click (Control-click) the `.app` and choose **Open**, then confirm. You only need to do this once. After that, you can open it normally.
 
@@ -104,7 +104,7 @@ xattr -dr com.apple.quarantine /Applications/Vitrine.app
 
 ```bash
 git clone https://github.com/lemonevo/vitrine.git
-cd prizm
+cd vitrine
 cp Prizm/LocalConfig.xcconfig.template Prizm/LocalConfig.xcconfig
 # Fill in your Apple Team ID in LocalConfig.xcconfig, then:
 open "Prizm/Prizm.xcodeproj"

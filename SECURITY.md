@@ -47,8 +47,8 @@ Vitrine can unlock and show the vault with no network. The mechanism is a copy o
 last successful `/api/sync` response, written to the app's container at:
 
 ```
-~/Library/Application Support/Prizm/vault-cache/<userId>/sync.json
-~/Library/Application Support/Prizm/vault-cache/<userId>/sync.meta.json
+~/Library/Application Support/Vitrine/vault-cache/<userId>/sync.json
+~/Library/Application Support/Vitrine/vault-cache/<userId>/sync.meta.json
 ```
 
 | Property | Value |
@@ -323,7 +323,13 @@ What is **not** supported, and why it matters:
 
 - **No encrypted export.** The password-protected JSON the official clients can write is not
   produced, and the importer refuses one with an explicit error rather than failing part-way.
-- **No CSV, no ZIP.** Only the one JSON shape.
+- **No ZIP.** Attachments are not bundled into the export, so an exported file restores the items
+  and not their files.
+- **CSV is offered, and it is narrower than the JSON.** It carries logins only — one row per login,
+  in the column order the official importer expects — and the `login_totp` column writes the TOTP
+  **seed** verbatim, with the same consequence described above. Cards, identities, secure notes and
+  SSH keys have no column to go in and are counted and reported rather than dropped silently. The
+  sheet that offers CSV says which of these applies before the file is written.
 
 Import accepts the same unencrypted shape, and nothing else. A file that is encrypted, or is another
 vendor's CSV, is rejected with a message rather than partially imported — a partial import is the
@@ -369,8 +375,11 @@ nothing about whether it has been exposed.
   the app was holding is dropped with it — the item list, the selection, and the decrypted names. A
   memory dump taken after the vault locks reveals neither usable keys nor usable plaintext. A sync
   already in flight when the lock happened discards its own result rather than restoring either.
-- **Clipboard sniffing** — Copied secrets are automatically cleared from the clipboard
-  after 30 seconds (best-effort on app quit).
+- **Clipboard sniffing** — Copied secrets are cleared from the clipboard **30 seconds after they
+  are copied, by default**, and best-effort on quit. The interval is a setting: 10 seconds to two
+  minutes, or **Never**, and Never means the secret stays on the clipboard until something replaces
+  it. Clearing is also not a defence against a clipboard manager the user has chosen to run — it
+  reads the value on the way in.
 - **Network eavesdropping** — All server communication uses HTTPS/TLS. Vault payloads
   are encrypted before transmission regardless.
 
@@ -391,8 +400,11 @@ nothing about whether it has been exposed.
 - **Physical access while the Mac is unlocked** — Keychain items with
   `WhenUnlockedThisDeviceOnly` are accessible to the app whenever the Mac is in an
   unlocked state.
-- **TLS interception (MitM on server identity)** — Certificate pinning is not
-  implemented. TLS validation relies on the system trust store.
+- **TLS interception (MitM on server identity)** — Certificate pinning is **opt-in per host and
+  off by default**, so on a host with no recorded pin, TLS validation rests on the system trust
+  store and a certificate issued by any trusted authority is accepted. See **Server Trust** for
+  what enabling a pin does and why the default is what it is. This bullet previously stated that
+  pinning was not implemented at all, which stopped being true when the feature shipped.
 - **Organisation vault access control** — Org keys are RSA-unwrapped client-side; the
   server cannot selectively withhold an org key without breaking sync entirely.
   Role enforcement (owner / admin / manager / user) is applied in the UI layer only
@@ -412,7 +424,7 @@ The app is built with App Sandbox and Hardened Runtime enabled:
 - No access to camera, microphone, contacts, calendars, location, Bluetooth, USB, or printing
 
 The app writes nothing outside its own container: the Keychain items described above and the offline
-vault cache under `~/Library/Application Support/Prizm/`. Container writes are implicit to the
+vault cache under `~/Library/Application Support/Vitrine/`. Container writes are implicit to the
 sandbox and need no entitlement, which is why they are not in the list above; no entitlement grants
 access to any other location.
 

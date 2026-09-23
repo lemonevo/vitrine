@@ -133,12 +133,35 @@ final class AttachmentTempFileManager: TempFileManaging, @unchecked Sendable {
     ///
     /// - Security goal: reduces (but does not guarantee elimination of) plaintext attachment data on disk (APFS copy-on-write may retain original blocks; FileVault is recommended)
     ///   after the open action completes (Constitution §III).
+    ///
+    /// **Written in chunks rather than as one buffer.** The direct form —
+    /// `Data(repeating: 0, count: size)` followed by `write(to:)` — allocates a second copy of the
+    /// entire file. For the 500 MB this app permits that is a several-hundred-megabyte allocation,
+    /// and it happens on the main thread: this runs from `willTerminate` as well as from the sweep
+    /// and the foreground hook. The bytes written are identical; the allocation is what changes.
+    ///
+    /// **Why this is still synchronous.** The remaining cost is writing `size` bytes, and moving it
+    /// off the main thread would mean the quit path could return before the overwrite finished —
+    /// trading a guarantee this type exists to make, on the one path where the process is about to
+    /// end and nothing can be retried, for responsiveness. The allocation was the part that turned
+    /// "a large write" into "a large write plus a second copy of the file in memory"; it is gone,
+    /// and the write itself is left where it can be awaited.
     private func zeroAndDelete(_ url: URL) {
         do {
             // Overwrite with zero bytes of the same size.
             if let size = try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize, size > 0 {
-                let zeros = Data(repeating: 0, count: size)
-                try zeros.write(to: url)
+                let handle = try FileHandle(forWritingTo: url)
+                defer { try? handle.close() }
+
+                // Opens at offset zero without truncating, so writing `size` bytes replaces the
+                // whole file. The buffer is a fixed chunk regardless of how large the file is.
+                let chunk = Data(repeating: 0, count: Self.zeroChunkSize)
+                var remaining = size
+                while remaining > 0 {
+                    let count = min(remaining, chunk.count)
+                    try handle.write(contentsOf: chunk.prefix(count))
+                    remaining -= count
+                }
             }
             try FileManager.default.removeItem(at: url)
             logger.debug("tempFile zeroed and deleted: \(url.lastPathComponent, privacy: .public)")
@@ -147,6 +170,10 @@ final class AttachmentTempFileManager: TempFileManaging, @unchecked Sendable {
             logger.error("tempFile cleanup failed: \(error.localizedDescription, privacy: .public)")
         }
     }
+
+    /// The zero-overwrite buffer. 1 MiB: large enough that the syscall count for a 500 MB file is
+    /// 500 rather than millions, small enough that the allocation is not worth thinking about.
+    private static let zeroChunkSize = 1 << 20
 
     @objc private func appDidBecomeActive() {
         cleanup()

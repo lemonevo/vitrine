@@ -301,6 +301,16 @@ nonisolated struct DraftVaultItem: Equatable {
     /// password history and per-item key the item arrived with. See `PreservedCipherFields`.
     let preserved: PreservedCipherFields
 
+    /// The login password this draft started from, kept only so that a **change** can be detected
+    /// and the value being replaced recorded in `passwordHistory`.
+    ///
+    /// `nil` for a new item, and for every non-login type. This is a second copy of a secret that is
+    /// already in `content.password`, and it is held only while the sheet is open — the draft is
+    /// cleared when the sheet closes (Constitution §III plaintext minimisation). The alternative,
+    /// comparing the newly encrypted password against the stored EncString, cannot work: encryption
+    /// draws a fresh IV each time, so the same plaintext produces different ciphertext.
+    let replacedPassword: String?
+
     /// Creates a blank draft for a new item of the given type.
     static func blank(type: ItemType) -> DraftVaultItem {
         let now = Date()
@@ -328,7 +338,8 @@ nonisolated struct DraftVaultItem: Equatable {
     init(id: String, folderId: String? = nil, name: String, isFavorite: Bool, isDeleted: Bool,
          creationDate: Date, revisionDate: Date, content: DraftItemContent, reprompt: Int,
          organizationId: String? = nil, collectionIds: [String] = [],
-         preserved: PreservedCipherFields = .empty) {
+         preserved: PreservedCipherFields = .empty,
+         replacedPassword: String? = nil) {
         self.id = id
         self.folderId = folderId
         self.name = name
@@ -341,6 +352,7 @@ nonisolated struct DraftVaultItem: Equatable {
         self.organizationId = organizationId
         self.collectionIds = collectionIds
         self.preserved = preserved
+        self.replacedPassword = replacedPassword
     }
 
     /// Converts an immutable `VaultItem` into a mutable draft ready for editing.
@@ -356,6 +368,11 @@ nonisolated struct DraftVaultItem: Equatable {
         self.organizationId = item.organizationId
         self.collectionIds = item.collectionIds
         self.preserved = item.preserved
+        if case .login(let login) = item.content {
+            self.replacedPassword = login.password
+        } else {
+            self.replacedPassword = nil
+        }
         self.content = {
             switch item.content {
             case .login(let c):      return .login(DraftLoginContent(c))

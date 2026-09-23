@@ -397,10 +397,16 @@ actor SyncRepositoryImpl: SyncRepository {
                 // the user from an outage, which is the case the cache is for.
                 return try await loadFromCache(replacing: SyncError.networkUnavailable)
 
-            case .decodingFailed, .baseURLNotSet, .serverTrustRefused:
+            case .decodingFailed, .baseURLNotSet, .serverTrustRefused, .staleCopy:
                 // A trust refusal is deliberately in this group. It is the one failure where
                 // quietly serving last week's vault could hide an active interception, and the app
                 // already has a screen for resolving it.
+                //
+                // `staleCopy` is here for the same rule rather than for its relevance to syncing:
+                // it means the server answered and refused, so the cache must not stand in for the
+                // answer. A sync request cannot carry a `lastKnownRevisionDate`, so it should not
+                // arise on this path at all — the case is listed so that adding it to `APIError`
+                // could not have left this switch deciding by accident.
                 throw SyncError.networkUnavailable
             }
         } catch {

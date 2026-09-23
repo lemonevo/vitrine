@@ -23,7 +23,7 @@ nonisolated enum VaultBackupSheet: Equatable {
     /// Carried into the consent sheet so the format can be chosen before anything is written.
 
     /// Where the file went, and what is in it.
-    case exportDone(url: URL, itemCount: Int, organisationItemCount: Int, omittedItemCount: Int)
+    case exportDone(url: URL, itemCount: Int, organisationItemCount: Int, omittedItemCount: Int, unreadableItemCount: Int)
 
     /// An import in flight. `total` is 0 until the file has been read and counted.
     case importing(done: Int, total: Int)

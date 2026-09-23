@@ -154,7 +154,8 @@ nonisolated final class CipherMapper: Sendable {
             cipherKey:            raw.key,
             fido2Credentials:     raw.login?.fido2Credentials ?? [],
             passwordRevisionDate: raw.login?.passwordRevisionDate,
-            autofillOnPageLoad:   raw.login?.autofillOnPageLoad
+            autofillOnPageLoad:   raw.login?.autofillOnPageLoad,
+            revisionDate:         raw.revisionDate
         )
 
         let item = VaultItem(
@@ -433,9 +434,52 @@ nonisolated final class CipherMapper: Sendable {
             key:            draft.preserved.cipherKey,
             collectionIds:  draft.collectionIds,
             attachments:    nil,
-            passwordHistory: draft.preserved.passwordHistory,
-            archivedDate:    draft.preserved.archivedDate
+            passwordHistory: try passwordHistoryToSend(for: draft, keys: fieldKeys),
+            archivedDate:    draft.preserved.archivedDate,
+            // Distinct from `revisionDate: nil` above: that is the cipher's own timestamp, which
+            // the server owns. This is the revision *this client last saw*, and it is what stops a
+            // save from silently overwriting a newer copy. Carried verbatim from `preserved` —
+            // reformatting the `Date` would send an approximation of an instant the server compares
+            // exactly.
+            lastKnownRevisionDate: draft.preserved.revisionDate
         )
+    }
+
+    // MARK: - Private: password history
+
+    /// `passwordHistory` as it will be sent: the history the item arrived with, plus the password
+    /// this save replaces, when the user actually changed one.
+    ///
+    /// **Why the client has to do this.** The server stores exactly the array it is sent and keeps
+    /// no history of its own (Vaultwarden's `update_cipher_from_data` writes `data.password_history`
+    /// straight through). A client that only round-trips the array therefore records nothing — and
+    /// because a full `PUT` replaces the whole cipher, a save made without an intervening sync
+    /// re-sends the older array over anything another client appended in the meantime.
+    ///
+    /// **When an entry is added.** Only when the login's password changed to a *non-empty* value.
+    /// Clearing the password is a deliberate removal rather than a replacement, and recording it
+    /// would put a password the user just deleted into the history they are shown.
+    ///
+    /// **`lastUsedDate` is the moment of the replacement**, which is when the previous password
+    /// stopped being used. Bitwarden's own export model falls back to the current time when the
+    /// field is absent, so that is the reading this follows; the exact convention its clients write
+    /// was not established from a first-party source, which is recorded in the change's tasks.
+    private func passwordHistoryToSend(for draft: DraftVaultItem,
+                                       keys: CryptoKeys) throws -> [JSONValue] {
+        var history = draft.preserved.passwordHistory
+
+        guard case .login(let login) = draft.content,
+              let replaced = draft.replacedPassword,
+              let current = login.password,
+              !current.isEmpty,
+              current != replaced
+        else { return history }
+
+        history.append(.object([
+            "password":     .string(try encryptString(replaced, keys: keys)),
+            "lastUsedDate": .string(Self.iso8601.string(from: Date())),
+        ]))
+        return history
     }
 
     // MARK: - Private: per-item key resolution

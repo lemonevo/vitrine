@@ -53,6 +53,17 @@ nonisolated struct RawCipher: Codable {
     /// Vaultwarden treats an absent value as "un-archive", so dropping it un-archives the item.
     let archivedDate:    String?
 
+    /// The revision this client believes the server holds, sent **on an update** so the server can
+    /// refuse a write made from a stale copy.
+    ///
+    /// A request-body field only. Vaultwarden reads `lastKnownRevisionDate` in `CipherData` and
+    /// rejects the update when its own `updated_at` is more than a second newer than this value;
+    /// `nil` omits the key, which the server accepts as "no check" — the behaviour of older clients,
+    /// and the reason a save made without an intervening sync silently overwrote another device's.
+    ///
+    /// Reference: Vaultwarden `src/api/core/ciphers.rs`, `update_cipher_from_data`.
+    let lastKnownRevisionDate: String?
+
     /// Custom decoder — all fields use standard decoding except `collectionIds`, which
     /// defaults to `[]` when the key is absent so that personal-item ciphers (which the
     /// server omits the key for) decode without error.
@@ -81,6 +92,7 @@ nonisolated struct RawCipher: Codable {
         attachments    = try c.decodeIfPresent([AttachmentDTO].self,  forKey: .attachments)
         passwordHistory = try c.decodeIfPresent([JSONValue].self,     forKey: .passwordHistory)
         archivedDate    = try c.decodeIfPresent(String.self,          forKey: .archivedDate)
+        lastKnownRevisionDate = try c.decodeIfPresent(String.self,    forKey: .lastKnownRevisionDate)
     }
 
     /// Memberwise init with `collectionIds` defaulted to `[]` so existing call sites
@@ -91,7 +103,8 @@ nonisolated struct RawCipher: Codable {
          card: RawCardData?, identity: RawIdentityData?, secureNote: RawSecureNoteData?,
          sshKey: RawSSHKeyData?, fields: [RawField]?, key: String?,
          collectionIds: [String] = [], attachments: [AttachmentDTO]?,
-         passwordHistory: [JSONValue]? = nil, archivedDate: String? = nil) {
+         passwordHistory: [JSONValue]? = nil, archivedDate: String? = nil,
+         lastKnownRevisionDate: String? = nil) {
         self.id             = id
         self.organizationId = organizationId
         self.folderId       = folderId
@@ -114,6 +127,7 @@ nonisolated struct RawCipher: Codable {
         self.attachments    = attachments
         self.passwordHistory = passwordHistory
         self.archivedDate    = archivedDate
+        self.lastKnownRevisionDate = lastKnownRevisionDate
     }
 }
 

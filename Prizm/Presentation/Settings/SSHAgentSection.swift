@@ -235,16 +235,20 @@ nonisolated enum SSHAgentStatus: Equatable {
 
 // MARK: - SSHAgentShellSetup
 
-/// The shell line that points `ssh` at Prizm.
+/// The shell line that points `ssh` at Vitrine.
 nonisolated enum SSHAgentShellSetup {
 
     /// `export SSH_AUTH_SOCK="…"`, quoted.
     ///
     /// **The quotes are load-bearing.** The default path is
-    /// `~/Library/Application Support/Prizm/ssh-agent/agent.sock`, and an unquoted space turns the
+    /// `~/Library/Application Support/Vitrine/ssh-agent/agent.sock`, and an unquoted space turns the
     /// assignment into two words — leaving `SSH_AUTH_SOCK` empty and `ssh` silently falling back to
     /// the keys in `~/.ssh`. That failure looks like the agent being broken, which is the hardest
     /// kind to diagnose from the terminal.
+    ///
+    /// `SSHAgentSocketLocation.defaultPath()` is the only thing that decides the path; this comment
+    /// said `Prizm/` for a while after the rename, which is the kind of drift that sends someone to
+    /// edit the wrong directory.
     static func exportLine(socketPath: String) -> String {
         "export SSH_AUTH_SOCK=\"\(socketPath)\""
     }

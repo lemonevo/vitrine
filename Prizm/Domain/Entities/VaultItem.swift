@@ -73,6 +73,16 @@ nonisolated struct PreservedCipherFields: Sendable, Equatable, Hashable {
     /// `login.autofillOnPageLoad` — per-item override of the global autofill setting.
     var autofillOnPageLoad: Bool?
 
+    /// The `revisionDate` string this item was last synced with, kept **verbatim**.
+    ///
+    /// Not here because Vitrine fails to interpret it — `VaultItem.revisionDate` is the parsed
+    /// `Date` the interface displays. It is here because the only correct value to send as
+    /// `lastKnownRevisionDate` is the server's own string: reformatting a `Date` would send a
+    /// reconstruction, and Vaultwarden compares the two as instants to decide whether this client
+    /// is editing a stale copy. Sending nothing disables that check, so a save made without an
+    /// intervening sync overwrites whatever another client wrote.
+    var revisionDate: String?
+
     /// Nothing to send back. Used by tests and by `RawCipher` construction to decide whether a
     /// field can be omitted rather than sent as an empty value.
     static let empty = PreservedCipherFields()
@@ -84,6 +94,7 @@ nonisolated struct PreservedCipherFields: Sendable, Equatable, Hashable {
             && fido2Credentials.isEmpty
             && passwordRevisionDate == nil
             && autofillOnPageLoad == nil
+            && revisionDate == nil
     }
 }
 

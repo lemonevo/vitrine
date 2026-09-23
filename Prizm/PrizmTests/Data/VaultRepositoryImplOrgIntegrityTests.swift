@@ -304,6 +304,47 @@ final class VaultRepositoryImplOrgIntegrityTests: XCTestCase {
         XCTAssertEqual(updated.collectionIds, [collectionId])
     }
 
+    func testUpdate_orgItem_neverReSendsCollectionMembership() async throws {
+        // `PUT /api/ciphers/{id}` does not change collection membership, so re-sending it was
+        // never needed; and `PUT /api/ciphers/{id}/collections` applies a symmetric difference,
+        // so an empty array *removes* the item from every collection it is in. Editing an org
+        // item must therefore not touch that endpoint at all.
+        await orgKeyCache.store(key: orgKeys, for: orgId)
+        let item = makeOrgLogin(id: "org-1-item", name: "Org Login")
+        await seed(items: [item])
+        var draft = DraftVaultItem(item)
+        draft.name = "Renamed"
+
+        let updated = try await sut.update(draft)
+
+        XCTAssertEqual(mockAPI.updateCipherCollectionsCallCount, 0,
+                       "Saving an edit must not send collection membership — an empty value there "
+                       + "moves the item out of every collection it belongs to")
+        XCTAssertEqual(updated.collectionIds, [collectionId])
+        try await assertOrgMembershipIntact(id: "org-1-item", after: "update")
+    }
+
+    func testUpdate_orgItemWhoseCollectionIdsWereNeverLearned_doesNotClearThem() async throws {
+        // The case that made the removed call dangerous: an org item whose `collectionIds`
+        // failed to decode reaches this point as `[]` (`RawCipher` falls back to empty for an
+        // absent *and* an undecodable value). Re-sending that empty list revoked the item's
+        // membership on the server, silently and irreversibly — nothing in the sync response
+        // would show it, because the write had succeeded.
+        await orgKeyCache.store(key: orgKeys, for: orgId)
+        let item = makeLogin(id: "org-1-item", name: "Org Login",
+                             organizationId: orgId, collectionIds: [])
+        await seed(items: [item])
+        var draft = DraftVaultItem(item)
+        draft.name = "Renamed"
+
+        let updated = try await sut.update(draft)
+
+        XCTAssertEqual(mockAPI.updateCipherCollectionsCallCount, 0,
+                       "A membership this client never learned must never be sent back as empty")
+        XCTAssertEqual(updated.organizationId, orgId,
+                       "The item must still be an org item after the edit")
+    }
+
     func testUpdate_personalDraft_doesNotRequireOrgKey() async throws {
         let item = makeLogin(id: "personal-1", name: "Personal")
         await seed(items: [item])

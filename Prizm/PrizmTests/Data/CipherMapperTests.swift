@@ -30,6 +30,7 @@ final class CipherMapperTests: XCTestCase {
         notes:          String?   = nil,
         favorite:       Bool      = false,
         deletedDate:    String?   = nil,
+        revisionDate:   String?   = nil,
         login:          RawLoginData?      = nil,
         card:           RawCardData?       = nil,
         identity:       RawIdentityData?   = nil,
@@ -47,7 +48,7 @@ final class CipherMapperTests: XCTestCase {
             reprompt:       nil,
             deletedDate:    deletedDate,
             creationDate:   nil,
-            revisionDate:   nil,
+            revisionDate:   revisionDate,
             login:          login,
             card:           card,
             identity:       identity,
@@ -279,5 +280,126 @@ final class CipherMapperTests: XCTestCase {
         let draft = DraftVaultItem(item)
         let raw = try sut.toRawCipher(draft, encryptedWith: mockKeys)
         XCTAssertNil(raw.folderId)
+    }
+
+    // MARK: - The optimistic-lock handshake
+
+    /// The value sent as `lastKnownRevisionDate` must be the server's own string, not a reformatted
+    /// `Date`. The server compares the two as instants to decide whether this client is editing a
+    /// stale copy, so an approximation is the one thing it cannot be.
+    private let serverRevision = "2026-09-22T18:49:53.123456Z"
+
+    func testMapCipher_keepsTheServersRevisionDateVerbatim() throws {
+        let raw = makeRawCipher(
+            id: "uuid-rev-date", type: 2, name: try enc("Note"),
+            revisionDate: serverRevision,
+            secureNote: RawSecureNoteData(type: 0)
+        )
+
+        let (item, _) = try sut.map(raw: raw, keys: mockKeys)
+
+        XCTAssertEqual(item.preserved.revisionDate, serverRevision)
+    }
+
+    func testToRawCipher_sendsTheRevisionItWasGiven() throws {
+        let raw = makeRawCipher(
+            id: "uuid-rev-send", type: 2, name: try enc("Note"),
+            revisionDate: serverRevision,
+            secureNote: RawSecureNoteData(type: 0)
+        )
+        let (item, _) = try sut.map(raw: raw, keys: mockKeys)
+
+        let outbound = try sut.toRawCipher(DraftVaultItem(item), encryptedWith: mockKeys)
+
+        XCTAssertEqual(outbound.lastKnownRevisionDate, serverRevision)
+        // The model carrying the value is not the property under test — the bytes are. A field the
+        // encoder drops would leave the check disabled while this test still passed on the model.
+        let json = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: JSONEncoder().encode(outbound)) as? [String: Any]
+        )
+        XCTAssertEqual(json["lastKnownRevisionDate"] as? String, serverRevision,
+                       "the field has to be in the request body, not only in the struct")
+    }
+
+    func testToRawCipher_withoutAKnownRevision_omitsTheField() throws {
+        // A create draft carries no `preserved`, so there is no revision to declare. Omitting the
+        // key is what the server accepts as "no check" — the behaviour every older client has — and
+        // is right for a new item. Sending some default instant there would be a lie about a copy
+        // that does not exist yet.
+        let draft = DraftVaultItem.blank(type: .secureNote)
+
+        let outbound = try sut.toRawCipher(draft, encryptedWith: mockKeys)
+
+        XCTAssertNil(outbound.lastKnownRevisionDate)
+        let json = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: JSONEncoder().encode(outbound)) as? [String: Any]
+        )
+        XCTAssertNil(json["lastKnownRevisionDate"],
+                     "an unknown revision must omit the key rather than send null")
+    }
+
+    // MARK: - Password history
+
+    private func makeLoginDraft(password: String?,
+                                replacedFrom: String?,
+                                preserved: PreservedCipherFields = .empty) -> DraftVaultItem {
+        let item = VaultItem(
+            id: "uuid-pw", name: "Login", isFavorite: false, isDeleted: false,
+            creationDate: Date(), revisionDate: Date(),
+            content: .login(LoginContent(username: "user", password: replacedFrom, uris: [],
+                                         totp: nil, notes: nil, customFields: [])),
+            preserved: preserved
+        )
+        var draft = DraftVaultItem(item)
+        guard case .login(var login) = draft.content else { return draft }
+        login.password = password
+        draft.content = .login(login)
+        return draft
+    }
+
+    /// The server keeps no history of its own, so a client that only round-trips the array records
+    /// nothing at all. The replaced password has to be added by this side.
+    func testToRawCipher_changedPassword_appendsTheReplacedOne() throws {
+        let earlier = JSONValue.object([
+            "password":     .string("2.previous=="),
+            "lastUsedDate": .string("2026-01-01T00:00:00.000Z"),
+        ])
+        let draft = makeLoginDraft(password: "new-secret", replacedFrom: "old-secret",
+                                   preserved: PreservedCipherFields(passwordHistory: [earlier]))
+
+        let raw = try sut.toRawCipher(draft, encryptedWith: mockKeys)
+
+        let history = try XCTUnwrap(raw.passwordHistory)
+        XCTAssertEqual(history.count, 2, "the entry it arrived with, plus the password being replaced")
+        XCTAssertEqual(history.first, earlier, "the existing history must survive an edit")
+
+        let appended = try XCTUnwrap(history.last)
+        guard case .object(let fields) = appended,
+              case .string(let encrypted) = try XCTUnwrap(fields["password"]) else {
+            return XCTFail("Expected an object carrying an encrypted password, got \(appended)")
+        }
+        let plaintext = try EncString(string: encrypted).decrypt(keys: mockKeys)
+        XCTAssertEqual(String(data: plaintext, encoding: .utf8), "old-secret",
+                       "the entry must be the password being replaced — not the new one, and not in the clear")
+        XCTAssertNotNil(fields["lastUsedDate"], "an entry with no date cannot be shown as history")
+    }
+
+    func testToRawCipher_unchangedPassword_addsNothing() throws {
+        let draft = makeLoginDraft(password: "same-secret", replacedFrom: "same-secret")
+
+        let raw = try sut.toRawCipher(draft, encryptedWith: mockKeys)
+
+        XCTAssertEqual(raw.passwordHistory ?? [], [],
+                       "saving an item without touching its password must not invent an entry")
+    }
+
+    func testToRawCipher_clearedPassword_addsNothing() throws {
+        // Clearing the field is a deliberate removal, not a replacement. Recording it would put a
+        // password the user has just deleted into the history they are shown.
+        let draft = makeLoginDraft(password: "", replacedFrom: "old-secret")
+
+        let raw = try sut.toRawCipher(draft, encryptedWith: mockKeys)
+
+        XCTAssertEqual(raw.passwordHistory ?? [], [])
     }
 }

@@ -45,12 +45,12 @@
 
 | 能力 | 手机版 | 桌面版 | Vitrine 是否该做 |
 |---|---|---|---|
-| 系统级自动填充（Autofill Services） | ✅ Android/iOS 独有 | ❌ | ❌ 无对应物 |
+| 系统级自动填充（Autofill Services） | ✅ Android/iOS 独有 | ✅ macOS 有 | ⚠️ **本行 2026-09-23 更正**：官方桌面端在 macOS 上确实接入系统 autofill（见 §4 的说明），不是"无对应物"。Vitrine 的等价物是 app 内的 macOS AutoFill 凭据提供者扩展 |
 | 截图 / 录屏防护 | ✅ | ❌ | ❌ 无对应物 |
 | PIN 解锁 | ✅ | ✅ | ⚠️ 可做，但与生物识别重复 |
 | 生物识别解锁 | ✅ | ✅ | ✅ 已有 |
 | SSH Agent | ❌ | ✅（含 macOS） | ✅ **值得做** |
-| Passkey 存储与使用 | ✅ 扩展 + 手机 | ✅ 仅查看/编辑 | ⚠️ 至少不能丢数据 |
+| Passkey 存储与使用 | ✅ 扩展 + 手机 | ✅ 创建与使用 | ⚠️ **本行 2026-09-23 更正**：官方 macOS 桌面端是系统 passkey 提供者（`autofill_provider/README.md`），**能创建、能使用**，不只是查看/编辑。Vitrine 只能列出，差距比本行原先承认的大 |
 | 导入 / 导出 | ✅ | ✅ | ✅ **值得做** |
 | 多账号（最多 5 个） | ✅ | ✅ | ✅ 值得做 |
 | Send | ✅ | ✅ | ⚠️ 成本较高 |
@@ -191,14 +191,14 @@
 | Passkey | ✅ | ⚠️ | `[码]` **只能列出**；`PasskeyCredential` 无 `keyValue`，不能创建、不能登录 |
 | 密码历史 | ✅ | ✅ | `[码]` |
 | **条目整体版本历史** | 🚫 | 🚫 | `[官]` 官方**只有密码历史**，没有整条版本快照 → Vitrine **已对齐** |
-| 归档（Archive） | ❓ | ❌ | `[?]` 官方 help 索引里**没有 archive 条目**、`/help/archive/` 404；Vitrine 代码注释称官方客户端有此功能（所以 `archivedDate` 才被保留），但**拿不到一手来源**。**未验证前不做** |
+| 归档（Archive） | ✅ | ❌ | `[码]` **官方桌面端有**：`bitwarden/clients` 的 `apps/desktop/src/vault/app/vault-v3/vault-items/vault-cipher-row.component.ts` 里有 `archive()` 动作，`libs/common` 的 cipher 领域/视图/数据三层都有 `archivedDate`。**这是真缺口**，不是"无对应物"。Vitrine 目前只在 wire 上往返回字段、无 UI（本行先前的 ❓ 与"未验证前不做"已撤销） |
 
 ### 3.3 组织与整理
 
 | 功能 | 官方 | Vitrine | 依据 / 说明 |
 |---|---|---|---|
 | 文件夹 / 集合 CRUD / 收藏 | ✅ | ✅ | `[码]` |
-| **收藏置顶** | ✅ | ❓ | `[官]` 官方原文："Items marked as a favorite will appear at the top of your Vault view in **browser extensions and mobile apps**" —— **桌面端是否也置顶，措辞没写清楚**。且它是**自动行为、无开关** |
+| **收藏置顶** | ✅ | ✅ | `[官]` **已核完，且结论与先前相反**。官方原文是一整句："Items marked as a favorite will appear at the top of your Vault view in **browser extensions and mobile apps**, and in the **Favorites filter** in your web vault and **desktop apps**." 先前只引了前半句。**桌面端是 Favorites 筛选器，不是置顶** —— 所以 Vitrine 不置顶是**对齐**，不是缺口 |
 | 组织：成员 / 组 / 组授权 / 策略 / org API key / 管理员视图 | ✅ | ❌ | `[码]` 只有 collection CRUD |
 | 条目移入 / 移出组织 | ✅ | ❌ | `[码]` 没有任何地方写 `draft.organizationId` |
 | 集合权限往返 | ✅ | ✅ | `[测]` **原本是真 bug**：改名 PUT 送空 `groups/users`，会**清空该集合其他成员/组的授权**（`externalId` 同样被抹掉）。现已把三者**不透明地原样往返**（`PreservedCollectionFields`），含未知权限字段 |
@@ -284,7 +284,15 @@
 
 **先验证再排期（❓ 的项）** —— 这些**不要**在验证前动工：
 
-归档（Archive）、收藏置顶的桌面端行为、搜索增强的桌面端形态、新设备登录验证、"Login with device"。
+搜索增强的桌面端形态、新设备登录验证、"Login with device"。
+
+> 2026-09-23 复核后从本表移出两项：**归档（已确认为真缺口，见 §3.2 的 ❌ 行）** 与 **收藏置顶（已确认为对齐，撤销）**。
+> 两项都因为拿到了 `bitwarden/clients` 的源码而不再是 ❓，而源码比 `bitwarden.com/help` 可靠——help 站点有大量页面 404
+> （`/help/archive/`、`/help/advanced-search/` 都是），拿不到页面**不等于**功能不存在。这正是本表当初把归档误标为 ❓ 的原因。
+>
+> 顺带记下一条更重要的：**系统级自动填充与 passkey 的"官方桌面端 ❌"也是错的**。`apps/desktop/desktop_native/autofill_provider/`
+> 有一个打进 app bundle `PlugIns` 的 Swift 原生扩展，接入 macOS 原生凭据/autofill API，目前提供 passkey 的注册与使用。
+> 也就是说官方 macOS 桌面端**是系统级 passkey 提供者**，而 §1.2 那张表写的是"桌面端 ❌、无对应物"。
 
 ---
 
@@ -340,7 +348,7 @@
 
 | 原文写的 | 实情 |
 |---|---|
-| 类型 6/7/8（银行账户 / 证件）会静默消失 | 代码三处都写类型 1–5 对齐 Bitwarden，**6/7/8 的存在无法证实**。真问题是"任何原因解不出都无声"（已修） |
+| 类型 6/7/8（银行账户 / 证件）会静默消失 | 代码三处都写类型 1–5 对齐 Bitwarden，**6/7/8 的存在无法证实**。真问题是"任何原因解不出都无声"（已修）—— **本条的后半句在 2026-09-23 被推翻**：官方 `libs/common/src/vault/enums/cipher-type.ts` 明写 `BankAccount: 6`、`DriversLicense: 7`、`Passport: 8`。它们确实存在，而 `CipherMapper.mapContent` 对 1–5 之外直接抛 `unsupportedCipherType`，所以这类条目在 Vitrine 里读不出、导不出。**这是一个真缺口，不是"无需证实"** |
 | 附件"只能批量上传，不能批量下载/删除" | 官方附件**全是单文件操作**。**把 Vitrine 的优势写成了缺陷** |
 | 强度估算 `O(n²)` 导致健康报告卡死 | 实为**线性**；复用检查走哈希表 |
 | SSH agent `semaphore.wait()` 会卡死 App | 只阻塞**单条连接线程**，主线程不受影响 |
@@ -356,3 +364,9 @@
 ---
 
 *本文为工作文档，用于确定 `openspec/changes/` 的范围。核实日期 2026-09-21，对应测试基线 1389 / 0。*
+
+*2026-09-23 复核：测试基线实测 **1566 / 0**（本机 Xcode 27，`xcodebuild test`）。本次复核改了五处，全部因为拿到了
+`bitwarden/clients` 的源码：归档与类型 6/7/8 由 ❓/存疑 改为**确认缺口**；收藏置顶改为**确认对齐**；
+"系统级自动填充"与"Passkey"两行由"桌面端无对应物"改为**官方桌面端已具备**。
+教训与 §8 同源，但方向相反：这次不是把已有能力看成没有，而是**因为拿不到 help 页面就以为功能不存在**。
+核实官方行为优先读 `bitwarden/clients` 源码——help 站点的 404 不是证据。*

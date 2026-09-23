@@ -32,12 +32,13 @@ struct VaultBackupSheetView: View {
                 onConfirm:  onConfirmExport
             )
 
-        case .exportDone(let url, let exportedItems, let organisationItems, let omitted):
+        case .exportDone(let url, let exportedItems, let organisationItems, let omitted, let unreadable):
             ExportDoneSheet(
                 url: url,
                 itemCount: exportedItems,
                 organisationItemCount: organisationItems,
                 omittedItemCount: omitted,
+                unreadableItemCount: unreadable,
                 onDone: onDismiss
             )
 

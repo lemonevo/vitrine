@@ -140,6 +140,67 @@ final class PrizmAPIClientSyncPayloadTests: XCTestCase {
             XCTAssertEqual((error as NSError).domain, NSURLErrorDomain)
         }
     }
+
+    // MARK: - A refused stale write
+
+    // These share the stub above rather than carrying a second copy of it. They belong to
+    // `updateCipher` rather than to `fetchSyncPayload`, but the harness is the same and a duplicated
+    // URLProtocol that drifted from this one would be a worse trade than an extra MARK.
+
+    /// A write refused because the client's copy is stale is **its own error**, not a generic
+    /// `httpError`. Left generic it reaches the user as "Server error 400", and the one action that
+    /// resolves it — sync, then retry — is exactly what that text does not suggest.
+    func testUpdateCipher_staleCopyRejection_isNotAGenericHTTPError() async throws {
+        let body = #"{"error":"The client copy of this cipher is out of date. Resync the client and try again."}"#
+        StubURLProtocol.respond(statusCode: 400, body: Data(body.utf8))
+
+        do {
+            _ = try await sut.updateCipher(id: "cipher-1", cipher: makeCipher())
+            XCTFail("Expected the refusal to throw")
+        } catch let error as APIError {
+            XCTAssertEqual(error, .staleCopy, "Vaultwarden reports this as a 400 whose text says so")
+        }
+    }
+
+    /// Bitwarden's own server reports the same condition with 409, so both statuses map.
+    func testUpdateCipher_conflictStatus_isAlsoAStaleCopy() async throws {
+        StubURLProtocol.respond(statusCode: 409, body: Data(#"{"error":"conflict"}"#.utf8))
+
+        do {
+            _ = try await sut.updateCipher(id: "cipher-1", cipher: makeCipher())
+            XCTFail("Expected the refusal to throw")
+        } catch let error as APIError {
+            XCTAssertEqual(error, .staleCopy)
+        }
+    }
+
+    /// The control. A 400 that is *not* about a stale copy must stay a generic error, or every
+    /// malformed request would be reported to the user as somebody else's edit.
+    func testUpdateCipher_otherBadRequest_staysAGenericHTTPError() async throws {
+        StubURLProtocol.respond(statusCode: 400, body: Data(#"{"error":"Invalid collection ID provided"}"#.utf8))
+
+        do {
+            _ = try await sut.updateCipher(id: "cipher-1", cipher: makeCipher())
+            XCTFail("Expected the rejection to throw")
+        } catch let error as APIError {
+            guard case .httpError(let statusCode, _) = error else {
+                return XCTFail("A 400 about something else must not be reported as a stale copy")
+            }
+            XCTAssertEqual(statusCode, 400)
+        }
+    }
+
+    /// The smallest cipher that encodes, so the request under test is the one being refused.
+    private func makeCipher() -> RawCipher {
+        RawCipher(
+            id: "cipher-1", organizationId: nil, folderId: nil, type: 2,
+            name: "2.encrypted-name==", notes: nil, favorite: false, reprompt: nil,
+            deletedDate: nil, creationDate: nil, revisionDate: nil,
+            login: nil, card: nil, identity: nil,
+            secureNote: RawSecureNoteData(type: 0), sshKey: nil,
+            fields: nil, key: nil, attachments: nil
+        )
+    }
 }
 
 // MARK: - StubURLProtocol

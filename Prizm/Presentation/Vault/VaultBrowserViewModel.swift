@@ -639,6 +639,23 @@ final class VaultBrowserViewModel: ObservableObject {
     /// The selection is taken from `displayedItems` once the item arrives there rather than from a
     /// separately-fetched copy: `List`'s selection is compared by value, and two `VaultItem` values
     /// for the same cipher are not necessarily equal.
+    /// Puts an item in the detail column **without moving the sidebar scope**.
+    ///
+    /// `selectItem(id:)` below moves the scope to All Items so that the item is in the list it selects
+    /// from. That is right for a list the user is browsing, and wrong for the codes destination: the
+    /// codes are not the item list, so moving the scope takes the user off the screen they clicked on —
+    /// which is what "it jumps to All Items" described.
+    func highlightItem(id: String) {
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            do {
+                itemSelection = try await vault.itemDetail(id: id)
+            } catch {
+                logger.error("Could not open item \(id.prefix(8), privacy: .public) for the detail column")
+            }
+        }
+    }
+
     func selectItem(id: String) {
         sidebarSelection = .allItems
 
@@ -1058,7 +1075,6 @@ final class VaultBrowserViewModel: ObservableObject {
     @Published var exportFormat: VaultExportFormat = .json
 
     /// Whether the verification-codes sheet is up.
-    @Published var isShowingVerificationCodes = false
 
     func requestExport() {
         guard backupSheet == nil else { return }
@@ -1083,7 +1099,11 @@ final class VaultBrowserViewModel: ObservableObject {
                     url: url,
                     itemCount: export.itemCount,
                     organisationItemCount: export.organisationItemCount,
-                    omittedItemCount: export.omittedItemCount
+                    omittedItemCount: export.omittedItemCount,
+                    // Taken from the sync result rather than the export, because the export cannot
+                    // know about them: an item that failed to decrypt never became a `VaultItem`,
+                    // so it is absent from `allItems()` and from every count derived from it.
+                    unreadableItemCount: unreadableItemCount
                 )
             } catch {
                 logger.error("Export failed: \(error.localizedDescription, privacy: .public)")

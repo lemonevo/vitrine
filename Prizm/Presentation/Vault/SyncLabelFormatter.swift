@@ -77,6 +77,18 @@ enum UnreadableItemsLabel {
             ? L("1 item could not be read. It is still on the server; Vitrine could not decrypt it.")
             : L("%d items could not be read. They are still on the server; Vitrine could not decrypt them.", count)
     }
+
+    /// Why an export is smaller than the vault.
+    ///
+    /// Distinct from `explanation(count:)` because the consequence is not the same. An unreadable
+    /// item missing from the list is an absence the user can see; the same item missing from a file
+    /// they are about to keep as their backup is only discoverable by counting rows, or by
+    /// restoring and finding a hole. The remedy is specific too, so it is named.
+    static func exportOmission(count: Int) -> String {
+        count == 1
+            ? L("1 item could not be read, so it is not in this file. Sync while unlocked, then export again.")
+            : L("%d items could not be read, so they are not in this file. Sync while unlocked, then export again.", count)
+    }
 }
 
 // MARK: - Sync label formatter

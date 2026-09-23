@@ -63,6 +63,41 @@ final class AttachmentTempFileManagerTests: XCTestCase {
             "File should not exist after cleanup")
     }
 
+    /// The overwrite, actually observed. The test above checks only that the file is gone, which is
+    /// true whether or not a single byte was written — its name promises more than it asserts.
+    /// Nothing can see the zeroed bytes through the normal path, because the same call removes the
+    /// file. Making the containing directory unwritable is what makes them visible: the write
+    /// succeeds, the unlink does not, and the file is still there to read.
+    ///
+    /// **Larger than the 1 MiB chunk**, so this also pins the loop that writes the file in chunks
+    /// instead of allocating a second copy of it. A loop that stopped after one chunk, or that
+    /// miscounted the tail, leaves readable bytes here.
+    func test_zeroAndDelete_overwritesEveryByteOfAFileLargerThanOneChunk() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("prizm-zero-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        createdURLs.append(directory)
+
+        let size    = (1 << 20) + 4096          // one chunk, plus a tail
+        let url     = directory.appendingPathComponent("large.bin")
+        // `| 1` keeps every byte non-zero: a fixture that is already partly zero could not show
+        // whether the overwrite reached it.
+        let payload = Data((0..<size).map { UInt8(truncatingIfNeeded: $0 | 1) })
+        try payload.write(to: url)
+
+        try FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: directory.path)
+        sut.register(url: url, deleteAfter: Date().addingTimeInterval(-1))
+        sut.cleanup()
+        // Restored before the assertions so a failure cannot leave an unwritable directory behind
+        // for the teardown to trip over. This does not touch the file's contents.
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: directory.path)
+
+        let remaining = try Data(contentsOf: url)
+        XCTAssertEqual(remaining.count, size, "the overwrite must not change the file's length")
+        XCTAssertTrue(remaining.allSatisfy { $0 == 0 },
+                      "every byte must be zero, including the tail past the first chunk")
+    }
+
     // MARK: - cleanup — unexpired deadline
 
     func test_cleanup_leavesFilesNotYetExpired() {

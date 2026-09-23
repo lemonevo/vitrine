@@ -24,6 +24,17 @@ nonisolated struct GenerateVaultHealthReportUseCaseImpl: GenerateVaultHealthRepo
 
     func execute() async throws -> VaultHealthReport {
         let items = try await vault.allItems()
-        return VaultHealthReport.make(from: items, estimator: estimator, now: now())
+        // Off the caller's actor. The analysis is pure, but `PasswordStrengthEstimator.estimate` is
+        // O(n²) in the length of each password and runs once per login — and `-default-isolation
+        // MainActor` means this `nonisolated struct`'s synchronous body runs on whichever actor
+        // called it. Opening the report therefore estimated every password in the vault on the
+        // thread drawing the sheet. `offMain` is the same helper the attachment path uses.
+        //
+        // The clock is read here rather than inside, so the timestamp is taken when the report was
+        // asked for rather than whenever the executor got to it.
+        let stamp = now()
+        return try await offMain(items, stamp) { items, stamp in
+            VaultHealthReport.make(from: items, estimator: estimator, now: stamp)
+        }
     }
 }

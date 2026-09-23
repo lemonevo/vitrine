@@ -470,10 +470,23 @@ actor VaultRepositoryImpl: VaultRepository {
         // TODO: Queue encrypted rawCipher for offline persistence (deferred — requires WAL).
         let updatedRaw = try await apiClient.updateCipher(id: draft.id, cipher: rawCipher)
 
-        if draft.organizationId != nil {
-            try await apiClient.updateCipherCollections(id: draft.id, collectionIds: draft.collectionIds)
-        }
-
+        // Collection membership is deliberately NOT re-sent here.
+        //
+        // `PUT /api/ciphers/{id}` never touches membership: in Vaultwarden, `put_cipher`
+        // calls `update_cipher_from_data` with `shared_to_collections: None`, and that
+        // function's only use of the parameter is the push notification it sends. The
+        // separate `PUT /api/ciphers/{id}/collections` endpoint is what changes membership,
+        // and it applies `symmetric_difference` against the set the cipher is currently in
+        // — so an **empty** array removes the item from every collection it belongs to.
+        //
+        // Re-sending `draft.collectionIds` on every edit was therefore at best a no-op and
+        // at worst destructive: a membership this client never learned decodes as `[]`
+        // (`RawCipher.collectionIds` falls back to empty for an absent *and* an undecodable
+        // value), so renaming an organisation item could empty its collections. No UI
+        // changes membership, so there is nothing to send.
+        //
+        // If a membership editor is added later, call `updateCipherCollections` from that
+        // action alone, and never with a value that a decode fallback produced.
         var (updatedItem, _) = try mapper.map(raw: updatedRaw, vaultKeys: vaultKeys, orgKeys: orgKeysSnapshot)
 
         // Patch collectionIds: PUT /api/ciphers/{id} returns pre-update collection state.

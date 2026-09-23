@@ -152,7 +152,7 @@ final class VaultBrowserViewModelBackupTests: XCTestCase {
                        "the suggested name is what the panel is offered")
         XCTAssertEqual(files.savedData, Data("{}".utf8))
         XCTAssertEqual(sut.backupSheet,
-                       .exportDone(url: savedURL, itemCount: 1, organisationItemCount: 0, omittedItemCount: 0))
+                       .exportDone(url: savedURL, itemCount: 1, organisationItemCount: 0, omittedItemCount: 0, unreadableItemCount: 0))
         XCTAssertNil(sut.actionError)
     }
 
@@ -168,7 +168,25 @@ final class VaultBrowserViewModelBackupTests: XCTestCase {
         await waitUntil { self.sut.backupSheet != .exportConsent }
 
         XCTAssertEqual(sut.backupSheet,
-                       .exportDone(url: savedURL, itemCount: 7, organisationItemCount: 3, omittedItemCount: 0))
+                       .exportDone(url: savedURL, itemCount: 7, organisationItemCount: 3, omittedItemCount: 0, unreadableItemCount: 0))
+    }
+
+    /// Items the vault could not read at all, which is the one number the export cannot supply: an
+    /// item that failed to decrypt never became a `VaultItem`, so it is absent from `allItems()` and
+    /// from every count derived from it. The sync result is the only place it exists, and a user
+    /// holding a file they believe is their backup is the person who has to be told.
+    func test_confirmExport_reportsItemsTheVaultCouldNotRead() async {
+        sut.handleSyncCompleted(
+            SyncResult(syncedAt: Date(), totalCiphers: 9, failedDecryptionCount: 3)
+        )
+
+        sut.requestExport()
+        sut.confirmExport()
+        await waitUntil { self.sut.backupSheet != .exportConsent }
+
+        XCTAssertEqual(sut.backupSheet,
+                       .exportDone(url: savedURL, itemCount: 1, organisationItemCount: 0,
+                                   omittedItemCount: 0, unreadableItemCount: 3))
     }
 
     /// Dismissing the done sheet leaves no error behind — the export succeeded.
@@ -422,7 +440,7 @@ final class VaultBrowserViewModelBackupTests: XCTestCase {
         XCTAssertFalse(VaultBackupSheet.exportConsent.isImporting)
         XCTAssertFalse(VaultBackupSheet.importReport(ImportSummary()).isImporting)
         XCTAssertFalse(
-            VaultBackupSheet.exportDone(url: savedURL, itemCount: 1, organisationItemCount: 0, omittedItemCount: 0)
+            VaultBackupSheet.exportDone(url: savedURL, itemCount: 1, organisationItemCount: 0, omittedItemCount: 0, unreadableItemCount: 0)
                 .isImporting
         )
     }
@@ -431,7 +449,7 @@ final class VaultBrowserViewModelBackupTests: XCTestCase {
     func test_sheetStates_areDistinct() {
         let states: [VaultBackupSheet] = [
             .exportConsent,
-            .exportDone(url: savedURL, itemCount: 1, organisationItemCount: 0, omittedItemCount: 0),
+            .exportDone(url: savedURL, itemCount: 1, organisationItemCount: 0, omittedItemCount: 0, unreadableItemCount: 0),
             .importing(done: 0, total: 0),
             .importReport(ImportSummary())
         ]

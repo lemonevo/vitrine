@@ -8,8 +8,8 @@ import os.log
 /// Layout, one directory per account:
 ///
 /// ```
-/// <Application Support>/Prizm/vault-cache/<userId>/sync.json        the response body, verbatim
-/// <Application Support>/Prizm/vault-cache/<userId>/sync.meta.json   schemaVersion, writtenAt, serverURL
+/// <Application Support>/Vitrine/vault-cache/<userId>/sync.json        the response body, verbatim
+/// <Application Support>/Vitrine/vault-cache/<userId>/sync.meta.json   schemaVersion, writtenAt, serverURL
 /// ```
 ///
 /// **The body is written first and the metadata second.** Its absence means the cache is unusable,

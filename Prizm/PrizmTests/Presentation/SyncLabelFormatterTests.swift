@@ -203,4 +203,32 @@ final class SyncLabelFormatterTests: XCTestCase {
         XCTAssertTrue(plural.contains("still on the server"), "got: \(plural)")
         XCTAssertTrue(plural.contains("4"), "the count belongs in the explanation too; got: \(plural)")
     }
+
+    // MARK: - Unreadable items, in an export
+
+    /// Same two-key choice as the footer, for the same reason: `L` has no plural machinery, and one
+    /// is the count that would otherwise read as a typo.
+    func testExportOmission_oneItem_isSingular() {
+        XCTAssertEqual(
+            UnreadableItemsLabel.exportOmission(count: 1),
+            L("1 item could not be read, so it is not in this file. Sync while unlocked, then export again.")
+        )
+    }
+
+    func testExportOmission_severalItems_isPlural() {
+        XCTAssertEqual(
+            UnreadableItemsLabel.exportOmission(count: 3),
+            L("%d items could not be read, so they are not in this file. Sync while unlocked, then export again.", 3)
+        )
+    }
+
+    /// This one has to carry the remedy, unlike the footer's. A user reading it is holding a file
+    /// they believe is their backup; "3 items could not be read" alone leaves them with a hole and
+    /// no idea whether it can be closed.
+    func testExportOmission_namesWhatToDoAboutIt() {
+        let message = UnreadableItemsLabel.exportOmission(count: 3)
+
+        XCTAssertTrue(message.contains("Sync"), "the message has to say what closes the gap; got: \(message)")
+        XCTAssertTrue(message.contains("export again"), "…and that the file can be produced again; got: \(message)")
+    }
 }

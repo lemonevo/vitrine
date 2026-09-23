@@ -26,7 +26,15 @@ nonisolated struct ImportVaultUseCaseImpl: ImportVaultUseCase {
     }
 
     func execute(data: Data, progress: @Sendable (Int, Int) -> Void) async throws -> ImportSummary {
-        let document = try VaultExportDocument.decode(from: data)
+        // Parsed off the caller's actor. This is synchronous JSON work over the whole file, and it
+        // was running on the main thread: `-default-isolation MainActor` means a `nonisolated
+        // struct`'s synchronous body executes on whichever actor called it, so a large backup
+        // stalled the progress sheet that is supposed to be animating while it is read.
+        //
+        // `Data` goes in and the document comes back, so nothing else has to cross this boundary —
+        // and the per-item loop below stays where it is, because it awaits a network call per item
+        // and that yields the main actor on its own.
+        let document = try await offMain(data) { try VaultExportDocument.decode(from: $0) }
         let total    = document.items.count
 
         var summary = ImportSummary()

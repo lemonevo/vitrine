@@ -48,7 +48,11 @@ nonisolated struct ExportVaultUseCaseImpl: ExportVaultUseCase {
 
         switch format {
         case .csv:
-            let rendered = VaultExportCSV.serialise(document)
+            // Rendered off the caller's actor: this writes the whole vault into one string, and
+            // `-default-isolation MainActor` means a `nonisolated struct`'s synchronous body runs on
+            // whichever actor called it — so this was vault-sized string work on the thread drawing
+            // the progress sheet.
+            let rendered = try await offMain(document) { VaultExportCSV.serialise($0) }
             // A header-only file is refused for the same reason an empty JSON vault is: a file the user
             // believes is a backup, and which restores nothing.
             guard rendered.omittedCount < items.count else {
@@ -64,7 +68,7 @@ nonisolated struct ExportVaultUseCaseImpl: ExportVaultUseCase {
             )
 
         case .json:
-            return try jsonExport(
+            return try await jsonExport(
                 document: document, items: items, folders: folders,
                 organisationItemCount: organisationItemCount
             )
@@ -76,17 +80,21 @@ nonisolated struct ExportVaultUseCaseImpl: ExportVaultUseCase {
         items: [VaultItem],
         folders: [Folder],
         organisationItemCount: Int
-    ) throws -> VaultExport {
-        let encoder = JSONEncoder()
+    ) async throws -> VaultExport {
+        // Encoded off the caller's actor — see the CSV branch above for why a `nonisolated struct`
+        // does not by itself keep this off the main thread.
+        //
         // `.withoutEscapingSlashes` is not cosmetic: without it every `https://…` in the file is
         // written as `https:\/\/…`. That is valid JSON and every parser reads it, but it makes the
         // file unreadable to a human trying to verify their own backup, and it differs from what
         // the reference implementation produces.
         // `.sortedKeys` makes the output deterministic, so two exports of the same vault differ
         // only where the vault does.
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
-
-        let data = try encoder.encode(document)
+        let data = try await offMain(document) { document in
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
+            return try encoder.encode(document)
+        }
 
         Self.logger.info("JSON export built: \(items.count, privacy: .public) items, \(folders.count, privacy: .public) folders")
 
