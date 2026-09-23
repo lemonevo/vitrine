@@ -22,13 +22,13 @@ struct SettingsView: View {
     let authRepository: any AuthRepository
 
     // The certificate settings for the configured server. Both the panel and the file parsing are
-    // injected from the App layer so this file stays free of AppKit and Security (Constitution §II).
+    // injected from the App layer so this file stays free of AppKit and Security.
     let serverTrustStore:    any ServerTrustStore
     let serverHost:          String?
     let pickCertificateFile: @MainActor () -> URL?
     let loadCertificates:    (URL) throws -> [Data]
     /// Asks the use case for the account fingerprint phrase. Injected for the same reason as the
-    /// two above: the domain dependency stays behind the App layer (Constitution §II).
+    /// two above: the domain dependency stays behind the App layer.
     let loadFingerprint:     @MainActor () async -> String?
     /// The SSH agent, so the pane can show and change whether it is listening.
     ///

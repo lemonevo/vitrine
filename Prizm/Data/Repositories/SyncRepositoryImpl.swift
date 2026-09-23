@@ -205,7 +205,7 @@ actor SyncRepositoryImpl: SyncRepository {
                     vaultKeys: vaultKeys
                 )
                 defer {
-                    // Zero the private key bytes immediately after use (Constitution §III).
+                    // Zero the private key bytes immediately after use.
                     rsaPrivateKeyBytes.zeroize()
                 }
 

@@ -16,8 +16,7 @@ import Foundation
 protocol VerifyMasterPasswordUseCase: Sendable {
 
     /// - Parameter password: The candidate master password. The caller owns these bytes and
-    ///   zeroes them; the password is `Data` rather than `String` for that reason
-    ///   (Constitution §III).
+    ///   zeroes them; the password is `Data` rather than `String` for that reason.
     /// - Returns: `true` when `password` is the master password of the stored account.
     /// - Throws: when the check could not be performed at all — never for a wrong password.
     func execute(_ password: Data) async throws -> Bool

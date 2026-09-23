@@ -181,7 +181,7 @@ final class UnlockViewModel: ObservableObject {
         flowState    = .loading
 
         // Convert the password String to Data at this boundary so the KDF stack
-        // receives `Data` that can be zeroed after use (Constitution §III).
+        // receives `Data` that can be zeroed after use.
         guard var passwordData = password.data(using: .utf8) else {
             errorMessage = L("Invalid password encoding.")
             flowState    = .unlock

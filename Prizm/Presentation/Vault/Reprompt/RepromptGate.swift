@@ -9,7 +9,7 @@ import Foundation
 /// material the key caches protect, so it has to be revoked by the same teardown that destroys
 /// those caches — `lockVault()` and `signOut()` — and not by a second, parallel rule. Holding the
 /// set anywhere else would create a second answer to "how long does a grant last", and it would be
-/// the copy that survives a lock (design D7, Constitution §III).
+/// the copy that survives a lock (design D7).
 ///
 /// `VaultBrowserViewModel` asks this rather than owning the set. It presents the sheet and holds
 /// the reveal state, and it must be able to *request* a grant without being able to *issue* one.

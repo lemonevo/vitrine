@@ -39,7 +39,7 @@ protocol PrizmCryptoService: Actor {
     ///
     /// - Security goal: accepting `Data` (not `String`) lets the caller zero the
     ///   password bytes after the KDF call returns, reducing the window during which
-    ///   plaintext password bytes live in the heap (Constitution §III). `String` is
+    ///   plaintext password bytes live in the heap. `String` is
     ///   immutable and cannot be reliably zeroed.
     ///
     /// - Parameters:
@@ -138,7 +138,7 @@ protocol PrizmCryptoService: Actor {
     ///
     /// - Security goal: the decrypted private key bytes are used only within `unwrapOrgKey`
     ///   to decrypt org symmetric keys. The caller must zero the returned `Data` after use.
-    ///   The bytes are NEVER logged (Constitution §III, §VII).
+    ///   The bytes are NEVER logged.
     ///
     /// - Parameters:
     ///   - encPrivateKey: EncString from `SyncResponse.profile.privateKey`.
@@ -248,7 +248,7 @@ actor PrizmCryptoServiceImpl: PrizmCryptoService {
     func lockVault() {
         // Zero both key buffers in the actor's stored property before releasing.
         // `self.keys` is the primary reference — zeroing it reduces the window during
-        // which key material exists in a heap dump (Constitution §III). Any Data copies
+        // which key material exists in a heap dump. Any Data copies
         // passed to in-flight decryption tasks retain their own CoW buffers until those
         // tasks complete; those copies cannot be zeroed here.
         if keys != nil {
@@ -459,7 +459,7 @@ actor PrizmCryptoServiceImpl: PrizmCryptoService {
     ///
     /// - Security goal: the decrypted PKCS#8 DER bytes are returned to the caller who
     ///   must zero them immediately after passing to `unwrapOrgKey`. The bytes are NEVER
-    ///   logged (Constitution §III — "no secrets in logs").
+    ///   logged — no secrets in logs.
     ///
     /// - The `privateKey` field in the sync profile is a Type-2 EncString (AES-256-CBC +
     ///   HMAC-SHA256) encrypted with the vault symmetric key. Decrypting it yields the

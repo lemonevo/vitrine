@@ -3,7 +3,7 @@ import XCTest
 
 // MARK: - CollectionUseCaseTests (task 4.0)
 
-/// RED tests written before implementation (Constitution §IV — Red first).
+/// RED tests written before implementation.
 ///
 /// Covers:
 ///   - VaultRepository `.collection(id)` filtering returns only matching items

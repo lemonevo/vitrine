@@ -7,7 +7,7 @@ import os.log
 ///
 /// - Security goal: keeps org key material in the Data layer behind a protocol boundary,
 ///   preventing exposure to the Presentation layer. Org keys are zeroed before removal
-///   (Constitution §III) to reduce the heap-residency window after lock.
+/// to reduce the heap-residency window after lock.
 ///
 /// - Populated at sync time by `SyncRepositoryImpl` after unwrapping each org's RSA-encrypted
 ///   symmetric key. Cleared alongside `VaultKeyCache` on vault lock and sign-out.
@@ -16,8 +16,7 @@ import os.log
 /// - Thread safety: declared as `actor` because it is written from the sync path
 ///   (background `actor SyncRepositoryImpl`) and read from `CipherMapper` via a
 ///   synchronous snapshot. An `actor` prevents data races under Swift 6 strict
-///   concurrency checking (Constitution §II — "actor for shared mutable state in
-///   Data layer").
+///   concurrency checking.
 actor OrgKeyCache {
 
     private let logger = Logger(subsystem: "dev.lemonevo.vitrine", category: "OrgKeyCache")
@@ -51,7 +50,7 @@ actor OrgKeyCache {
     ///
     /// Called on vault lock and sign-out alongside `VaultKeyCache.clear()`.
     /// Zeroing before clearing reduces the window during which key bytes remain on the
-    /// heap after the cache is discarded (Constitution §III).
+    /// heap after the cache is discarded.
     func clear() {
         // Note: Swift's CoW semantics mean true in-place zeroing cannot be guaranteed
         // at the language level. This is a known limitation of the design, not an oversight.

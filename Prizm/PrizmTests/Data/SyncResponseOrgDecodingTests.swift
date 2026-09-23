@@ -3,7 +3,7 @@ import XCTest
 
 /// RED tests for task 2.0 — SyncResponse decoding of organizations and collections.
 /// These tests FAIL until tasks 2.1–2.4 (RawOrganization, RawCollection, SyncResponse extension,
-/// RawCipher.collectionIds) are implemented (Constitution §IV — Red first).
+/// RawCipher.collectionIds) are implemented.
 final class SyncResponseOrgDecodingTests: XCTestCase {
 
     // MARK: - Helpers

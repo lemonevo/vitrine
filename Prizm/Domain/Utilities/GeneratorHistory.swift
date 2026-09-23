@@ -39,7 +39,7 @@ nonisolated struct GeneratorHistoryEntry: Identifiable, Equatable, Sendable {
 /// every regeneration — a history of values the user never looked at is noise.
 ///
 /// Held by `AppContainer` so the vault lock and sign-out paths can clear it alongside the key
-/// caches; a value generated before a lock must not survive it (Constitution §III).
+/// caches; a value generated before a lock must not survive it.
 @MainActor
 final class GeneratorHistory: ObservableObject {
 

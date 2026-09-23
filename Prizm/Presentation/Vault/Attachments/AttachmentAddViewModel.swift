@@ -14,7 +14,7 @@ import os.log
 ///
 /// - Security goal: raw file bytes are held in memory only between `confirm()` call and
 ///   upload completion (success or failure). Both paths zero the buffer immediately after
-///   the upload call returns (Constitution §III).
+///   the upload call returns.
 ///
 /// - File bytes are NOT read at selection time — they are read at the moment the user
 ///   presses Confirm, minimising how long sensitive data is resident in memory.
@@ -22,7 +22,7 @@ import os.log
 /// - Testability: The `filePicker` closure is injectable so unit tests can bypass
 ///   `NSOpenPanel` (which requires an interactive session and cannot run in XCTest).
 ///   The default `NSOpenPanel` implementation lives in the App layer (`AppContainer`)
-///   to keep AppKit out of the Presentation layer (Constitution §II).
+///   to keep AppKit out of the Presentation layer.
 @Observable
 @MainActor
 final class AttachmentAddViewModel: Identifiable {

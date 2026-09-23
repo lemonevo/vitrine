@@ -57,7 +57,7 @@ nonisolated enum PinUnlockError: Error, Equatable, LocalizedError {
 /// the account, so it says so.
 ///
 /// **`Data`, not `CryptoKeys`.** `CryptoKeys` is a Data-layer type and this protocol is Domain
-/// (Constitution §II); the same reason `VaultKeyService` deals in the raw 64-byte blob.
+/// — the Domain layer takes no Data-layer types; the same reason `VaultKeyService` deals in the raw 64-byte blob.
 protocol PinUnlockService: AnyObject {
 
     /// Whether a PIN is set for `userId`.

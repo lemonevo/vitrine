@@ -5,8 +5,8 @@ import XCTest
 /// The two key caches that had no tests, and what `Data.zeroize()` does and does not promise.
 ///
 /// **What this file deliberately does not claim.** `VaultKeyCache` had coverage; `OrgKeyCache` and
-/// `AccountKeyCache` had none, and `zeroize` had no test anywhere in the suite — so Constitution §III
-/// ("key material must not outlive the vault session") was being checked only for *reach*: that
+/// `AccountKeyCache` had none, and `zeroize` had no test anywhere in the suite — so "key material
+/// must not outlive the vault session" was being checked only for *reach*: that
 /// `clear()` gets called, not that it does what it says.
 ///
 /// But "the bytes are gone" is not something safe Swift can assert about someone else's copy. A

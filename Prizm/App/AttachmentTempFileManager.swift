@@ -16,7 +16,7 @@ import os.log
 ///   and by a scheduled Task inside `AttachmentRowViewModel` 30 s after registration.
 /// - `removeAllForTermination()` runs on `NSApplication.willTerminateNotification` and ignores the
 ///   deadline — see that method for why only quitting makes that correct.
-/// - On cleanup, the file is overwritten with zeros then deleted (Constitution §III).
+/// - On cleanup, the file is overwritten with zeros then deleted.
 ///
 /// Not guaranteed to run: a force-quit, a crash, or a power loss skips termination handlers, and the
 /// files survive until the next launch's sweeps or the system's own temp-directory cleanup.
@@ -80,7 +80,7 @@ final class AttachmentTempFileManager: TempFileManaging, @unchecked Sendable {
     /// Records `url` with a custom deletion deadline.
     ///
     /// Exposed for testing — allows tests to register a file with a deadline in the past
-    /// without sleeping 30 seconds (Constitution §VI, YAGNI: no separate Clock injection).
+    /// without sleeping 30 seconds (YAGNI: no separate Clock injection).
     func register(url: URL, deleteAfter: Date) {
         lock.lock()
         entries.append(Entry(url: url, deleteAfter: deleteAfter))
@@ -132,7 +132,7 @@ final class AttachmentTempFileManager: TempFileManaging, @unchecked Sendable {
     /// Overwrites the file at `url` with zeros then deletes it.
     ///
     /// - Security goal: reduces (but does not guarantee elimination of) plaintext attachment data on disk (APFS copy-on-write may retain original blocks; FileVault is recommended)
-    ///   after the open action completes (Constitution §III).
+    ///   after the open action completes.
     ///
     /// **Written in chunks rather than as one buffer.** The direct form —
     /// `Data(repeating: 0, count: size)` followed by `write(to:)` — allocates a second copy of the

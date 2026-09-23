@@ -3,7 +3,7 @@ import Foundation
 /// Concrete implementation of `DownloadAttachmentUseCase`.
 ///
 /// Resolves the cipher key internally via `VaultKeyService` so that raw key material
-/// never surfaces to the Presentation layer (Constitution §II/§III). Forwards to
+/// never surfaces to the Presentation layer. Forwards to
 /// `AttachmentRepository.download` which fetches, decrypts, and returns the file bytes.
 final class DownloadAttachmentUseCaseImpl: DownloadAttachmentUseCase {
 

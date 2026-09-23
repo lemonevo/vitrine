@@ -19,7 +19,7 @@ nonisolated enum CipherMapperError: Error, Equatable {
 /// Transforms a `RawCipher` (wire-format, encrypted) into a `VaultItem` (domain,
 /// decrypted) using the provided symmetric `CryptoKeys`.
 ///
-/// **Responsibilities** (single responsibility per §III of the project constitution):
+/// **Responsibilities** (one responsibility each):
 /// - Decrypt each EncString field using AES-256-CBC + HMAC-SHA256 (EncString type-2).
 ///   Decryption is eager (at sync time, inside the mapper) rather than lazy (at display
 ///   time, inside Views). This keeps `VaultItem` domain entities as plain decrypted

@@ -14,7 +14,7 @@ import Foundation
 ///
 /// **What is deliberately NOT done.** Passkey private keys (`fido2Credentials`) and the per-item
 /// key (`cipherKey`) are never decrypted: no screen displays them, and decrypting secrets you do
-/// not show only widens the attack surface (Constitution §III).
+/// not show only widens the attack surface.
 ///
 /// **The one exception, and it was added later.** `passwordHistory` *is* decrypted — on demand,
 /// never cached, never logged — and the only entry point is `GetPasswordHistoryUseCase`, which

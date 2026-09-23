@@ -3,7 +3,7 @@ import Security
 @testable import Prizm
 
 /// Known-Answer Tests (KATs) for org key crypto — task 3.0.
-/// These tests are RED until tasks 3.1–3.4 are implemented (Constitution §IV — Red first).
+/// These tests are RED until tasks 3.1–3.4 are implemented.
 ///
 /// Test vector source: constructed from a known Bitwarden-format test fixture.
 /// The RSA key pair, org key, and cipher are generated offline with deterministic seeds

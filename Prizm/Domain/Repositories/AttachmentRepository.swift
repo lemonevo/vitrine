@@ -10,7 +10,7 @@ import Foundation
 ///
 /// The caller (use case) is responsible for obtaining the cipher key via
 /// `VaultKeyService.cipherKey(for:)` — it is NEVER a parameter on the
-/// use-case `execute(...)` signatures (Constitution §II/§III).
+/// use-case `execute(...)` signatures.
 ///
 /// Implemented by `AttachmentRepositoryImpl` in the Data layer.
 protocol AttachmentRepository {

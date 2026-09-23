@@ -16,7 +16,7 @@ import SwiftUI
 struct AccountFingerprintSection: View {
 
     /// Asks the use case. Injected rather than called directly so the domain dependency stays out
-    /// of the view (Constitution §II).
+    /// of the view.
     let loadPhrase: @MainActor () async -> String?
 
     @State private var phrase: String?

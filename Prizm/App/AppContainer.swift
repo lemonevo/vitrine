@@ -25,10 +25,10 @@ final class AppContainer: ObservableObject {
     let totpGenerator: any TOTPGenerator
     /// In-memory cache mapping cipher ID → 64-byte effective key.
     /// Populated at sync time by `SyncRepositoryImpl`; cleared on vault lock alongside
-    /// `vaultStore` so key material does not outlive the vault session (Constitution §III).
+    /// `vaultStore` so key material does not outlive the vault session.
     let vaultKeyCache: VaultKeyCache
     /// In-memory cache mapping organization ID → unwrapped 64-byte symmetric key.
-    /// Populated at sync time; cleared on vault lock alongside `vaultKeyCache` (Constitution §III).
+    /// Populated at sync time; cleared on vault lock alongside `vaultKeyCache`.
     let orgKeyCache: OrgKeyCache
     /// The account's own RSA public key, SPKI DER, for the fingerprint phrase. Unlike the two
     /// caches above it holds no secret — it is cleared on lock so the phrase disappears with the
@@ -98,7 +98,7 @@ final class AppContainer: ObservableObject {
     // MARK: - Temp file lifecycle
 
     /// Singleton temp-file manager — injected into `AttachmentRowViewModel` via the
-    /// `TempFileManaging` protocol to keep Presentation decoupled from AppKit (Constitution §II).
+    /// `TempFileManaging` protocol to keep Presentation decoupled from AppKit.
     let tempFileManager: AttachmentTempFileManager
 
     /// Drives the configurable idle timeout. Owns an `NSEvent` local monitor while the vault is
@@ -267,7 +267,7 @@ final class AppContainer: ObservableObject {
             wordList:        PasswordGenerator.effWordList
         )
         // Attachment use cases — Upload and Download inject VaultKeyService;
-        // Delete does NOT (no key material required, Constitution §VI).
+        // Delete does NOT (no key material required).
         self.uploadAttachmentUseCase   = UploadAttachmentUseCaseImpl(repository: attachmentRepo, vaultKeyService: vaultKeyService)
         self.downloadAttachmentUseCase = DownloadAttachmentUseCaseImpl(repository: attachmentRepo, vaultKeyService: vaultKeyService)
         self.deleteAttachmentUseCase   = DeleteAttachmentUseCaseImpl(repository: attachmentRepo)
@@ -396,7 +396,7 @@ final class AppContainer: ObservableObject {
         )
     }
 
-    // MARK: - AppKit panel defaults (App layer — Constitution §II)
+    // MARK: - AppKit panel defaults (App layer)
     //
     // These closures wrap AppKit classes (NSOpenPanel, NSSavePanel, NSWorkspace) and are
     // injected into Presentation-layer ViewModels so the Presentation layer never imports

@@ -17,8 +17,7 @@ import os.log
 /// - Thread safety: declared as `actor` because it is written from the sync path
 ///   (background `actor SyncRepositoryImpl`) and read from attachment operation paths
 ///   (`VaultKeyServiceImpl`). An `actor` prevents data races under Swift 6 strict
-///   concurrency checking (Constitution §II — "actor for shared mutable state in
-///   Data layer").
+///   concurrency checking.
 actor VaultKeyCache {
 
     private let logger = Logger(subsystem: "dev.lemonevo.vitrine", category: "VaultKeyCache")
@@ -52,7 +51,7 @@ actor VaultKeyCache {
     ///
     /// Called on vault lock and sign-out — mirrors the lifecycle of `VaultRepositoryImpl`.
     /// Zeroing before clearing reduces the window during which key bytes remain on the
-    /// heap after the cache is discarded (Constitution §III).
+    /// heap after the cache is discarded.
     func clear() {
         for key in cache.keys {
             cache[key]?.zeroize()

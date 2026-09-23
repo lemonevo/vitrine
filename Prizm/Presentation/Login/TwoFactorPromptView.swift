@@ -116,7 +116,7 @@ struct TwoFactorPromptView: View {
 
             // MARK: Cancel button
             // Cancelling clears in-memory key material (stretched keys + password hash)
-            // that was retained from the initial password-login step (Constitution §III).
+            // that was retained from the initial password-login step.
             Button("Cancel") {
                 viewModel.cancelTwoFactor()
             }

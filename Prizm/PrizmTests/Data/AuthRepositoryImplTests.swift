@@ -44,7 +44,7 @@ final class AuthRepositoryImplTests: XCTestCase {
         XCTAssertNoThrow(try sut.validateServerURL("https://vault.example.com/"))
     }
 
-    /// validateServerURL rejects http:// — HTTPS only (Constitution §III).
+    /// validateServerURL rejects http:// — HTTPS only.
     func testValidateServerURL_httpURL_throws() throws {
         XCTAssertThrowsError(try sut.validateServerURL("http://192.168.1.100")) { error in
             XCTAssertEqual(error as? AuthError, .invalidURL)

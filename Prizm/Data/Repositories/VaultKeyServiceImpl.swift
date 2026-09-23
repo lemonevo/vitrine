@@ -21,7 +21,7 @@ import os.log
 /// `PrizmCryptoServiceError.vaultLocked`, which is translated to `VaultError.vaultLocked`.
 ///
 /// - Security goal: prevents key material from reaching the Presentation layer by
-///   resolving keys only at the Data/Domain boundary (Constitution §II/§III).
+///   resolving keys only at the Data/Domain boundary.
 /// - Algorithm: AES-256-CBC key (32 bytes) ‖ HMAC-SHA256 key (32 bytes) per
 ///   Bitwarden Security Whitepaper §4.
 /// - Deviations: none. The 64-byte concatenation format matches the Bitwarden client
@@ -60,7 +60,7 @@ final class VaultKeyServiceImpl: VaultKeyService {
         }
 
         // Concatenate encryptionKey ‖ macKey to form the 64-byte effective cipher key.
-        // Both fields are 32 bytes each (Constitution §II — CryptoKeys struct).
+        // Both fields are 32 bytes each (the `CryptoKeys` struct).
         return keys.encryptionKey + keys.macKey
     }
 }

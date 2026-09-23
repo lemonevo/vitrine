@@ -25,7 +25,7 @@ protocol AuthRepository: AnyObject {
     /// 4. Persist tokens + encrypted user key in Keychain.
     ///
     /// - Security goal: `masterPassword` is `Data` so the caller can zero the bytes
-    ///   after the call returns, reducing heap exposure (Constitution §III).
+    ///   after the call returns, reducing heap exposure.
     /// - Returns: `.success(Account)` or `.requiresTwoFactor(method:)`.
     /// - Throws: `AuthError` on network or credential failure.
     func loginWithPassword(email: String, masterPassword: Data) async throws -> LoginResult
@@ -55,7 +55,7 @@ protocol AuthRepository: AnyObject {
     /// state (stretched keys + password hash) held from the initial password login step.
     ///
     /// - Security goal: without this call the derived key material lives in memory until
-    ///   the next login attempt or app restart (Constitution §III). Call this whenever the
+    ///   the next login attempt or app restart. Call this whenever the
     ///   user dismisses the TOTP prompt without submitting a code.
     func cancelTwoFactor()
 
@@ -65,7 +65,7 @@ protocol AuthRepository: AnyObject {
     /// No network request is made — purely local crypto.
     ///
     /// - Security goal: `masterPassword` is `Data` so the caller can zero the bytes
-    ///   after the call returns (Constitution §III).
+    ///   after the call returns.
     /// - Returns: The unlocked `Account`.
     /// - Throws: `AuthError.invalidCredentials` on wrong password.
     func unlockWithPassword(_ masterPassword: Data) async throws -> Account

@@ -12,7 +12,7 @@ import Foundation
 extension Notification.Name {
     /// Posted on the main thread whenever the vault is locked (sign-out or explicit lock).
     /// `ItemEditViewModel` subscribes to dismiss the edit sheet immediately, without a
-    /// confirmation prompt, and clear the `DraftVaultItem` from memory (Constitution §III).
+    /// confirmation prompt, and clear the `DraftVaultItem` from memory.
     static let vaultDidLock = Notification.Name("com.prizm.vaultDidLock")
 }
 

@@ -60,7 +60,7 @@ struct SystemBiometricPolicyEvaluator: BiometricPolicyEvaluating {
 /// are mutually exclusive on the same SecItem — see design Decision 3.
 ///
 /// This is a Data-layer implementation detail consumed only by `AuthRepositoryImpl`.
-/// It MUST NOT be placed in the Domain layer (Constitution §II).
+/// It MUST NOT be placed in the Domain layer.
 protocol BiometricKeychainService {
     /// Whether macOS itself enforces the biometric gate on the stored item.
     ///

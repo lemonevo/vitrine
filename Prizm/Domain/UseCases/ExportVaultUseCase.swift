@@ -61,7 +61,7 @@ nonisolated enum VaultExportFormat: String, CaseIterable, Identifiable, Sendable
 /// two plaintext formats the official client offers.
 ///
 /// Returns the bytes; it does **not** write them. The file is written by an App-layer closure
-/// wrapping `NSSavePanel`, which keeps the Presentation layer free of AppKit (Constitution §II)
+/// wrapping `NSSavePanel`, which keeps the Presentation layer free of AppKit
 /// and keeps this use case unit-testable without a file system.
 ///
 /// The defaulted parameter is what keeps the format a presentation choice: every existing call site

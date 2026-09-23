@@ -15,7 +15,7 @@ import Foundation
 /// is merely not *famous*. That asymmetry is the estimator's main limitation, and
 /// `PasswordStrength.swift` states it too.
 ///
-/// **Why not `zxcvbn`.** The Constitution prefers Apple-first APIs and prohibits third-party
+/// **Why not `zxcvbn`.** The project prefers Apple-first APIs and prohibits third-party
 /// dependencies, and a strength estimate is security-relevant input to a security decision. Its
 /// value is almost entirely its dictionaries, which would have to be vendored as data — a supply
 /// chain of exactly the kind this project avoids.

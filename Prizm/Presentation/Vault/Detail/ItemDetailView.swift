@@ -17,7 +17,7 @@ struct ItemDetailView: View {
     /// Factory that creates an `AttachmentBatchViewModel` for a drag-and-drop upload.
     var makeBatchAttachmentViewModel: ((String) -> AttachmentBatchViewModel)? = nil
     /// Factory for `AttachmentRowViewModel` — passed to `AttachmentsSectionView` so each
-    /// row gets its own ViewModel instance (Constitution §II decoupling).
+    /// row gets its own ViewModel instance.
     var makeAttachmentRowViewModel: ((String, Attachment) -> AttachmentRowViewModel)? = nil
     /// Factory for `PasswordHistoryViewModel`. Only login items use it, and only ones the server
     /// says carry a history; the detail view decides that, not the container.

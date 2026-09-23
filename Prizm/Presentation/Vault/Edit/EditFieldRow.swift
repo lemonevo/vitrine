@@ -63,7 +63,7 @@ struct OptionalEditFieldRow: View {
 /// An editable field that masks its content by default with a reveal toggle.
 ///
 /// Used for the Login password and SSH Key private key fields, consistent with
-/// the app-wide treatment of sensitive values (spec §4.9, Constitution §III).
+/// the app-wide treatment of sensitive values (spec §4.9).
 struct MaskedEditFieldRow: View {
 
     let label: String

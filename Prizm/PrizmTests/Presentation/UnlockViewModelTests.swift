@@ -34,7 +34,7 @@ final class UnlockViewModelTests: XCTestCase {
 
     // MARK: - unlock: password cleared on success
 
-    /// unlock() clears the password field after a successful unlock (Constitution §III).
+    /// unlock() clears the password field after a successful unlock.
     func testUnlock_success_clearsPasswordField() async throws {
         mockAuth.stubbedLoginResult = .success(stubAccount)
         sut.password = "SuperSecret1!"

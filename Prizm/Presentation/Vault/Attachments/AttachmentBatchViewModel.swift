@@ -59,7 +59,7 @@ nonisolated struct AttachmentBatchItem: Identifiable {
 ///
 /// - Security goal: file bytes are held in memory only during each individual upload.
 ///   Each Task reads its file, uploads it, then zeroes the buffer immediately — regardless
-///   of success or failure (Constitution §III). Files already partially uploaded appear as
+///   of success or failure. Files already partially uploaded appear as
 ///   "Upload incomplete" on the next sync.
 @Observable
 @MainActor

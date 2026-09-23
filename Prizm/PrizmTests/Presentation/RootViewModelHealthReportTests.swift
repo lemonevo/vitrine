@@ -105,7 +105,7 @@ final class RootViewModelHealthReportTests: XCTestCase {
     // MARK: - Teardown
 
     /// The report lists decrypted item names. Leaving it behind would keep decrypted content past
-    /// the end of the session (Constitution §III).
+    /// the end of the session.
     func test_lockVault_dropsTheReport() async throws {
         mockAuth.stubbedStoredAccount = stubAccount
         sut.screen = .vault

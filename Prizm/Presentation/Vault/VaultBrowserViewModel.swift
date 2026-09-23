@@ -216,7 +216,7 @@ final class VaultBrowserViewModel: ObservableObject {
     /// believing they have a backup they do not have.
     ///
     /// A closure rather than a call to `NSSavePanel` here, for the reason `AttachmentRowViewModel`
-    /// already uses the same seam: the Presentation layer must not import AppKit (Constitution §II),
+    /// already uses the same seam: the Presentation layer must not import AppKit,
     /// and a view model that pops a modal panel cannot be unit-tested.
     private let fileSaver:  @MainActor (String, Data) throws -> URL?
 

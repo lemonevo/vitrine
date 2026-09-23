@@ -6,7 +6,7 @@ import Foundation
 ///
 /// The cipher key is resolved internally via `VaultKeyService` — it is NEVER a
 /// parameter on `execute(...)`. This keeps key material out of the Presentation layer
-/// and enforces the decryption boundary at the Data layer (Constitution §II/§III).
+/// and enforces the decryption boundary at the Data layer.
 ///
 /// Implemented by `DownloadAttachmentUseCaseImpl` in the Data layer.
 protocol DownloadAttachmentUseCase: AnyObject {

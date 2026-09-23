@@ -11,14 +11,14 @@ import os.log
 /// - Security goal: plaintext file bytes are written to a temp file for Open, and to a
 ///   user-chosen path for Save. The temp file is zeroed and deleted after 30 seconds
 ///   (or on next foreground) by `TempFileManaging`. For Save, the plaintext is written
-///   directly and the in-memory buffer is zeroed immediately after (Constitution §III).
+///   directly and the in-memory buffer is zeroed immediately after.
 ///
 /// - `attachment.isUploadIncomplete` drives the UI: when true, the row shows "Upload
 ///   incomplete" + Retry; otherwise it shows Open / Save / Delete.
 ///
 /// - AppKit dependencies (`NSWorkspace`, `NSSavePanel`, `NSOpenPanel`) are injected as
 ///   closures from the App layer (`AppContainer`) to keep the Presentation layer free of
-///   AppKit imports (Constitution §II).
+///   AppKit imports.
 @Observable
 @MainActor
 final class AttachmentRowViewModel {

@@ -4,7 +4,7 @@ import SwiftUI
 /// ViewModel for the password generator popover.
 /// Owns the config, generated value, and clipboard logic.
 /// Instantiated as `@StateObject` inside `EditFieldRow` so plaintext
-/// is released when the popover closes (design D7, Constitution §III).
+/// is released when the popover closes (design D7).
 @MainActor
 final class PasswordGeneratorViewModel: ObservableObject {
 

@@ -12,8 +12,7 @@ import os.log
 ///
 /// That mode uses `kSecUseDataProtectionKeychain: true` so the access group is inferred
 /// from the `keychain-access-groups` entitlement (`$(AppIdentifierPrefix)com.prizm`),
-/// ensuring the item is not accessible to other apps or processes
-/// (Constitution Security Requirement property 3).
+/// ensuring the item is not accessible to other apps or processes.
 ///
 /// A build without a real signing Team ID cannot carry that entitlement, and macOS then
 /// refuses **every** biometric item write with `errSecMissingEntitlement` (-34018). Such
@@ -22,7 +21,7 @@ import os.log
 /// See `preferred()`.
 ///
 /// `kSecAttrSynchronizable` is never set in either mode — the item is device-only, never
-/// backed up or synced to iCloud (Constitution Security Requirement property 1).
+/// backed up or synced to iCloud.
 ///
 /// Standards: design Decision 2 (`.biometryCurrentSet`), Decision 3 (separate service).
 final class BiometricKeychainServiceImpl: BiometricKeychainService {
@@ -130,7 +129,7 @@ final class BiometricKeychainServiceImpl: BiometricKeychainService {
         case .appEnforced:
             // No access control — that is precisely what needs the entitlement we do not
             // have. Device-only and never synced, so the vault key still cannot leave
-            // this Mac (Constitution Security Requirement property 1).
+            // this Mac.
             query[kSecAttrAccessible] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
         }
         query[kSecValueData] = data

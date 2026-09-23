@@ -5,6 +5,6 @@ import Foundation
 /// the vault (in-memory store is cleared on app quit).
 protocol UnlockUseCase {
     /// - Security goal: `masterPassword` is `Data` so the caller can zero the bytes after
-    ///   the KDF call, reducing heap exposure (Constitution §III).
+    ///   the KDF call, reducing heap exposure.
     func execute(masterPassword: Data) async throws -> Account
 }

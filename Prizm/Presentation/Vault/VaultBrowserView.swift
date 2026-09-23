@@ -15,7 +15,7 @@ struct VaultBrowserView: View {
     let makeEditViewModel: (VaultItem) -> ItemEditViewModel
     let makeCreateViewModel: (ItemType, String?) -> ItemEditViewModel
     /// Factory for creating `AttachmentAddViewModel` — injected from AppContainer to
-    /// keep the Presentation layer decoupled from the Data layer (Constitution §II).
+    /// keep the Presentation layer decoupled from the Data layer.
     var makeAddAttachmentViewModel: ((String) -> AttachmentAddViewModel)? = nil
     /// Factory for creating `AttachmentBatchViewModel` — injected from AppContainer.
     var makeBatchAttachmentViewModel: ((String) -> AttachmentBatchViewModel)? = nil
@@ -32,7 +32,7 @@ struct VaultBrowserView: View {
     var makeVerificationCodesViewModel: (() -> VerificationCodesViewModel)? = nil
 
     /// Derives the one-time code behind the detail header's Copy code action. Injected so the
-    /// Presentation layer never constructs a crypto service (Constitution §II).
+    /// Presentation layer never constructs a crypto service.
     var totpGenerator: (any TOTPGenerator)? = nil
 
     @State private var showPermanentDeleteAlert = false

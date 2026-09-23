@@ -344,7 +344,7 @@ protocol RootViewModelDependencies: AnyObject {
     /// phrase is not still on screen for a vault the user has just closed.
     var accountKeyCache: AccountKeyCache { get }
     /// Derives the one-time code for `Item ▸ Copy Code`. Injected rather than constructed here so
-    /// the crypto stays in the Data layer (Constitution §II) and the generator stays testable.
+    /// the crypto stays in the Data layer and the generator stays testable.
     var totpGenerator: any TOTPGenerator { get }
     func makeLoginViewModel() -> LoginViewModel
     func makeUnlockViewModel(account: Account) -> UnlockViewModel
@@ -437,7 +437,7 @@ final class RootViewModel: ObservableObject, RepromptGating {
     /// and reset to `.loading` — on every update, re-running the analysis in a loop.
     ///
     /// It also holds decrypted item names, so it is dropped on lock and sign-out alongside the
-    /// generator history (Constitution §III).
+    /// generator history.
     @Published private(set) var healthReportVM: HealthReportViewModel?
 
     // MARK: - Re-prompt grants
@@ -446,7 +446,7 @@ final class RootViewModel: ObservableObject, RepromptGating {
     ///
     /// Cleared by `lockVault()` and `signOut()` in the same teardown that clears the vault store
     /// and every key cache. A grant is permission to show material those caches protect, so it must
-    /// not be able to outlive them (design D7, Constitution §III).
+    /// not be able to outlive them (design D7).
     ///
     /// Scoped per item and for the rest of the unlock session, rather than per disclosure or for a
     /// short window: "this item was unlocked at this point in the session" is something the user
@@ -750,8 +750,8 @@ final class RootViewModel: ObservableObject, RepromptGating {
             await container.vaultKeyCache.clear()
             // Both caches, matching `lockVault()`. Clearing only the vault key here left the
             // unwrapped organisation keys in memory for the rest of the process's life, which is
-            // what Constitution §III forbids -- and `AuthRepositoryImpl` holds no cache of its own,
-            // so nothing else was clearing them.
+            // what the plaintext-minimisation rule forbids -- and `AuthRepositoryImpl` holds no
+            // cache of its own, so nothing else was clearing them.
             await container.orgKeyCache.clear()
             await container.accountKeyCache.clear()
             container.generatorHistory.clear()
@@ -792,7 +792,7 @@ final class RootViewModel: ObservableObject, RepromptGating {
             await container.authRepo.lockVault()
             await container.vaultRepo.clearVault()
             // Clear all key caches in the same lock path as the vault store.
-            // Key material must not outlive the vault session (Constitution §III).
+            // Key material must not outlive the vault session.
             await container.vaultKeyCache.clear()
             await container.orgKeyCache.clear()
             await container.accountKeyCache.clear()

@@ -8,7 +8,7 @@ import os.log
 /// **Security.** The output contains every password in the vault in plaintext, plus every TOTP
 /// seed and every previous password. It is produced only after the user has confirmed the consent
 /// sheet, it is written by the App layer with owner-only permissions, and nothing about it is
-/// logged — the log records the item count and nothing else (Constitution §V, §VII).
+/// logged — the log records the item count and nothing else.
 ///
 /// **It never writes.** Writing is the caller's job, so this type has no file-system dependency
 /// and can be tested without touching disk.

@@ -7,7 +7,7 @@ import Foundation
 ///
 /// The returned 64-byte `Data` is `encryptionKey ‖ macKey` — the same layout that
 /// `CryptoKeys` stores as two separate 32-byte fields. Passing raw `Data` rather than
-/// `CryptoKeys` keeps the Domain layer free of Data-layer types (Constitution §II).
+/// `CryptoKeys` keeps the Domain layer free of Data-layer types.
 ///
 /// Implemented by `VaultKeyServiceImpl` in the Data layer. Foundation-only — no crypto
 /// imports belong in the Domain layer.

@@ -245,7 +245,7 @@ actor VaultRepositoryImpl: VaultRepository {
     ///
     /// A malformed or undecryptable entry is **skipped**, not fatal. A history with one damaged
     /// entry is still worth showing, and refusing the whole list would hide data the user owns.
-    /// Each skip is logged with the cipher id — never with the value (Constitution §V).
+    /// Each skip is logged with the cipher id — never with the value.
     func passwordHistory(for id: String) async throws -> [PasswordHistoryEntry] {
         guard let item = items.first(where: { $0.id == id }) else {
             throw VaultError.itemNotFound(id)

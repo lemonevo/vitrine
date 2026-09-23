@@ -6,7 +6,7 @@ import SwiftUI
 /// item list's icon chip, the detail header's icon chip, the breadcrumb.
 ///
 /// **Why this is an extension here and not a property on `ItemType`.** `ItemType` lives in the Domain
-/// layer, which imports Foundation only (Constitution §II) — `Color` is SwiftUI. Extending the type
+/// layer, which imports Foundation only — `Color` is SwiftUI. Extending the type
 /// from Presentation keeps the single definition without moving a presentation concern into Domain,
 /// and without an enum of colour *names* whose only job would be to be translated back into a `Color`.
 /// `ItemType.sfSymbol` stays in Domain for the opposite reason: a symbol name is a `String`.

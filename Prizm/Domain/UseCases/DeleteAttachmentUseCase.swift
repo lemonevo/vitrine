@@ -5,7 +5,7 @@ import Foundation
 /// Deletes a file attachment from the Bitwarden server.
 ///
 /// Delete requires no key material — only the cipher ID and attachment ID are needed.
-/// `VaultKeyService` is intentionally NOT injected here (Constitution §VI — YAGNI).
+/// `VaultKeyService` is intentionally NOT injected here (YAGNI).
 ///
 /// Implemented by `DeleteAttachmentUseCaseImpl` in the Data layer.
 protocol DeleteAttachmentUseCase: AnyObject {

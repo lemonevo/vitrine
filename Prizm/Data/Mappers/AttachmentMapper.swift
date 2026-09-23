@@ -46,7 +46,7 @@ nonisolated final class AttachmentMapper: Sendable {
     func map(_ dto: AttachmentDTO, cipherKey: CryptoKeys) throws -> Attachment {
         // Decrypt the file name (EncString → plaintext).
         // The attachment key (dto.key) is NOT decrypted here — it is preserved verbatim
-        // as encryptedKey and decrypted on demand during download (Constitution §III).
+        // as encryptedKey and decrypted on demand during download.
         let plainFileName: String
         do {
             let enc  = try EncString(string: dto.fileName)

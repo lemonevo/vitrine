@@ -50,8 +50,8 @@ final class RootViewModelSignOutTests: XCTestCase {
     /// Both key caches, not just the vault one.
     ///
     /// `lockVault()` cleared both and `signOut()` cleared one, so the unwrapped organisation keys
-    /// survived a sign-out for the life of the process — the exact thing Constitution §III
-    /// forbids. `AuthRepositoryImpl` holds no cache, so nothing downstream was clearing them.
+    /// survived a sign-out for the life of the process — the exact leak the zeroing rule
+    /// exists to prevent. `AuthRepositoryImpl` holds no cache, so nothing downstream was clearing them.
     func testSignOut_clearsTheOrgKeyCache() async throws {
         let keys = CryptoKeys(encryptionKey: Data(repeating: 0x11, count: 32),
                               macKey: Data(repeating: 0x22, count: 32))

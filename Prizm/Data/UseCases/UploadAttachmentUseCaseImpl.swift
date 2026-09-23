@@ -3,7 +3,7 @@ import Foundation
 /// Concrete implementation of `UploadAttachmentUseCase`.
 ///
 /// Resolves the cipher key internally via `VaultKeyService` so that raw key material
-/// never surfaces to the Presentation layer (Constitution §II/§III). Forwards to
+/// never surfaces to the Presentation layer. Forwards to
 /// `AttachmentRepository.upload` which performs all encryption and network I/O.
 final class UploadAttachmentUseCaseImpl: UploadAttachmentUseCase {
 

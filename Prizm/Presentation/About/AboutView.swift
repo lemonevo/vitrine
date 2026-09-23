@@ -6,7 +6,7 @@ import SwiftUI
 ///
 /// Surfaces app version, tagline, GitHub link, "Built with" summary, and
 /// acknowledgements — letting users verify the full dependency chain without
-/// digging into source code. Required by CONSTITUTION §VII (Radical Transparency).
+/// digging into source code.
 struct AboutView: View {
 
     // Initialized lazily from Bundle.main — safe here because View.body is @MainActor.

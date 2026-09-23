@@ -20,7 +20,7 @@ import os.log
 /// Reference: RFC 4226 §5.3, RFC 6238 §4.1.
 ///
 /// **Deviations from the reference:** none. The HMAC is computed with CryptoKit
-/// (`HMAC<Insecure.SHA1>` / `HMAC<SHA256>` / `HMAC<SHA512>`); the project's constitution forbids
+/// (`HMAC<Insecure.SHA1>` / `HMAC<SHA256>` / `HMAC<SHA512>`); the project forbids
 /// hand-rolled cryptography. SHA-1 is the RFC 6238 default and remains the only algorithm most
 /// authenticator back-ends accept, so it is supported despite being weak for collision resistance —
 /// HMAC-SHA1's security as a MAC is not affected by collision attacks (RFC 6151 §2).

@@ -68,7 +68,7 @@ final class AuthRepositoryImpl: AuthRepository {
         let passwordHash:  String
         let kdfParams:     KdfParams
         // `var` so cancelTwoFactor() can zero the key buffers before releasing the struct
-        // (Constitution §III). Swift ARC does not guarantee immediate deallocation on nil.
+        // Swift ARC does not guarantee immediate deallocation on nil.
         var stretchedKeys: CryptoKeys
         let deviceId:      String
         /// The method the server offered and Prizm chose. Held here rather than passed back into
@@ -102,9 +102,9 @@ final class AuthRepositoryImpl: AuthRepository {
     func validateServerURL(_ urlString: String) throws {
         // Strip trailing slash for normalisation.
         let trimmed = urlString.hasSuffix("/") ? String(urlString.dropLast()) : urlString
-        // Only HTTPS is permitted — Constitution §III requires all vault communication
-        // to use TLS. Allowing http:// would expose the master password hash and tokens
-        // to network interception even on "trusted" local networks.
+        // Only HTTPS is permitted — all vault communication must use TLS. Allowing http://
+        // would expose the master password hash and tokens to network interception even on
+        // "trusted" local networks.
         guard let url = URL(string: trimmed),
               url.scheme == "https",
               url.host != nil else {
@@ -134,7 +134,7 @@ final class AuthRepositoryImpl: AuthRepository {
         }
 
         // Step 2: Derive master key locally — never sent to server.
-        // `masterPassword` is `Data` so the caller can zero it after the KDF call (Constitution §III) —
+        // `masterPassword` is `Data` so the caller can zero it after the KDF call —
         // the *caller*, because `Data` is copy-on-write: zeroizing this parameter inside the callee
         // would only ever zero a private copy and leave the caller's bytes intact.
         logger.info("Step 2: deriving master key (KDF)")
@@ -297,7 +297,7 @@ final class AuthRepositoryImpl: AuthRepository {
         // Explicitly zero the stretched key buffers before releasing the struct.
         // Setting pendingTwoFactor = nil alone does not guarantee immediate deallocation —
         // ARC may defer it. Zeroing the Data buffers in-place reduces the window during
-        // which derived key material lives in the heap (Constitution §III).
+        // which derived key material lives in the heap.
         // Note: passwordHash (String) cannot be zeroed — String storage is immutable.
         // `pendingTwoFactor!` is used for the mutations rather than the local `pending`
         // copy produced by `if let` — zeroing `pending` would only zero the copy's CoW
@@ -494,7 +494,7 @@ final class AuthRepositoryImpl: AuthRepository {
     /// Zeroes the key material a verification derived, at every exit from that call.
     ///
     /// The buffers are intermediates that exist only to answer one question; nothing else in the
-    /// process holds a reference to them, so this is the whole job (Constitution §III).
+    /// process holds a reference to them, so this is the whole job.
     private func discardDerivedKeys(_ masterKey: inout Data, _ stretched: inout CryptoKeys) {
         masterKey.zeroize()
         stretched.encryptionKey.zeroize()
@@ -587,7 +587,7 @@ final class AuthRepositoryImpl: AuthRepository {
         await lockVault()
 
         // Clear the bearer token from the API client's memory so it cannot be read
-        // from a heap dump after sign-out (Constitution §III).
+        // from a heap dump after sign-out.
         await apiClient.clearAccessToken()
 
         serverEnvironment = nil

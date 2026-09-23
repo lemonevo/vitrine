@@ -95,7 +95,7 @@ final class LoginViewModel: ObservableObject {
 
         // Convert the password String to Data at this boundary — the only place the
         // String-to-bytes conversion happens. `Data` can be zeroed after the KDF call;
-        // `String` cannot (Constitution §III).
+        // `String` cannot.
         guard var passwordData = password.data(using: .utf8), !passwordData.isEmpty else {
             errorMessage = L("Invalid password encoding.")
             flowState    = .login

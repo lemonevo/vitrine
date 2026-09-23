@@ -18,8 +18,7 @@ struct AboutViewModel {
     /// Third-party libraries and protocols that Prizm relies on.
     ///
     /// These appear in the About window's Acknowledgements section so users
-    /// can audit the full dependency chain — required by CONSTITUTION §VII
-    /// (Radical Transparency).
+    /// can audit the full dependency chain.
     let acknowledgements: [String]
 
     // MARK: - Factory

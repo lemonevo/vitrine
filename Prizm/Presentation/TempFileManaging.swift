@@ -7,7 +7,7 @@ import Foundation
 /// Placed in the Presentation layer (not Domain) because it is an infrastructure concern
 /// driven by UI lifecycle events — not a business rule. `AttachmentRowViewModel` depends
 /// on `any TempFileManaging` so it never imports the App-layer concrete type directly,
-/// keeping the Presentation layer clean (Constitution §II).
+/// keeping the Presentation layer clean.
 ///
 /// The concrete implementation `AttachmentTempFileManager` lives in the App layer,
 /// which may import AppKit to register for `NSApplication.didBecomeActiveNotification`.

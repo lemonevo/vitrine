@@ -30,7 +30,7 @@ import os.log
 ///     `CryptoKeys` at the Data layer boundary (encryptionKey = first 32 bytes,
 ///     macKey = last 32 bytes) before being passed to `PrizmCryptoService` methods.
 ///   - All key material is zeroed as soon as it is no longer needed.
-///   - No key material appears in log output (Constitution §V).
+///   - No key material appears in log output.
 ///
 /// - Deviations: none. The upload flow matches the Bitwarden reference client.
 ///
@@ -74,7 +74,7 @@ final class AttachmentRepositoryImpl: AttachmentRepository {
 
         let keys = try splitKey(cipherKey)
 
-        // Step 1: Generate per-attachment key (64 random bytes, Constitution §III).
+        // Step 1: Generate per-attachment key (64 random bytes).
         var attachmentKey = try crypto.generateAttachmentKey()
         defer { attachmentKey.zeroize() }
 

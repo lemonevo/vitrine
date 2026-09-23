@@ -153,7 +153,7 @@ final class DeleteAttachmentUseCaseTests: XCTestCase {
     override func setUp() async throws {
         mockRepo = MockAttachmentRepository()
         sut      = DeleteAttachmentUseCaseImpl(repository: mockRepo)
-        // Note: no VaultKeyService — delete requires no key material (Constitution §VI)
+        // Note: no VaultKeyService — delete requires no key material
     }
 
     func test_execute_callsRepositoryDelete() async throws {

@@ -25,7 +25,7 @@ protocol PrizmAPIClientProtocol: Actor {
     /// Clears the in-memory access token.
     ///
     /// - Security goal: removes the bearer token from memory on sign-out so it cannot
-    ///   be read from a heap dump after the session ends (Constitution §III).
+    ///   be read from a heap dump after the session ends.
     func clearAccessToken()
 
     /// POST `/identity/accounts/prelogin` — returns KDF parameters for the given email.

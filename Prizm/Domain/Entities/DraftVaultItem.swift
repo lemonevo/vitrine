@@ -266,7 +266,7 @@ nonisolated enum DraftItemContent: Equatable {
 /// 1. Created via `DraftVaultItem.init(_ item: VaultItem)` when the edit sheet opens.
 /// 2. Mutated as the user edits fields in the `ItemEditViewModel`.
 /// 3. Passed to `EditVaultItemUseCase.execute(draft:)` on save.
-/// 4. Cleared from memory when the sheet is dismissed (Constitution §III plaintext minimisation).
+/// 4. Cleared from memory when the sheet is dismissed.
 nonisolated struct DraftVaultItem: Equatable {
     /// Immutable — item identity cannot change during an edit.
     let id: String
@@ -306,7 +306,7 @@ nonisolated struct DraftVaultItem: Equatable {
     ///
     /// `nil` for a new item, and for every non-login type. This is a second copy of a secret that is
     /// already in `content.password`, and it is held only while the sheet is open — the draft is
-    /// cleared when the sheet closes (Constitution §III plaintext minimisation). The alternative,
+    /// cleared when the sheet closes. The alternative,
     /// comparing the newly encrypted password against the stored EncString, cannot work: encryption
     /// draws a fresh IV each time, so the same plaintext produces different ciphertext.
     let replacedPassword: String?

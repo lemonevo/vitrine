@@ -29,7 +29,7 @@ struct AttachmentsSectionView: View {
     var isPicking: Bool = false
 
     /// Factory for `AttachmentRowViewModel` — injected from AppContainer so the
-    /// section view never imports Data layer types directly (Constitution §II).
+    /// section view never imports Data layer types directly.
     /// When nil (e.g. in task-5 callers before ViewModels are wired), row actions no-op.
     var makeRowViewModel: ((Attachment) -> AttachmentRowViewModel)? = nil
 

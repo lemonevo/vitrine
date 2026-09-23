@@ -82,7 +82,7 @@ struct SSHAgentAuthorizationSheet: View {
 
     private func submit() {
         // `Data` so the bytes can be zeroed rather than left in a String literal the ARC release
-        // schedule decides (Constitution §III).
+        // schedule decides.
         var buffer = Data(password.utf8)
         authorizer.submit(buffer)
         buffer.zeroize()

@@ -13,8 +13,8 @@ import SwiftUI
 /// 2. The view binds to `draft` — changes are reflected immediately in the form.
 /// 3. `save()` is called when the user presses Save / ⌘S.
 /// 4. On success: `isDismissed` is set to `true`; the caller dismisses the sheet.
-/// 5. On dismiss (save or discard): the caller should call `clearDraft()` to satisfy
-///    Constitution §III (plaintext minimisation for in-memory secret data).
+/// 5. On dismiss (save or discard): the caller should call `clearDraft()` so plaintext does not
+///    outlive the sheet.
 /// 6. On vault lock: `isDismissed` is set immediately without confirmation.
 @MainActor
 final class ItemEditViewModel: ObservableObject {
@@ -116,7 +116,7 @@ final class ItemEditViewModel: ObservableObject {
     // MARK: - Private state
 
     /// Snapshot of the item as it was when the sheet opened — used for `hasChanges`.
-    /// `var` so `clearDraft()` can overwrite it with a blank sentinel (Constitution §III).
+    /// `var` so `clearDraft()` can overwrite it with a blank sentinel.
     private var original: DraftVaultItem
 
     private let editUseCase: (any EditVaultItemUseCase)?
@@ -221,7 +221,7 @@ final class ItemEditViewModel: ObservableObject {
         isDismissed = true
     }
 
-    // MARK: - Memory cleanup (Constitution §III)
+    // MARK: - Memory cleanup
 
     /// Clears the draft's plaintext field values from memory.
     ///
@@ -231,7 +231,7 @@ final class ItemEditViewModel: ObservableObject {
     /// reference held by this ViewModel.
     func clearDraft() {
         // Replace both draft and original with a blank sentinel to release all
-        // string values (passwords, keys, notes) from the heap (Constitution §III).
+        // string values (passwords, keys, notes) from the heap.
         // `original` must also be cleared — it holds a full snapshot of the item
         // as it was when the sheet opened, including any sensitive plaintext fields.
         let blank = DraftVaultItem(VaultItem(

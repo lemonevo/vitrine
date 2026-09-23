@@ -4,7 +4,7 @@ import SwiftUI
 
 /// The mandatory consent shown before any vault export (design D2).
 ///
-/// Constitution, Bitwarden normative standards: *"Export consent: User consent is mandatory before
+/// Bitwarden's normative standards: *"Export consent: User consent is mandatory before
 /// any vault export operation."* The sheet therefore states the one fact that matters — the file is
 /// plaintext — before the user is even asked where to put it, so that choosing a location cannot be
 /// mistaken for the decision to export.

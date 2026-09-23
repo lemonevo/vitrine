@@ -34,7 +34,7 @@ final class LoginViewModelTests: XCTestCase {
 
     // MARK: - signIn: password cleared on success
 
-    /// signIn() clears the password field after a successful login (Constitution §III).
+    /// signIn() clears the password field after a successful login.
     func testSignIn_success_clearsPasswordField() async throws {
         mockUseCase.stubbedResult = .signedIn(account: makeAccount(), sync: nil)
         sut.serverURL = "https://vault.example.com"
@@ -55,7 +55,7 @@ final class LoginViewModelTests: XCTestCase {
         XCTAssertEqual(sut.password, "", "Password field must be cleared after successful login")
     }
 
-    /// signIn() clears the password field when the server returns .requiresTwoFactor (Constitution §III).
+    /// signIn() clears the password field when the server returns .requiresTwoFactor.
     func testSignIn_requiresTwoFactor_clearsPasswordField() async throws {
         mockUseCase.stubbedResult = .requiresTwoFactor(.challenge(.authenticatorApp))
         sut.serverURL = "https://vault.example.com"

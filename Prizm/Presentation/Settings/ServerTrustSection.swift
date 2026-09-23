@@ -14,7 +14,7 @@ struct ServerTrustSection: View {
     let store:     any ServerTrustStore
     let host:      String?
     /// Opens the file picker and returns the chosen URL. Injected from the App layer so this file
-    /// stays free of AppKit (Constitution §II) and so a test can supply a URL without a panel.
+    /// stays free of AppKit and so a test can supply a URL without a panel.
     let pickCertificateFile: @MainActor () -> URL?
     /// Reads certificates out of the picked file. Injected for the same reason.
     let loadCertificates: (URL) throws -> [Data]
