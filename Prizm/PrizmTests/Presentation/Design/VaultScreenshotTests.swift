@@ -144,6 +144,9 @@ final class VaultScreenshotTests: XCTestCase {
         case .some(.organization(let id)): return live.filter { $0.organizationId == id }
         case .some(.collection(let id)):   return live.filter { $0.collectionIds.contains(id) }
         case .some(.verificationCodes): return []
+        // Scoped the way the real index scopes it, so a shot of this destination shows the same items
+        // the app would list.
+        case .some(.passkeys):          return live.filter(\.hasPasskey)
         case .some(.newFolder), .some(.newCollection): return live
         }
     }
@@ -216,6 +219,62 @@ final class VaultScreenshotTests: XCTestCase {
         try snapshot("vault-trash", size: CGSize(width: 1180, height: 420)) {
             vaultWindow(selection: .trash, item: DesignFixtures.items.first { $0.id == "i-old-twitter" })
         }
+    }
+
+    /// The passkeys destination, with two items whose credentials read successfully and one whose read
+    /// failed — the three states a row can be in, in one shot.
+    ///
+    /// The loader is canned rather than wired to a key: what this picture is for is the row's layout
+    /// (name, username, how many it carries, who they are registered with, and the footnote), and the
+    /// decryption itself is pinned by `VaultRepositoryPasskeysTests` against the real implementation.
+    func testPasskeysPane() throws {
+        try snapshot("passkeys", size: CGSize(width: 320, height: 380)) {
+            PasskeysPane(
+                items: [
+                    passkeyItem(id: "p-github", name: "GitHub", username: "octocat", count: 2),
+                    passkeyItem(id: "p-acme", name: "Acme VPN", username: nil, count: 1),
+                    passkeyItem(id: "p-broken", name: "Unreadable", username: "someone", count: 1),
+                ],
+                onSelect: { _ in },
+                makeViewModel: { id in
+                    PasskeysViewModel(itemId: id,
+                                      useCase: StubPasskeyLoader(credentials: self.stubCredentials(for: id),
+                                                                 failing: id == "p-broken"))
+                }
+            )
+        }
+    }
+
+    /// Two credentials on one row, so the shot shows the multi-line layout and the count agreeing with
+    /// the names beneath it.
+    private func stubCredentials(for itemId: String) -> [PasskeyCredential] {
+        switch itemId {
+        case "p-github":
+            return [
+                PasskeyCredential(rpId: "github.com", rpName: "GitHub", userName: "octocat",
+                                  userDisplayName: nil,
+                                  creationDate: Date(timeIntervalSince1970: 1_767_225_600)),
+                PasskeyCredential(rpId: "desktop.github.com", rpName: nil, userName: nil,
+                                  userDisplayName: nil, creationDate: nil),
+            ]
+        case "p-acme":
+            return [PasskeyCredential(rpId: "vpn.acme.example", rpName: "Acme", userName: "octocat",
+                                      userDisplayName: nil, creationDate: nil)]
+        default:
+            return []
+        }
+    }
+
+    private func passkeyItem(id: String, name: String, username: String?, count: Int) -> VaultItem {
+        VaultItem(
+            id: id, name: name, isFavorite: false, isDeleted: false,
+            creationDate: .now, revisionDate: .now,
+            content: .login(LoginContent(username: username, password: nil, uris: [],
+                                         totp: nil, notes: nil, customFields: [])),
+            preserved: PreservedCipherFields(
+                fido2Credentials: (0..<count).map { .object(["rpId": .string("opaque-\($0)")]) }
+            )
+        )
     }
 
     /// The verification-codes sheet, with the countdown as the detail pane draws it.
@@ -328,5 +387,18 @@ final class VaultScreenshotTests: XCTestCase {
                 collections: DesignFixtures.collections
             )
         }
+    }
+}
+
+// MARK: - Passkeys destination fixtures
+
+/// Answers with fixed credentials, or throws for the item it was told is unreadable.
+private struct StubPasskeyLoader: GetPasskeysUseCase {
+    let credentials: [PasskeyCredential]
+    let failing: Bool
+
+    func execute(itemId: String) async throws -> [PasskeyCredential] {
+        if failing { throw VaultError.decryptionFailed("stubbed for the screenshot") }
+        return credentials
     }
 }

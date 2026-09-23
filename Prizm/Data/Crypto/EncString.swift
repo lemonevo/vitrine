@@ -35,6 +35,30 @@ nonisolated enum EncStringError: Error, Equatable {
     case encryptionFailed
 }
 
+// Worded because an `EncStringError` is what a vault value fails with, and the screens that report a
+// failed save or upload interpolate `error.localizedDescription` into their own sentence. Without a
+// description the user is shown the type name and a case index.
+//
+// "An encrypted value" rather than naming the field: this type does not know whether it is a cipher
+// name, a password or an attachment blob, and a message that guessed wrong would send the user to
+// look at the wrong thing.
+nonisolated extension EncStringError: LocalizedError {
+    var errorDescription: String? {
+        switch self {
+        case .malformedEncString:
+            return L("An encrypted value is not in the expected format.")
+        case .unsupportedEncType:
+            return L("An encrypted value uses an encryption type this version cannot read.")
+        case .macMismatch:
+            return L("An encrypted value failed its integrity check.")
+        case .decryptionFailed:
+            return L("An encrypted value could not be decrypted.")
+        case .encryptionFailed:
+            return L("A value could not be encrypted.")
+        }
+    }
+}
+
 // MARK: - EncString
 
 /// A parsed Bitwarden EncString that can be decrypted into plaintext.

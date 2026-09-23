@@ -314,6 +314,25 @@ nonisolated enum IdentityTokenError: Error, Equatable {
     case invalidCredentials
 }
 
+// Worded so that a path which surfaces this type instead of mapping it shows a sentence. The
+// repository does catch all three cases today; that is exactly the kind of guarantee a later
+// `try?` quietly removes, and the fallback for an unworded `Error` is a type name and a case index.
+//
+// `twoFactorRequired` does not name the providers it carries: the two-factor screen lists them, and
+// a message that also tried to render that list would be a second, worse copy of it.
+nonisolated extension IdentityTokenError: LocalizedError {
+    var errorDescription: String? {
+        switch self {
+        case .twoFactorRequired:
+            return L("This account requires two-factor verification to sign in.")
+        case .twoFactorCodeInvalid:
+            return L("The two-factor code was not accepted.")
+        case .invalidCredentials:
+            return L("The email or master password was not accepted.")
+        }
+    }
+}
+
 // MARK: - Errors
 
 /// Errors thrown by `PrizmAPIClientImpl` at the transport layer.

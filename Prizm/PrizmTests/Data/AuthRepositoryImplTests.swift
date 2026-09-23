@@ -310,6 +310,36 @@ final class AuthRepositoryImplTests: XCTestCase {
         }
     }
 
+    /// A wrong master password is answered with the invalid-credentials sentence, not with a crypto
+    /// enum index.
+    ///
+    /// **What this used to show.** The MAC mismatch that *is* the local proof of a wrong password was
+    /// passed through untouched, so the unlock banner read
+    /// 「未能完成操作。（Prizm.PrizmCryptoServiceError错误1。）」 — while the two failures earlier in the
+    /// same function (missing KDF params, undecodable KDF params) were already mapped to a sentence
+    /// naming the password. One cause, one screen, two different qualities of answer.
+    func testUnlockWithPassword_storedKeyWillNotDecrypt_throwsInvalidCredentials() async throws {
+        let userId = "user-001"
+        let env    = ServerEnvironment(base: URL(string: "https://vault.example.com")!, overrides: nil)
+        let kdf    = KdfParams(type: .pbkdf2, iterations: 600_000, memory: nil, parallelism: nil)
+
+        mockKeychain.seed(key: "bw.macos:activeUserId",                value: userId)
+        mockKeychain.seed(key: "bw.macos:\(userId):email",             value: "alice@example.com")
+        mockKeychain.seed(key: "bw.macos:\(userId):encUserKey",        value: "2.encKey==")
+        mockKeychain.seed(key: "bw.macos:\(userId):kdfParams",
+                          value: String(data: try JSONEncoder().encode(kdf), encoding: .utf8)!)
+        mockKeychain.seed(key: "bw.macos:\(userId):serverEnvironment",
+                          value: String(data: try JSONEncoder().encode(env), encoding: .utf8)!)
+        mockCrypto.decryptSymmetricKeyError = PrizmCryptoServiceError.invalidEncUserKey
+
+        await XCTAssertThrowsErrorAsync(
+            try await sut.unlockWithPassword(Data("not-the-password".utf8))
+        ) { error in
+            XCTAssertEqual(error as? AuthError, .invalidCredentials,
+                           "the crypto layer's error reached the user verbatim again")
+        }
+    }
+
     // MARK: - T038: signOut (comprehensive)
 
     /// signOut clears all per-user Keychain keys and the global activeUserId.

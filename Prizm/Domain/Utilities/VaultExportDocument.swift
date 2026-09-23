@@ -444,24 +444,12 @@ nonisolated extension VaultExportDocument {
     /// Formats a date the way the reference does: `JSON.stringify` of a JS `Date` is
     /// `Date.prototype.toISOString()`, which is always UTC with millisecond precision.
     static func formatISO8601(_ date: Date) -> String {
-        iso8601WithFraction.string(from: date)
+        ISO8601WireDate.format(date)
     }
 
     /// Parses either form. `ISO8601DateFormatter` with `.withFractionalSeconds` rejects a string
     /// without them, and Vaultwarden writes both, so both are tried.
     static func parseISO8601(_ raw: String) -> Date? {
-        iso8601WithFraction.date(from: raw) ?? iso8601Plain.date(from: raw)
+        ISO8601WireDate.parse(raw)
     }
-
-    private nonisolated(unsafe) static let iso8601WithFraction: ISO8601DateFormatter = {
-        let f = ISO8601DateFormatter()
-        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return f
-    }()
-
-    private nonisolated(unsafe) static let iso8601Plain: ISO8601DateFormatter = {
-        let f = ISO8601DateFormatter()
-        f.formatOptions = [.withInternetDateTime]
-        return f
-    }()
 }

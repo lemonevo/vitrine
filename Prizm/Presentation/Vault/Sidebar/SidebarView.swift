@@ -66,9 +66,13 @@ struct SidebarView: View {
     @State private var expandedFolderIds: Set<String> = []
     @State private var expandedOrgIds: Set<String> = []
 
-    private var folderTree: [FolderTreeNode] {
-        FolderTreeNode.buildTree(from: folders)
-    }
+    /// Built when `folders` changes, not when this view's body runs.
+    ///
+    /// As a computed property it was rebuilt on every render of the sidebar, and the sidebar re-renders
+    /// on each keystroke of a search. `buildTree` is not free: it compares folder names with
+    /// locale-aware collation and inserts each node by rewriting a nested array, which copies the
+    /// enclosing level each time.
+    @State private var folderTree: [FolderTreeNode] = []
 
     var body: some View {
         List(selection: $selection) {
@@ -86,6 +90,9 @@ struct SidebarView: View {
             }
         }
         .navigationTitle(L("Vitrine"))
+        .onChange(of: folders, initial: true) { _, newFolders in
+            folderTree = FolderTreeNode.buildTree(from: newFolders)
+        }
         .alert("Delete Collection", isPresented: $showDeleteCollectionAlert,
                presenting: collectionToDelete) { col in
             Button("Delete", role: .destructive) {
@@ -183,6 +190,15 @@ struct SidebarView: View {
             // and in the change's design doc: a selected destination keeps the seconds factors on
             // screen until the user leaves it.
             SidebarRowView(title: SidebarSelection.verificationCodes.displayName, systemImage: "lock.shield", selection: .verificationCodes, count: itemCounts[.verificationCodes] ?? 0, isSelected: selection == .verificationCodes, tint: Foreground.muted, identifier: AccessibilityID.Sidebar.verificationCodes)
+
+            // The same kind of row: an aggregation of items by a field they carry rather than by their
+            // type. It shows a count where the codes row shows none, because "how many of my items have
+            // a passkey" is the question this one exists to answer, and answering it leaks nothing —
+            // the number is derived from credentials the server already told this client about.
+            //
+            // `key.horizontal.fill` is the literal passkey glyph and was tried first: at 12.5pt it is
+            // 19pt wide against `Spacing.sidebarIconWidth`'s 18pt column, so it ran into the label.
+            SidebarRowView(title: SidebarSelection.passkeys.displayName, systemImage: "touchid", selection: .passkeys, count: itemCounts[.passkeys] ?? 0, isSelected: selection == .passkeys, tint: Foreground.muted, identifier: AccessibilityID.Sidebar.passkeys)
         case .folders:
             if isCreatingFolder {
                 TextField("Name or Parent/Name", text: $newFolderName, onCommit: {
@@ -449,9 +465,9 @@ private struct OrgDisclosureRow: View {
     var onRenameCollection: (String, String) -> Void   // (collectionId, newName)
     var onDeleteCollection: (OrgCollection) -> Void
 
-    private var collectionTree: [CollectionTreeNode] {
-        CollectionTreeNode.buildTree(from: collections)
-    }
+    /// The collection tree, rebuilt when this organisation's collections change rather than every
+    /// time the sidebar redraws — see `SidebarView.folderTree` for why the difference is measurable.
+    @State private var collectionTree: [CollectionTreeNode] = []
 
     var body: some View {
         DisclosureGroup(isExpanded: $isExpanded) {
@@ -494,6 +510,9 @@ private struct OrgDisclosureRow: View {
             orgHeader
         }
         .tag(SidebarSelection.organization(org.id))
+        .onChange(of: collections, initial: true) { _, newCollections in
+            collectionTree = CollectionTreeNode.buildTree(from: newCollections)
+        }
     }
 
     @ViewBuilder

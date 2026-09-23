@@ -41,7 +41,7 @@ final class VaultBrowserViewModel: ObservableObject {
     }
 
     @Published var searchQuery:   String = "" {
-        didSet { Task { @MainActor in refreshItems() } }
+        didSet { refreshItems() }
     }
 
     /// When true, search queries are scoped to `.allItems` regardless of sidebar selection.
@@ -608,24 +608,41 @@ final class VaultBrowserViewModel: ObservableObject {
 
     // MARK: - Refresh
 
+    /// Bumped by every pass that starts, so a pass can tell whether it is still the current one.
+    ///
+    /// Each keystroke in the search field starts a pass, and the passes finish in whatever order the
+    /// vault actor reaches them. Comparing the pass's own number against this one before writing is
+    /// what stops an older query's result landing on top of a newer one — and it skips the sort,
+    /// which is the part that costs: `ItemSortOrder.sort` is O(n log n) locale-aware comparisons and
+    /// runs here, on the main actor, not on the repository.
+    private var itemsPassID = 0
+
     /// Refreshes `displayedItems` from the vault store based on current selection + search query.
     /// Executes the vault read on the actor executor via a fire-and-forget `Task`.
     func refreshItems() {
         guard !sessionStateCleared else { return }
+        itemsPassID += 1
+        let passID = itemsPassID
+        // Read here rather than after the `await`. A pass that paired the selection of one moment
+        // with the query text of another is the same race, one variable further down.
+        let query = searchQuery
+        let scope: SidebarSelection
+        if isGlobalSearch {
+            if case .folder = sidebarSelection { scope = sidebarSelection }
+            else { scope = .allItems }
+        } else {
+            scope = sidebarSelection
+        }
         Task { [weak self] in
             guard let self, !sessionStateCleared else { return }
             do {
-                let scope: SidebarSelection
-                if isGlobalSearch {
-                    if case .folder = sidebarSelection { scope = sidebarSelection }
-                    else { scope = .allItems }
-                } else {
-                    scope = sidebarSelection
-                }
-                displayedItems = sortOrder.sort(try await search.execute(query: searchQuery, in: scope))
+                let found = try await self.search.execute(query: query, in: scope)
+                guard passID == self.itemsPassID else { return }
+                self.displayedItems = self.sortOrder.sort(found)
             } catch {
-                logger.error("Failed to load vault items: \(error.localizedDescription, privacy: .public)")
-                displayedItems = []
+                guard passID == self.itemsPassID else { return }
+                self.logger.error("Failed to load vault items: \(error.localizedDescription, privacy: .public)")
+                self.displayedItems = []
             }
         }
     }

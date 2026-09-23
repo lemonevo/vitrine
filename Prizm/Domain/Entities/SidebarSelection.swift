@@ -59,6 +59,16 @@ nonisolated enum SidebarSelection {
     /// the user's to carry: while this destination is selected, the vault's second factors are on
     /// screen. Leaving the destination, or locking, takes them off it.
     case verificationCodes
+    /// Every login in the vault that carries at least one passkey, listed together.
+    ///
+    /// A destination in the same shape as `.verificationCodes`, and it differs from it in one way that
+    /// matters to the implementation: an item's credential list arrives from the server still
+    /// encrypted but *present*, so which items to list needs no decryption at all. That makes this an
+    /// ordinary indexed selection — the item list, the count, the search and the sort all work on it
+    /// like any other category — and leaves the pane one job: decrypting the relying-party ids of the
+    /// rows actually on screen. `passkey-viewer`'s "decrypted on demand and never cached" therefore
+    /// holds per row rather than per screen.
+    case passkeys
     /// Transient state while the user is typing a new folder name inline.
     case newFolder
     /// All items across all collections in the given organization.
@@ -78,6 +88,7 @@ extension SidebarSelection {
         case .folder:                        return L("Folder")
         case .trash:                         return L("Trash")
         case .verificationCodes:             return L("Verification Codes")
+        case .passkeys:                      return L("Passkeys")
         case .newFolder:                     return L("New Folder")
         case .organization:                  return L("Organization")
         case .collection:                    return L("Collection")
@@ -95,6 +106,9 @@ nonisolated extension SidebarSelection: Hashable {
         case (.folder(let a), .folder(let b)):                           return a == b
         case (.trash, .trash):                                           return true
         case (.verificationCodes, .verificationCodes):                    return true
+        // Without this arm the `default` below answers `false`, and a selection equal to itself would
+        // leave the sidebar row unselectable and the pane's list permanently empty.
+        case (.passkeys, .passkeys):                                      return true
         case (.newFolder, .newFolder):                                   return true
         case (.organization(let a), .organization(let b)):               return a == b
         case (.collection(let a), .collection(let b)):                   return a == b
@@ -111,6 +125,7 @@ nonisolated extension SidebarSelection: Hashable {
         case .folder(let id):                    hasher.combine(3); hasher.combine(id)
         case .trash:                             hasher.combine(4)
         case .verificationCodes:                 hasher.combine(9)
+        case .passkeys:                          hasher.combine(10)
         case .newFolder:                         hasher.combine(5)
         case .organization(let id):              hasher.combine(6); hasher.combine(id)
         case .collection(let id):                hasher.combine(7); hasher.combine(id)

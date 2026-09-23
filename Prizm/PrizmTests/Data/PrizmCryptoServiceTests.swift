@@ -126,4 +126,30 @@ final class PrizmCryptoServiceTests: XCTestCase {
         let isLockedAfter = await sut.isUnlocked
         XCTAssertFalse(isLockedAfter)
     }
+
+    // MARK: - Error wording
+
+    /// Every case has to answer `localizedDescription` with a sentence.
+    ///
+    /// **Why the assertion is phrased as a negation.** An `Error` with no `LocalizedError`
+    /// conformance gets the system's own rendering —
+    /// 「未能完成操作。（Prizm.PrizmCryptoServiceError错误1。）」 — which is what a user of the unlock
+    /// screen saw in place of "your master password is wrong". The type name survives translation,
+    /// so checking for its absence is language-independent; checking the sentence's content would
+    /// pin this run to one locale.
+    func testCryptoServiceErrors_localizeToASentenceNotAnEnumIndex() {
+        let all: [PrizmCryptoServiceError] = [
+            .kdfFailed, .invalidEncUserKey, .invalidSymmetricKeyLength, .vaultLocked,
+        ]
+
+        for error in all {
+            let text = error.localizedDescription
+
+            XCTAssertFalse(text.isEmpty, "\(error) has no wording at all")
+            XCTAssertFalse(text.contains("PrizmCryptoServiceError"),
+                           "\(error) fell back to the system's rendering of the type and case number")
+            XCTAssertFalse(text.contains("未能完成操作"),
+                           "\(error) reached the user as the generic Cocoa failure string")
+        }
+    }
 }

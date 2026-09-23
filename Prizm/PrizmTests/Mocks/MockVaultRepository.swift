@@ -85,6 +85,11 @@ final class MockVaultRepository: VaultRepository {
             // one-time-code key. Empty rather than filtered, so nothing downstream mistakes it for a
             // list of items that happens to be missing.
             return []
+        case .passkeys:
+            // A real item list, unlike `.verificationCodes`: whether an item carries a passkey is
+            // knowable from the still-encrypted credential list it already holds. Mirrors
+            // `VaultRepositoryImpl`'s index.
+            return populatedItems.filter { !$0.isDeleted && $0.hasPasskey }
         case .newFolder:
             return []
         case .organization(let orgId):
@@ -113,6 +118,7 @@ final class MockVaultRepository: VaultRepository {
         counts[.allItems]  = populatedItems.filter { !$0.isDeleted }.count
         counts[.favorites] = populatedItems.filter { $0.isFavorite && !$0.isDeleted }.count
         counts[.trash]     = populatedItems.filter(\.isDeleted).count
+        counts[.passkeys]  = populatedItems.filter { !$0.isDeleted && $0.hasPasskey }.count
         return counts
     }
 

@@ -45,7 +45,13 @@ final class KeychainPinUnlockService: PinUnlockService {
 
     func isSet(userId: String) -> Bool {
         do {
-            return try keychain.read(key: Self.wrappedKey(userId)) != nil
+            // `read` throws when the key is absent, so returning here *is* the answer. This used to
+            // read `try keychain.read(...) != nil`, which compares a non-optional `Data` against nil
+            // and is therefore always true — the compiler said so. The behaviour was right by
+            // accident (the `catch` below is what actually detects absence), and a check that can
+            // never fail is the kind of line that gets "fixed" into one that can.
+            _ = try keychain.read(key: Self.wrappedKey(userId))
+            return true
         } catch {
             // `false`, and said out loud rather than guessed at. The PIN stops being offered until the
             // Keychain reads again; the alternative is an error on the unlock screen that blocks master

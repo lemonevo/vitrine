@@ -110,34 +110,3 @@ struct GlyphControlStyle: ButtonStyle {
             .contentShape(Rectangle())
     }
 }
-
-// MARK: - GlyphControl
-
-/// The hover target for an affordance that is *not* a button.
-///
-/// A detail row copies on tap along with the rest of the row, so its copy glyph cannot be a `Button`
-/// without taking the gesture away from the row it sits in. This is the same 26pt square with the same
-/// hover response, drawn rather than wired.
-struct GlyphControl: View {
-
-    let systemImage: String
-    /// The favourite star is the one glyph that carries a state rather than inviting an action.
-    var tint: Color? = nil
-    var isActive: Bool = false
-
-    @Environment(\.colorSchemeContrast) private var contrast
-    @State private var isHovered = false
-
-    var body: some View {
-        Image(systemName: systemImage)
-            .font(Typography.controlGlyph)
-            .foregroundStyle(tint ?? (isHovered || isActive ? Foreground.action : Foreground.muted))
-            .frame(width: Spacing.controlHeight, height: Spacing.controlHeight)
-            .background(
-                isHovered ? Color.primary.opacity(Opacity.controlHover(contrast)) : Color.clear,
-                in: RoundedRectangle(cornerRadius: Spacing.actionButtonCornerRadius)
-            )
-            .contentShape(Rectangle())
-            .onHover { isHovered = $0 }
-    }
-}

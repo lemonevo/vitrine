@@ -14,6 +14,22 @@ nonisolated enum KeychainError: Error, Equatable {
     case invalidData
 }
 
+// Worded, with the status number kept in the message. `itemNotFound` is control flow rather than a
+// report — callers probe with `try?` — but `unexpectedStatus` reaches a settings screen when the
+// server-trust store cannot be read, and there the number is the only thing a user can quote.
+nonisolated extension KeychainError: LocalizedError {
+    var errorDescription: String? {
+        switch self {
+        case .itemNotFound:
+            return L("The stored item was not found in the Keychain.")
+        case .unexpectedStatus(let status):
+            return L("The Keychain returned an unexpected result (%d).", Int(status))
+        case .invalidData:
+            return L("The stored Keychain data could not be read.")
+        }
+    }
+}
+
 // MARK: - Protocol
 
 /// Provides read, write, and delete access to the macOS Keychain.

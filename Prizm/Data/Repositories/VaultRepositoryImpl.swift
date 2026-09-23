@@ -122,6 +122,7 @@ actor VaultRepositoryImpl: VaultRepository {
         bySelection[.allItems]  = sorted(active)
         bySelection[.favorites] = sorted(active.filter(\.isFavorite))
         bySelection[.trash]     = sorted(items.filter(\.isDeleted))
+        bySelection[.passkeys]  = sorted(active.filter(\.hasPasskey))
 
         for type in ItemType.allCases {
             bySelection[.type(type)] = sorted(active.filter { $0.content.matchesItemType(type) })
@@ -160,6 +161,7 @@ actor VaultRepositoryImpl: VaultRepository {
         counts[.allItems]  = bySelection[.allItems]?.count  ?? 0
         counts[.favorites] = bySelection[.favorites]?.count ?? 0
         counts[.trash]     = bySelection[.trash]?.count     ?? 0
+        counts[.passkeys]  = bySelection[.passkeys]?.count  ?? 0
         for type in ItemType.allCases {
             counts[.type(type)] = bySelection[.type(type)]?.count ?? 0
         }
@@ -400,22 +402,12 @@ actor VaultRepositoryImpl: VaultRepository {
     /// millisecond precision while some cipher dates come without. `CipherMapper` only handles the
     /// fractional form, which is why this is a second parser rather than a shared one — the date
     /// here is display metadata, so an unparseable value degrades to `nil` rather than failing.
+    ///
+    /// The either-form rule itself lives in `ISO8601WireDate`, because `VaultExportDocument` needed
+    /// the identical pair and the identical fallback written out a second time.
     nonisolated private static func parseISODate(_ raw: String) -> Date? {
-        if let date = iso8601WithFraction.date(from: raw) { return date }
-        return iso8601Plain.date(from: raw)
+        ISO8601WireDate.parse(raw)
     }
-
-    private nonisolated(unsafe) static let iso8601WithFraction: ISO8601DateFormatter = {
-        let f = ISO8601DateFormatter()
-        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return f
-    }()
-
-    private nonisolated(unsafe) static let iso8601Plain: ISO8601DateFormatter = {
-        let f = ISO8601DateFormatter()
-        f.formatOptions = [.withInternetDateTime]
-        return f
-    }()
 
     // MARK: - Update (write path — called by EditVaultItemUseCaseImpl)
 

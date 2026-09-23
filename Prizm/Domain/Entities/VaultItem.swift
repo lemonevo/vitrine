@@ -159,6 +159,28 @@ nonisolated struct VaultItem: Identifiable, Equatable, Hashable {
     }
 }
 
+// MARK: - Passkeys
+
+// `nonisolated` for the same reason as the copy helper below: the vault actor reads these, and an
+// extension does not inherit `-default-isolation MainActor` from the type it extends.
+nonisolated extension VaultItem {
+
+    /// Whether this item carries at least one passkey.
+    ///
+    /// Reads the credential list, not its contents. `fido2Credentials` arrives from the server as
+    /// still-encrypted values held untouched on the item, so *how many* are there is knowable without
+    /// decrypting a single field — which is what lets the passkeys destination be an ordinary indexed
+    /// selection rather than a screen that has to open every item to find out.
+    var hasPasskey: Bool { !preserved.fido2Credentials.isEmpty }
+
+    /// How many credentials the item carries, whether or not any of them can be read.
+    ///
+    /// The listing shows this rather than the number that decrypted, so an item with one damaged
+    /// credential still says it has three. Under-reporting that would be the listing telling the user
+    /// their own vault has less in it than it does.
+    var passkeyCount: Int { preserved.fido2Credentials.count }
+}
+
 // MARK: - Field-wise copy
 
 // `nonisolated` because the Data layer patches the cached vault from a background actor; the

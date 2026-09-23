@@ -26,11 +26,23 @@ struct UnlockView: View {
     @FocusState private var passwordFocused: Bool
 
     var body: some View {
-        AuthCard {
+        // Asked once each, then handed down. Every one of these reaches outside the process: the two
+        // availability answers go through `AuthRepository`, where `biometricUnlockAvailable` builds an
+        // `LAContext` and evaluates a policy against the system, `pinUnlockAvailable` reads the
+        // keychain, and `pinRemainingAttempts` reads it again. The body used to ask them repeatedly —
+        // biometric availability twice, the sensor type three times — on a screen whose whole body
+        // re-runs for every character typed into the password field.
+        let biometricAvailable = viewModel.biometricUnlockAvailable
+        let sensor: LABiometryType? = biometricAvailable ? biometryType : nil
+        let biometricName = biometricAvailable ? biometricMethodName(for: sensor) : nil
+        let pinAvailable = viewModel.pinUnlockAvailable
+        // The count costs a keychain read, so it is read only when the screen is actually asking for a
+        // PIN. `pinField` prints it twice, which is why it arrives as an argument rather than being
+        // looked up there.
+        let pinAttemptsLeft = viewModel.credentialMethod == .pin ? viewModel.pinRemainingAttempts : 0
+        return AuthCard {
             AuthHeader(title: L("Vitrine Is Locked"),
-                       subtitle: viewModel.unlockInstructionText(
-                           biometricName: viewModel.biometricUnlockAvailable ? biometricMethodName : nil
-                       ))
+                       subtitle: viewModel.unlockInstructionText(biometricName: biometricName))
 
             // MARK: Password field / loading
             switch viewModel.flowState {
@@ -49,7 +61,7 @@ struct UnlockView: View {
                 .frame(width: Spacing.authFieldWidth)
             default:
                 VStack(spacing: Spacing.authFieldGap) {
-                    credentialField
+                    credentialField(pinAttemptsLeft: pinAttemptsLeft)
 
                     // **This button was not here.** Return was the only way to submit, and
                     // `isUnlockDisabled` was computed and then never shown to anyone — so the screen
@@ -66,7 +78,7 @@ struct UnlockView: View {
 
                     // The alternative credential, named rather than drawn as a second field. Always
                     // visible when it exists, so which secret is being asked for is never hidden state.
-                    if viewModel.pinUnlockAvailable {
+                    if pinAvailable {
                         Button(action: viewModel.toggleCredentialMethod) {
                             Label(viewModel.switchCredentialTitle,
                                   systemImage: "arrow.triangle.2.circlepath")
@@ -83,12 +95,12 @@ struct UnlockView: View {
                 // A button, not a live sensor. The prompt is the system's own dialog now, so the
                 // card needs only a way to raise it — and a button is honest about that, where the
                 // fingerprint glyph invited a finger that would have done nothing.
-                if viewModel.biometricUnlockAvailable {
+                if let biometricName {
                     Button {
                         viewModel.requestBiometricUnlock()
                     } label: {
-                        Label(L("Unlock with %@", biometricMethodName),
-                              systemImage: biometricSystemImage)
+                        Label(L("Unlock with %@", biometricName),
+                              systemImage: biometricSystemImage(for: sensor))
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.bordered)
@@ -155,7 +167,7 @@ struct UnlockView: View {
     /// The label comes from the view model rather than being written out per case, so the heading, the
     /// field and the submission cannot end up naming three different things.
     @ViewBuilder
-    private var credentialField: some View {
+    private func credentialField(pinAttemptsLeft: Int) -> some View {
         switch viewModel.credentialMethod {
         case .masterPassword:
             AuthField(label: viewModel.credentialFieldLabel) {
@@ -166,7 +178,7 @@ struct UnlockView: View {
                     .accessibilityIdentifier(AccessibilityID.Unlock.passwordField)
             }
         case .pin:
-            pinField
+            pinField(attemptsLeft: pinAttemptsLeft)
         }
     }
 
@@ -176,7 +188,7 @@ struct UnlockView: View {
     /// arrival reads as a threat. It is shown at all because a limit the user cannot see is a trap —
     /// someone on their fourth try of a code they half-remember deserves to know that.
     @ViewBuilder
-    private var pinField: some View {
+    private func pinField(attemptsLeft: Int) -> some View {
         AuthField(label: viewModel.credentialFieldLabel) {
             SecureField(L("PIN"), text: $viewModel.pin)
                 .textFieldStyle(.roundedBorder)
@@ -191,14 +203,14 @@ struct UnlockView: View {
                     .font(.caption)
                     .foregroundStyle(Foreground.warning)
                     .accessibilityHidden(true)
-                Text(L("%d attempts left before the PIN is removed.", viewModel.pinRemainingAttempts))
+                Text(L("%d attempts left before the PIN is removed.", attemptsLeft))
                     .font(Typography.listSubtitle)
                     .foregroundStyle(Foreground.muted)
                     .multilineTextAlignment(.leading)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .accessibilityIdentifier(AccessibilityID.Unlock.pinAttemptsRemaining)
-            .accessibilityLabel(L("%d attempts left before the PIN is removed.", viewModel.pinRemainingAttempts))
+            .accessibilityLabel(L("%d attempts left before the PIN is removed.", attemptsLeft))
         }
     }
 
@@ -208,17 +220,18 @@ struct UnlockView: View {
     /// up naming different things.
     private var biometryType: LABiometryType { LAContext().biometryType }
 
-    /// Sensor names are Apple product names and stay untranslated.
-    private var biometricMethodName: String {
-        switch biometryType {
+    /// `nil` says this device has no usable sensor, which is the answer both the subtitle and the
+    /// button's label want. Sensor names are Apple product names and stay untranslated.
+    private func biometricMethodName(for type: LABiometryType?) -> String {
+        switch type {
         case .touchID: return "Touch ID"
         case .faceID:  return "Face ID"
         default:       return L("Biometrics")
         }
     }
 
-    private var biometricSystemImage: String {
-        switch biometryType {
+    private func biometricSystemImage(for type: LABiometryType?) -> String {
+        switch type {
         case .touchID: return "touchid"
         case .faceID:  return "faceid"
         default:       return "person.badge.key"

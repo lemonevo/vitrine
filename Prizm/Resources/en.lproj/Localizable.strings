@@ -114,6 +114,11 @@
 "Could not read the password history: %@" = "Could not read the password history: %@";
 "Could not read the vault: %@" = "Could not read the vault: %@";
 "Could not save file: %@" = "Could not save file: %@";
+
+// MARK: - Crypto service errors (PrizmCryptoServiceError)
+"Could not decrypt the stored vault key. Sign in again." = "Could not decrypt the stored vault key. Sign in again.";
+"Could not derive an encryption key from this password." = "Could not derive an encryption key from this password.";
+"The stored vault key is not the expected size. Sign in again." = "The stored vault key is not the expected size. Sign in again.";
 "Country" = "Country";
 "Created" = "Created";
 "Created:" = "Created:";
@@ -581,6 +586,14 @@
 "Codes are derived from each item's stored key. The key itself is never shown or copied." = "Codes are derived from each item's stored key. The key itself is never shown or copied.";
 "No code" = "No code";
 
+// MARK: - Passkeys destination (passkeys-as-a-destination)
+"No passkeys" = "No passkeys";
+"Passkeys appear here for any login that has one stored on it." = "Passkeys appear here for any login that has one stored on it.";
+"No matching passkeys" = "No matching passkeys";
+"No item with a passkey matches “%@”." = "No item with a passkey matches “%@”.";
+"%d passkeys" = "%d passkeys";
+"1 passkey" = "1 passkey";
+
 // MARK: - Vault UI redesign (detail header)
 "Copy password" = "Copy password";
 "Open website" = "Open website";
@@ -625,3 +638,22 @@
 
 // MARK: - The product name, as a bare title
 "Vitrine" = "Vitrine";
+
+// MARK: - Data-layer error wording (attachment-crypto, EncString, Keychain, identity)
+"The encrypted attachment is too short to be valid." = "The encrypted attachment is too short to be valid.";
+"The attachment failed its integrity check." = "The attachment failed its integrity check.";
+"The attachment could not be decrypted." = "The attachment could not be decrypted.";
+"The attachment could not be encrypted." = "The attachment could not be encrypted.";
+"A random key could not be generated for this attachment." = "A random key could not be generated for this attachment.";
+"The attachment key is not the expected size." = "The attachment key is not the expected size.";
+"An encrypted value is not in the expected format." = "An encrypted value is not in the expected format.";
+"An encrypted value uses an encryption type this version cannot read." = "An encrypted value uses an encryption type this version cannot read.";
+"An encrypted value failed its integrity check." = "An encrypted value failed its integrity check.";
+"An encrypted value could not be decrypted." = "An encrypted value could not be decrypted.";
+"A value could not be encrypted." = "A value could not be encrypted.";
+"The stored item was not found in the Keychain." = "The stored item was not found in the Keychain.";
+"The Keychain returned an unexpected result (%d)." = "The Keychain returned an unexpected result (%d).";
+"The stored Keychain data could not be read." = "The stored Keychain data could not be read.";
+"This account requires two-factor verification to sign in." = "This account requires two-factor verification to sign in.";
+"The two-factor code was not accepted." = "The two-factor code was not accepted.";
+"The email or master password was not accepted." = "The email or master password was not accepted.";

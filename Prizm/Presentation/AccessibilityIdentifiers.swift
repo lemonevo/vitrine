@@ -78,8 +78,6 @@ nonisolated enum AccessibilityID {
         static let formatPicker     = "vault.backup.exportFormat"
         /// The line naming how many items the chosen format could not carry.
         static let omittedCount     = "vault.backup.omittedCount"
-        /// The toolbar button opening the vault-wide verification-codes list.
-        static let verificationCodesButton = "vault.verificationCodes"
         /// The manual sync button at the leading end of the sidebar's status row (⌘R).
         static let syncButton        = "vault.button.sync"
         /// The vault search field, drawn by the list column rather than installed by `.searchable`.
@@ -103,6 +101,8 @@ nonisolated enum AccessibilityID {
         static let trash             = "sidebar.trash"
         /// The sidebar destination listing every one-time code in the vault.
         static let verificationCodes = "sidebar.verificationCodes"
+        /// The sidebar destination listing every item that carries a passkey.
+        static let passkeys          = "sidebar.passkeys"
         static func type(_ name: String) -> String { "sidebar.type.\(name)" }
     }
 
@@ -399,6 +399,23 @@ nonisolated enum AccessibilityID {
         static func rpId(_ index: Int)     -> String { "passkeys.rpId.\(index)" }
         static func userName(_ index: Int) -> String { "passkeys.userName.\(index)" }
         static func date(_ index: Int)     -> String { "passkeys.date.\(index)" }
+
+        // MARK: The sidebar destination (passkeys-as-a-destination)
+        //
+        // A separate namespace from the section's, deliberately: the two surfaces show the same data
+        // through the same view model, and a test that reaches for "the passkey section" should not be
+        // able to satisfy itself by finding the list instead.
+
+        static let destinationPane           = "passkeys.destination.pane"
+        static let destinationEmptyState     = "passkeys.destination.empty"
+        /// Shown when the query excludes every item that has one, which is not the same as having none.
+        static let destinationNoMatches      = "passkeys.destination.noMatches"
+        static let destinationLimitationNote = "passkeys.destination.limitation"
+        static let destinationProgress       = "passkeys.destination.progress"
+        static let destinationErrorMessage   = "passkeys.destination.error"
+
+        static func destinationRow(_ id: String)         -> String { "passkeys.destination.row.\(id)" }
+        static func destinationCredential(_ id: String)  -> String { "passkeys.destination.credential.\(id)" }
     }
 
     // MARK: - Vault Health Report (vault-health-report)

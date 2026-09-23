@@ -19,6 +19,31 @@ nonisolated enum PrizmCryptoServiceError: Error, Equatable {
     case vaultLocked
 }
 
+// Worded, because these escape to the interface. Without a `LocalizedError` conformance an
+// `Error`'s `localizedDescription` falls back to the system's own rendering of the type and case
+// number, which is how a wrong master password was displayed as
+// 「未能完成操作。（Prizm.PrizmCryptoServiceError错误1。）」. The unlock path maps its case to
+// `AuthError.invalidCredentials` now, but `verifyMasterPassword` and the sync-time decrypt failures
+// reach a banner through this type directly, and none of them is allowed to print an enum index at a
+// user. The three recovery-shaped cases say what to do rather than what broke, because the actionable
+// question at that point is "how do I get my vault back", not "which byte failed".
+nonisolated extension PrizmCryptoServiceError: LocalizedError {
+    var errorDescription: String? {
+        switch self {
+        case .kdfFailed:
+            return L("Could not derive an encryption key from this password.")
+        case .invalidEncUserKey:
+            return L("Could not decrypt the stored vault key. Sign in again.")
+        case .invalidSymmetricKeyLength:
+            return L("The stored vault key is not the expected size. Sign in again.")
+        case .vaultLocked:
+            // The sentence this app already uses elsewhere for a locked vault, rather than a second
+            // wording of it.
+            return L("The vault is locked. Please unlock to continue.")
+        }
+    }
+}
+
 // MARK: - PrizmCryptoService Protocol
 
 /// Provides cryptographic operations for the Bitwarden vault:

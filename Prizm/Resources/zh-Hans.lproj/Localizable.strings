@@ -114,6 +114,11 @@
 "Could not read the password history: %@" = "无法读取密码历史：%@";
 "Could not read the vault: %@" = "无法读取保险库：%@";
 "Could not save file: %@" = "无法保存文件：%@";
+
+// MARK: - 加密服务错误（PrizmCryptoServiceError）
+"Could not decrypt the stored vault key. Sign in again." = "无法解密已存储的保险库密钥。请重新登录。";
+"Could not derive an encryption key from this password." = "无法从该密码派生出加密密钥。";
+"The stored vault key is not the expected size. Sign in again." = "已存储的保险库密钥长度不正确。请重新登录。";
 "Country" = "国家/地区";
 "Created" = "创建时间";
 "Created:" = "创建于：";
@@ -581,6 +586,14 @@
 "Codes are derived from each item's stored key. The key itself is never shown or copied." = "验证码由条目的密钥推导得出，密钥本身永远不会显示或被复制。";
 "No code" = "无验证码";
 
+// MARK: - 通行密钥目的地（passkeys-as-a-destination）
+"No passkeys" = "没有通行密钥";
+"Passkeys appear here for any login that has one stored on it." = "任何存有通行密钥的登录项都会出现在这里。";
+"No matching passkeys" = "没有匹配的通行密钥";
+"No item with a passkey matches “%@”." = "没有任何带通行密钥的条目匹配“%@”。";
+"%d passkeys" = "%d 个通行密钥";
+"1 passkey" = "1 个通行密钥";
+
 // MARK: - 保管库界面重设计（详情头部）
 "Copy password" = "复制密码";
 "Open website" = "打开网站";
@@ -623,3 +636,22 @@
 
 // MARK: - The product name, as a bare title
 "Vitrine" = "Vitrine";
+
+// MARK: - 数据层错误文案（附件加密、EncString、钥匙串、身份验证）
+"The encrypted attachment is too short to be valid." = "加密的附件长度不足，不是有效数据。";
+"The attachment failed its integrity check." = "附件未通过完整性校验。";
+"The attachment could not be decrypted." = "无法解密该附件。";
+"The attachment could not be encrypted." = "无法加密该附件。";
+"A random key could not be generated for this attachment." = "无法为该附件生成随机密钥。";
+"The attachment key is not the expected size." = "附件密钥长度不正确。";
+"An encrypted value is not in the expected format." = "某个加密值的格式不正确。";
+"An encrypted value uses an encryption type this version cannot read." = "某个加密值使用了当前版本无法读取的加密类型。";
+"An encrypted value failed its integrity check." = "某个加密值未通过完整性校验。";
+"An encrypted value could not be decrypted." = "无法解密某个加密值。";
+"A value could not be encrypted." = "无法加密某个值。";
+"The stored item was not found in the Keychain." = "未在钥匙串中找到该存储项。";
+"The Keychain returned an unexpected result (%d)." = "钥匙串返回了意外结果（%d）。";
+"The stored Keychain data could not be read." = "无法读取钥匙串中存储的数据。";
+"This account requires two-factor verification to sign in." = "该账号需要两步验证才能登录。";
+"The two-factor code was not accepted." = "两步验证码未被接受。";
+"The email or master password was not accepted." = "邮箱或主密码未被接受。";

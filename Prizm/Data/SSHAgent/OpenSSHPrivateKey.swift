@@ -117,7 +117,7 @@ nonisolated enum OpenSSHPrivateKey {
     private static func parseEd25519(algorithm:  String,
                                      section:    inout SSHWireReader,
                                      publicBlob: Data) throws -> SSHParsedKey {
-        var publicKey  = try section.readString()
+        let publicKey  = try section.readString()
         var privateKey = try section.readString()
         let comment    = try? section.readString()
 
@@ -144,8 +144,8 @@ nonisolated enum OpenSSHPrivateKey {
     private static func parseRSA(algorithm:  String,
                                  section:    inout SSHWireReader,
                                  publicBlob: Data) throws -> SSHParsedKey {
-        var n     = try section.readMPInt()
-        var e     = try section.readMPInt()
+        let n     = try section.readMPInt()
+        let e     = try section.readMPInt()
         var d     = try section.readMPInt()
         let qInv  = try section.readMPInt()
         var p     = try section.readMPInt()

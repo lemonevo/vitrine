@@ -22,6 +22,31 @@ nonisolated enum AttachmentCryptoError: Error, Equatable {
     case invalidKeyLength
 }
 
+// Worded, because these reach the interface nested inside another sentence. The attachment screens
+// write `L("Upload failed: %@", error.localizedDescription)` and its siblings, so an unworded `Error`
+// produced 「上传失败：未能完成操作。（Prizm.AttachmentCryptoError错误1。）」 — a localised wrapper
+// around a type name and a case index. Nothing catches this enum by case, so every one of them can
+// arrive there. Each sentence names what failed rather than what to do about it, because the wrapper
+// already says which operation it was.
+nonisolated extension AttachmentCryptoError: LocalizedError {
+    var errorDescription: String? {
+        switch self {
+        case .blobTooShort:
+            return L("The encrypted attachment is too short to be valid.")
+        case .macMismatch:
+            return L("The attachment failed its integrity check.")
+        case .decryptionFailed:
+            return L("The attachment could not be decrypted.")
+        case .encryptionFailed:
+            return L("The attachment could not be encrypted.")
+        case .keyGenerationFailed:
+            return L("A random key could not be generated for this attachment.")
+        case .invalidKeyLength:
+            return L("The attachment key is not the expected size.")
+        }
+    }
+}
+
 // MARK: - Attachment crypto extension on PrizmCryptoServiceImpl
 
 /// Concrete implementations of the six attachment-crypto requirements declared on

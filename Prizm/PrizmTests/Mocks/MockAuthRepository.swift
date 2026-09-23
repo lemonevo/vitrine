@@ -143,7 +143,13 @@ final class MockAuthRepository: AuthRepository {
     var unlockWithBiometricsDelay: Duration?
 
     var deviceBiometricCapable: Bool { stubbedDeviceBiometricCapable }
-    var biometricUnlockAvailable: Bool { stubbedBiometricUnlockAvailable }
+    /// Counted rather than stubbed-and-forgotten: in the real repository each answer is a policy
+    /// evaluation sent to the system, so what costs something is how often the view asks.
+    private(set) var biometricUnlockAvailableAccessCount = 0
+    var biometricUnlockAvailable: Bool {
+        biometricUnlockAvailableAccessCount += 1
+        return stubbedBiometricUnlockAvailable
+    }
     var biometricGateIsSystemEnforced: Bool { stubbedBiometricGateIsSystemEnforced }
 
     func enableBiometricUnlock() async throws {
@@ -167,8 +173,18 @@ final class MockAuthRepository: AuthRepository {
     var enablePinUnlockError: Error?
     var unlockWithPINError: Error?
 
-    var pinUnlockAvailable: Bool { stubbedPinUnlockAvailable }
-    var pinUnlockRemainingAttempts: Int { stubbedPinUnlockRemainingAttempts }
+    private(set) var pinUnlockAvailableAccessCount = 0
+    private(set) var pinUnlockRemainingAttemptsAccessCount = 0
+    /// Each of these is a keychain read in the real repository, and the unlock screen reads them while
+    /// the user is typing — so the count is the thing worth pinning.
+    var pinUnlockAvailable: Bool {
+        pinUnlockAvailableAccessCount += 1
+        return stubbedPinUnlockAvailable
+    }
+    var pinUnlockRemainingAttempts: Int {
+        pinUnlockRemainingAttemptsAccessCount += 1
+        return stubbedPinUnlockRemainingAttempts
+    }
 
     func enablePinUnlock(pin: String) async throws {
         enablePinUnlockCalled = true

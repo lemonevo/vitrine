@@ -299,11 +299,10 @@ final class AuthRepositoryImpl: AuthRepository {
         // ARC may defer it. Zeroing the Data buffers in-place reduces the window during
         // which derived key material lives in the heap.
         // Note: passwordHash (String) cannot be zeroed — String storage is immutable.
-        // `pendingTwoFactor!` is used for the mutations rather than the local `pending`
-        // copy produced by `if let` — zeroing `pending` would only zero the copy's CoW
-        // buffer, not the stored struct's. In-place mutation through `pendingTwoFactor!`
-        // is safe here because we verified non-nil one line above.
-        if let pending = pendingTwoFactor {
+        // `pendingTwoFactor!` is used for the mutations rather than a local copy — zeroing a copy
+        // would only zero the copy's CoW buffer, not the stored struct's. In-place mutation through
+        // `pendingTwoFactor!` is safe here because existence was checked on the line above.
+        if pendingTwoFactor != nil {
             pendingTwoFactor!.stretchedKeys.encryptionKey.zeroize()
             pendingTwoFactor!.stretchedKeys.macKey.zeroize()
         }
@@ -373,10 +372,23 @@ final class AuthRepositoryImpl: AuthRepository {
         // covers the throw paths too — a wrong master password is precisely the case where the
         // buffers were filled and nothing else runs afterwards.
         defer { discardDerivedKeys(&masterKey, &stretched) }
-        let vaultKeys  = try await crypto.decryptSymmetricKey(
-            encUserKey:    encUserKey,
-            stretchedKeys: stretched
-        )
+        let vaultKeys: CryptoKeys
+        do {
+            vaultKeys = try await crypto.decryptSymmetricKey(
+                encUserKey:    encUserKey,
+                stretchedKeys: stretched
+            )
+        } catch {
+            // A MAC mismatch here is the *local* proof of a wrong master password: the stored
+            // `encUserKey` was wrapped by a master key that what was typed does not reproduce. The
+            // crypto layer answers with `PrizmCryptoServiceError.invalidEncUserKey`, which is not a
+            // thing a user can act on — it reached the unlock banner as
+            // 「未能完成操作。（Prizm.PrizmCryptoServiceError错误1。）」 while the two failures above
+            // this one already had a sentence naming the password. Same cause, same screen, so the
+            // same answer. The underlying error is logged rather than shown: it names no secret.
+            logger.error("Stored vault key could not be decrypted with the supplied password: \(error.localizedDescription, privacy: .public)")
+            throw AuthError.invalidCredentials
+        }
         await crypto.unlockWith(keys: vaultKeys)
 
         // Restore API client state so the post-unlock sync can make authenticated requests.

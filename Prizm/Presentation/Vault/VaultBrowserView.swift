@@ -55,6 +55,14 @@ struct VaultBrowserView: View {
 
     private var isShowingVerificationCodes: Bool { viewModel.sidebarSelection == .verificationCodes }
 
+    /// Whether the list column is showing the passkeys destination.
+    ///
+    /// Only ⌘F asks, and it asks for the same reason it asks about the codes: `activateGlobalSearch()`
+    /// moves the selection to `.allItems`, which would carry the user off the destination they are
+    /// typing on. Here the field already filters the destination through the vault search, so nothing
+    /// beyond focusing it is wanted.
+    private var isShowingPasskeys: Bool { viewModel.sidebarSelection == .passkeys }
+
     /// What the toolbar's search field filters: the item list, or the codes when that is what the list
     /// column is showing. One field, two subjects — the field belongs to the column, not to a list.
     private var listSearchQuery: Binding<String> {
@@ -425,6 +433,22 @@ struct VaultBrowserView: View {
         }
     }
 
+    /// The passkeys destination's content.
+    ///
+    /// Takes the factory as an argument because the route only reaches here when it exists: without a
+    /// way to name the credentials, the destination is the ordinary item list, which still shows which
+    /// items have passkeys. Falling through to that beats drawing an empty column that reads as an
+    /// empty vault.
+    ///
+    /// Extracted from the modifier chain for the same reason as `verificationCodesPane` above.
+    @ViewBuilder
+    private func passkeysPane(makeViewModel: @escaping (String) -> PasskeysViewModel) -> some View {
+        PasskeysPane(items:        viewModel.displayedItems,
+                     searchQuery:  viewModel.searchQuery,
+                     onSelect:     { viewModel.highlightItem(id: $0) },
+                     makeViewModel: makeViewModel)
+    }
+
     /// Opens the delete-folder confirmation.
     ///
     /// A method rather than an inline closure: multi-statement closures inside an initializer this size
@@ -504,6 +528,9 @@ struct VaultBrowserView: View {
                     syncErrorBanner
                     if viewModel.sidebarSelection == .verificationCodes {
                         verificationCodesPane
+                    } else if viewModel.sidebarSelection == .passkeys,
+                              let makePasskeysViewModel {
+                        passkeysPane(makeViewModel: makePasskeysViewModel)
                     } else if viewModel.sidebarSelection == .trash {
                         TrashView(
                             items:             viewModel.displayedItems,
@@ -614,7 +641,11 @@ struct VaultBrowserView: View {
                 // `activateGlobalSearch` is the item list's search: it widens the scope and drops the
                 // sidebar selection, which would take the user off the codes destination mid-keystroke.
                 // On that destination ⌘F only has to reach the field.
-                if !isShowingVerificationCodes { viewModel.activateGlobalSearch() }
+                //
+                // The passkeys destination is in the same position for the same reason, and it needs
+                // no second field: its rows come out of the vault search scoped to `.passkeys`, so the
+                // list's own query is already the thing filtering them.
+                if !isShowingVerificationCodes, !isShowingPasskeys { viewModel.activateGlobalSearch() }
                 expandSearch()
             }
             .keyboardShortcut("f", modifiers: .command)

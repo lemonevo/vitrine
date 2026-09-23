@@ -55,6 +55,7 @@
 		AC27E07DCA732688CD20FCBE /* DataZeroing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91ADE95586528ADB416CC065 /* DataZeroing.swift */; };
 		22A4CFCE2FB3F052627D3FA6 /* GeneratorHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0108E0F4DE41F25E8C0E35D4 /* GeneratorHistory.swift */; };
 		B1389682CF1B84F0319A5095 /* ItemSortOrder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5459C50FE56F3DDC3C4E3563 /* ItemSortOrder.swift */; };
+		CA0E00F1000000000000B0F1 /* ISO8601WireDate.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0E00F0000000000000F0F0 /* ISO8601WireDate.swift */; };
 		31ADD1AF14229E0B31AF7218 /* JSONValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFE86F90B03E7905BF0A2AF6 /* JSONValue.swift */; };
 		97B3FF1473FEAFE7ABABD4A4 /* LinkedFieldOptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7C17ABF5B4426AFF2D4A430 /* LinkedFieldOptions.swift */; };
 		41C7198F155CE2BBE9209318 /* PasswordStrength.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F5292FF48641D83AD44DE34 /* PasswordStrength.swift */; };
@@ -125,6 +126,7 @@
 		CA0E00A1000000000000B0A1 /* VaultExportCSV.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0E00A0000000000000F0A0 /* VaultExportCSV.swift */; };
 		CA0E00B1000000000000B0B1 /* VerificationCodesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0E00B0000000000000F0B0 /* VerificationCodesViewModel.swift */; };
 		CA0E00C1000000000000B0C1 /* VerificationCodesPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0E00C0000000000000F0C0 /* VerificationCodesPane.swift */; };
+		CA0E00E2000000000000B0E2 /* PasskeysPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0E00E0000000000000F0E0 /* PasskeysPane.swift */; };
 		CA0E0071000000000000B071 /* KeychainPinUnlockService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0E0070000000000000F070 /* KeychainPinUnlockService.swift */; };
 		CA0E0004000000000000B004 /* VaultCacheStoreImpl.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0E0002000000000000F002 /* VaultCacheStoreImpl.swift */; };
 		3E04D7AC0223458CB329663C /* CustomField.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAB323D45FF2440C95C0BA70 /* CustomField.swift */; };
@@ -315,6 +317,7 @@
 		91ADE95586528ADB416CC065 /* DataZeroing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataZeroing.swift; sourceTree = "<group>"; };
 		0108E0F4DE41F25E8C0E35D4 /* GeneratorHistory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneratorHistory.swift; sourceTree = "<group>"; };
 		5459C50FE56F3DDC3C4E3563 /* ItemSortOrder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ItemSortOrder.swift; sourceTree = "<group>"; };
+		CA0E00F0000000000000F0F0 /* ISO8601WireDate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ISO8601WireDate.swift; sourceTree = "<group>"; };
 		BFE86F90B03E7905BF0A2AF6 /* JSONValue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONValue.swift; sourceTree = "<group>"; };
 		E7C17ABF5B4426AFF2D4A430 /* LinkedFieldOptions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkedFieldOptions.swift; sourceTree = "<group>"; };
 		9F5292FF48641D83AD44DE34 /* PasswordStrength.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PasswordStrength.swift; sourceTree = "<group>"; };
@@ -405,6 +408,10 @@
 			CA0E00B0000000000000F0B0 /* VerificationCodesViewModel.swift */,
 			CA0E00C0000000000000F0C0 /* VerificationCodesPane.swift */,
 		); path = VerificationCodes; sourceTree = "<group>"; };
+		CA0E00E0000000000000F0E0 /* PasskeysPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PasskeysPane.swift; sourceTree = "<group>"; };
+		CA0E00E1000000000000A0E1 /* Passkeys */ = {isa = PBXGroup; children = (
+			CA0E00E0000000000000F0E0 /* PasskeysPane.swift */,
+		); path = Passkeys; sourceTree = "<group>"; };
 		CA0E0002000000000000F002 /* VaultCacheStoreImpl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultCacheStoreImpl.swift; sourceTree = "<group>"; };
 		4F246F209ADA45F99C9B17DB /* LoginDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginDetailView.swift; sourceTree = "<group>"; };
 		50445584AD814B6EBD971FDA /* FaviconLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaviconLoader.swift; sourceTree = "<group>"; };
@@ -765,6 +772,7 @@
 			isa = PBXGroup;
 			children = (
 				1307284FEED04829B5C4B587 /* CryptoKeys.swift */,
+				1CB90862F5182B8B04B59048 /* AccountFingerprintPhrase.swift */,
 				FEE3CE5476C5402F9BC3FF76 /* OrgKeyCache.swift */,
 				AA0002040000000400000004 /* CryptographicRandomnessProvider.swift */,
 				3FBB82A6241244DD890E615C /* EncString.swift */,
@@ -866,6 +874,7 @@
 				4309FCFB2F680CC60031C9F4 /* Detail */,
 				8A9B0C1D2E3F4050A1B2C3D4 /* Edit */,
 				CA0E00D0000000000000A0D0 /* VerificationCodes */,
+				CA0E00E1000000000000A0E1 /* Passkeys */,
 				4309FCFA2F680CBD0031C9F4 /* ItemList */,
 				4309FCF92F680CB40031C9F4 /* Sidebar */,
 				7F9C2582320343D997856712 /* Trash */,
@@ -1012,6 +1021,7 @@
 				AA0002050000000500000005 /* PasswordGeneratorViewModel.swift */,
 				AA0002060000000600000006 /* PasswordGeneratorView.swift */,
 				108661B7917D6B899A923173 /* GeneratorHistoryEnvironment.swift */,
+				0108E0F4DE41F25E8C0E35D4 /* GeneratorHistory.swift */,
 				332B6BD94551F667A331EF23 /* PasswordStrengthReadout.swift */,
 			);
 			path = Edit;
@@ -1024,11 +1034,10 @@
 				AA0002020000000200000002 /* PasswordGeneratorConfig.swift */,
 				AA0002030000000300000003 /* PasswordGenerator.swift */,
 				CA0E0050000000000000F050 /* UsernameGenerator.swift */,
-				1CB90862F5182B8B04B59048 /* AccountFingerprintPhrase.swift */,
 				790F11836FAEF82A3F86A0B5 /* ClipboardClearInterval.swift */,
 				91ADE95586528ADB416CC065 /* DataZeroing.swift */,
-				0108E0F4DE41F25E8C0E35D4 /* GeneratorHistory.swift */,
 				5459C50FE56F3DDC3C4E3563 /* ItemSortOrder.swift */,
+				CA0E00F0000000000000F0F0 /* ISO8601WireDate.swift */,
 				BFE86F90B03E7905BF0A2AF6 /* JSONValue.swift */,
 				E7C17ABF5B4426AFF2D4A430 /* LinkedFieldOptions.swift */,
 				9F5292FF48641D83AD44DE34 /* PasswordStrength.swift */,
@@ -1267,6 +1276,7 @@
 				CA0E00A1000000000000B0A1 /* VaultExportCSV.swift in Sources */,
 				CA0E00B1000000000000B0B1 /* VerificationCodesViewModel.swift in Sources */,
 				CA0E00C1000000000000B0C1 /* VerificationCodesPane.swift in Sources */,
+				CA0E00E2000000000000B0E2 /* PasskeysPane.swift in Sources */,
 				CA0E0071000000000000B071 /* KeychainPinUnlockService.swift in Sources */,
 				CA0E0004000000000000B004 /* VaultCacheStoreImpl.swift in Sources */,
 				B1C2D3E4F5A64791B2C3D4E5 /* SyncTimestampRepository.swift in Sources */,
@@ -1453,6 +1463,7 @@
 				AC27E07DCA732688CD20FCBE /* DataZeroing.swift in Sources */,
 				22A4CFCE2FB3F052627D3FA6 /* GeneratorHistory.swift in Sources */,
 				B1389682CF1B84F0319A5095 /* ItemSortOrder.swift in Sources */,
+				CA0E00F1000000000000B0F1 /* ISO8601WireDate.swift in Sources */,
 				31ADD1AF14229E0B31AF7218 /* JSONValue.swift in Sources */,
 				97B3FF1473FEAFE7ABABD4A4 /* LinkedFieldOptions.swift in Sources */,
 				41C7198F155CE2BBE9209318 /* PasswordStrength.swift in Sources */,
