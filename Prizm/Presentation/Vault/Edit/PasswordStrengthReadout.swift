@@ -8,8 +8,7 @@ import SwiftUI
 /// **It says "estimate", and that is a requirement rather than a style choice.** The score comes
 /// from a local guess-count model with 609 common passwords behind it — enough to steer someone
 /// away from `Password1!`, not a verdict on whether a password is safe, and not a breach check.
-/// `PasswordStrengthEstimator` documents what it does and does not model; `SECURITY.md` says the
-/// same thing in plain language.
+/// `PasswordStrengthEstimator` documents what it does and does not model.
 struct PasswordStrengthReadout: View {
 
     /// `nil` when there is nothing to score — an empty field, or a generation that failed.

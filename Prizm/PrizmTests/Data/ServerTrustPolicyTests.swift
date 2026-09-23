@@ -10,8 +10,7 @@ import XCTest
 /// fake `SecTrust` (which would test the fake). `ServerTrustPolicy.decide` is a pure function over
 /// four values precisely so that the rule can be tested without either. `ServerTrustDelegate` —
 /// the ~50 lines that set anchors, call `SecTrustEvaluateWithError` and record a fingerprint — is
-/// the untested part, and it is untested by construction rather than by omission. The same
-/// limitation is recorded in `SECURITY.md`.
+/// the untested part, and it is untested by construction rather than by omission.
 final class ServerTrustPolicyTests: XCTestCase {
 
     private static let host      = "vault.example.com"

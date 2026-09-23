@@ -81,7 +81,7 @@ final class RecordingURLProtocol: URLProtocol {
 
 // MARK: - FaviconLoaderTests
 
-/// Tests for `FaviconLoader` and `WebsiteIconsPreference` — FEATURE-GAP-ANALYSIS.md §2.5.
+/// Tests for `FaviconLoader` and `WebsiteIconsPreference`.
 ///
 /// Before this change the loader defaulted to a hardcoded `https://icons.bitwarden.net`, so opening
 /// any login item sent its domain to a third party. A self-hosted Vaultwarden user's reason for

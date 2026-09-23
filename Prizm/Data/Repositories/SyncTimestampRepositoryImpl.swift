@@ -6,8 +6,8 @@ import os.log
 /// Persists the last successful vault sync timestamp to `UserDefaults`.
 ///
 /// - Storage: `UserDefaults`, keyed per account email. Not a secret — no Keychain needed.
-/// - Thread safety: implemented as an `actor` (CLAUDE.md: actor for shared mutable state in
-///   the Data layer) to guard against concurrent reads/writes from the sync completion path
+/// - Thread safety: implemented as an `actor` (the Data layer's rule for shared mutable
+///   state) to guard against concurrent reads/writes from the sync completion path
 ///   and the ViewModel load path.
 /// - Key format: `com.prizm.lastSyncDate.<email>` — scoped per account so that
 ///   switching accounts never shows a timestamp from a previous session.

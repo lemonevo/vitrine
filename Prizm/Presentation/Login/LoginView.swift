@@ -86,7 +86,7 @@ struct LoginView: View {
             //
             // `Foreground.muted`, not `.secondary`: this is the sentence that tells a user their
             // password is safe, and at 10pt in `secondaryLabelColor` it measured 3.95:1 — under the
-            // AA floor this project's own ACCESSIBILITY.md claims.
+            // AA floor this project holds itself to.
             Text(L("Your master password is never sent to the server — only a hash derived from it."))
                 .font(Typography.utility)
                 .foregroundStyle(Foreground.muted)

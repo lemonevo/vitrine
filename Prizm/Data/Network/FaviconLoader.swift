@@ -15,7 +15,7 @@ import os.log
 /// can never be requested before the account's server is known.
 ///
 /// Earlier versions defaulted to `https://icons.bitwarden.net`, which leaked every login item's
-/// domain to a third party — see `FEATURE-GAP-ANALYSIS.md` §2.5.
+/// domain to a third party.
 ///
 /// **Caching.** `URLCache` provides HTTP-level caching (`returnCacheDataElseLoad`); the in-memory
 /// table below provides session-level deduplication. The table is dropped when the icon base changes

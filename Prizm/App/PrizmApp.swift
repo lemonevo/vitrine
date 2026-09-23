@@ -582,7 +582,7 @@ final class RootViewModel: ObservableObject, RepromptGating {
         // canSave: edit sheet is open.
         // canDuplicate: item selected, not trashed, and no edit sheet open.
         // All three are derived by watching editSheetOpen and itemSelection independently.
-        // `for await` on @Published.values avoids Combine callbacks (CLAUDE.md async/await rule).
+        // `for await` on @Published.values avoids Combine callbacks.
         Task { [weak self, vaultBrowserVM] in
             for await open in vaultBrowserVM.$editSheetOpen.values {
                 guard let self else { break }

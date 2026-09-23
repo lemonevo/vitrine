@@ -54,7 +54,7 @@ actor OrgKeyCache {
     /// heap after the cache is discarded (Constitution §III).
     func clear() {
         // Note: Swift's CoW semantics mean true in-place zeroing cannot be guaranteed
-        // at the language level. This is a known limitation documented in SECURITY.md.
+        // at the language level. This is a known limitation of the design, not an oversight.
         for key in cache.keys {
             cache[key]?.encryptionKey.zeroize()
             cache[key]?.macKey.zeroize()

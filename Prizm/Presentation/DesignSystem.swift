@@ -152,8 +152,8 @@ enum Typography {
 // Text colours that carry information. These exist because `.secondary` and `.tertiary` are not
 // safe for copy a user has to read: measured on this Mac against the resolved sRGB values of the
 // system surfaces, `secondaryLabelColor` is **3.95:1 in light aqua** (it passes in dark, at 5.89:1),
-// and `tertiaryLabelColor` is **1.88:1 in light / 2.26:1 in dark**. Both sit under the 4.5:1 that
-// `ACCESSIBILITY.md` claims for the interface, and `tertiary` is under the 3:1 floor for large text.
+// and `tertiaryLabelColor` is **1.88:1 in light / 2.26:1 in dark**. Both sit under the 4.5:1 floor
+// this interface holds itself to, and `tertiary` is under the 3:1 floor for large text.
 //
 // **`Foreground.muted` used to be 0.62, and the ratio recorded beside it was wrong.** The measurement
 // that picked that value multiplied `Color.primary` by 0.62 and compared the result to the surface —

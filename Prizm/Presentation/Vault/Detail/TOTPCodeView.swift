@@ -7,8 +7,8 @@ import SwiftUI
 /// **The row shows a derived code and never the stored key.** `LoginContent.totp` is the
 /// long-lived shared secret — anyone who reads it can generate valid codes forever. It reaches the
 /// view model and goes no further: the value on screen, and the value that goes on the clipboard,
-/// are both the derived code. That distinction is the whole of `FEATURE-GAP-ANALYSIS.md` §2.1,
-/// where `Item ▸ Copy Code` put the secret itself on the clipboard.
+/// are both the derived code. That distinction is the whole of the fix: `Item ▸ Copy Code` used to
+/// put the secret itself on the clipboard.
 ///
 /// **Masked until revealed, and gated when the item is.** The password row directly above behaves
 /// this way, and a live code shown openly beside it would be a second, unexamined rule about which

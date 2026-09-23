@@ -8,7 +8,7 @@ import XCTest
 /// assigns `key`, `password_history` and `archived_date` unconditionally and stores the `login`
 /// object verbatim, so a field missing from the request body is erased server-side. Before this
 /// change, editing an item's notes — or merely toggling its favourite — destroyed the passkey,
-/// the password history, the per-item key and the archived flag (FEATURE-GAP-ANALYSIS.md §2.2/2.3).
+/// the password history, the per-item key and the archived flag.
 @MainActor
 final class CipherWireIntegrityTests: XCTestCase {
 

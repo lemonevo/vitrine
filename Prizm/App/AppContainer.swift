@@ -296,7 +296,7 @@ final class AppContainer: ObservableObject {
     /// `ServerEnvironment.iconsURL` is `{base}/icons` — the endpoint both Bitwarden and Vaultwarden
     /// serve at `/icons/{domain}/icon.png`. Using the account's own server instead of a hardcoded
     /// third-party icon host is the whole point: a self-hosted user's item domains stay on their own
-    /// infrastructure (FEATURE-GAP-ANALYSIS.md §2.5).
+    /// infrastructure.
     ///
     /// Turning website icons off in Settings needs no call here: `FaviconLoader` reads
     /// `WebsiteIconsPreference` on every request.

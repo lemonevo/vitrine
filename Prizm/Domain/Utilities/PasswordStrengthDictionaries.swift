@@ -12,8 +12,8 @@ import Foundation
 /// **What this is not.** It is *not* a breach corpus. `zxcvbn` ships 30,000+ entries; this ships 609,
 /// because the alternative is a megabyte of data inside a password manager whose selling point is
 /// that you can read its source. A password that is absent from this list is not thereby safe — it
-/// is merely not *famous*. That asymmetry is the estimator's main limitation and it is stated in
-/// `PasswordStrength.swift` and in `SECURITY.md`.
+/// is merely not *famous*. That asymmetry is the estimator's main limitation, and
+/// `PasswordStrength.swift` states it too.
 ///
 /// **Why not `zxcvbn`.** The Constitution prefers Apple-first APIs and prohibits third-party
 /// dependencies, and a strength estimate is security-relevant input to a security decision. Its

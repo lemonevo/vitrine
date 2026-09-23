@@ -236,7 +236,7 @@ nonisolated struct LoginContent: Equatable, Hashable {
     /// **This value is never displayed and never copied.** The detail view shows a code *derived*
     /// from it (`TOTPCodeView`), and the copy commands put that derived code on the clipboard.
     /// Anyone who reads this value can generate valid codes forever, so it stays inside the
-    /// generator. `Item ▸ Copy Code` used to copy it — see `FEATURE-GAP-ANALYSIS.md` §2.1.
+    /// generator. `Item ▸ Copy Code` used to put this value itself on the clipboard.
     let totp: String?
     let notes: String?
     let customFields: [CustomField]

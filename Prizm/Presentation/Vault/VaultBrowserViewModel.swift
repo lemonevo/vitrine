@@ -258,7 +258,7 @@ final class VaultBrowserViewModel: ObservableObject {
     /// Incremented each time the "Item > Edit" menu bar action fires (spec §9.3).
     /// `ItemDetailView` uses `.onChange(of: editTrigger)` to open the edit sheet.
     /// An integer counter (rather than a Combine PassthroughSubject) keeps the relay
-    /// within the async/await pattern mandated by CLAUDE.md.
+    /// within the project's async/await convention.
     @Published private(set) var editTrigger: Int = 0
 
     /// Incremented each time the "Item > Save" menu bar action fires (spec §9.4).

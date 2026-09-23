@@ -6,7 +6,7 @@ import XCTest
 /// The RFC 6238 vectors below are the published ones from Appendix B; the expected codes were
 /// independently reproduced with a reference HMAC implementation before being written here.
 ///
-/// This is the security-critical half of FEATURE-GAP-ANALYSIS.md §2.1: `Item ▸ Copy Code` used to
+/// This is the security-critical half of the copy path: `Item ▸ Copy Code` used to
 /// copy the stored *seed*, which is a permanent second factor. These tests pin the generator that
 /// replaced it.
 @MainActor

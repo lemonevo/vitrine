@@ -27,7 +27,7 @@ nonisolated struct TOTPWindow: Equatable, Sendable {
 /// The secret is the long-lived shared key Bitwarden stores on a login item. Anyone who reads it
 /// can generate valid codes forever, so nothing in the app may put it on the clipboard or into a
 /// log — only the code this protocol returns. Before this existed, `Item ▸ Copy Code` copied the
-/// secret itself (see `FEATURE-GAP-ANALYSIS.md` §2.1).
+/// secret itself.
 ///
 /// Reference: RFC 6238 (TOTP), RFC 4226 (HOTP), and the Key URI Format
 /// (github.com/google/google-authenticator/wiki/Key-URI-Format).

@@ -4,7 +4,7 @@ import AppKit
 
 // MARK: - RootViewModelCopyCommandTests
 
-/// Regression tests for the ⌃⌘C "Copy Code" command (FEATURE-GAP-ANALYSIS.md §2.1).
+/// Regression tests for the ⌃⌘C "Copy Code" command.
 ///
 /// The defect: `Copy Code` put `login.totp` on the clipboard. That value is the **long-lived
 /// shared secret**, not the six-digit code the menu item's name promises — so a user pasting it

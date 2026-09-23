@@ -6,9 +6,9 @@ import os.log
 
 /// Tracks temporary files written during attachment "Open" and cleans them up.
 ///
-/// Placed in the App layer because it imports `AppKit` (`NSApplication`) per the
-/// Clean Architecture constraint in CLAUDE.md (§II). `AttachmentRowViewModel` in the
-/// Presentation layer depends on the `TempFileManaging` protocol, never this concrete type.
+/// Placed in the App layer because it imports `AppKit` (`NSApplication`), which the Presentation
+/// layer may not. `AttachmentRowViewModel` in the Presentation layer depends on the
+/// `TempFileManaging` protocol, never this concrete type.
 ///
 /// Cleanup strategy:
 /// - Each registered file has a 30-second deletion deadline.
