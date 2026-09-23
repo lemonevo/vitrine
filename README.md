@@ -127,11 +127,11 @@ open "Prizm/Prizm.xcodeproj"
 
 [DEVELOPMENT.md](DEVELOPMENT.md) covers the full setup, including how to get a free Team ID.
 
-**Releases.** See [Releases](https://github.com/lemonevo/vitrine/releases) for a `.dmg`. It is
-**unsigned and not notarised** — building it needs an Apple Developer account, which this project does
-not have — so on first launch macOS will refuse it. Right-click (or Control-click) the app, choose
-**Open**, and confirm; you only have to do that once. macOS will also ask to use your login keychain
-the first time: click **Allow**. From a terminal:
+**Prebuilt downloads** appear in [Releases](https://github.com/lemonevo/vitrine/releases) when one is
+published. They are **unsigned and not notarised** — signing needs an Apple Developer account this
+project does not have — so on first launch macOS will refuse the app.
+Right-click (or Control-click) it, choose **Open**, and confirm; you only have to do that once. macOS
+will also ask to use your login keychain the first time: click **Allow**. From a terminal:
 
 ```bash
 xattr -dr com.apple.quarantine /Applications/Vitrine.app

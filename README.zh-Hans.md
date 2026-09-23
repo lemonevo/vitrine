@@ -113,10 +113,9 @@ open "Prizm/Prizm.xcodeproj"
 
 完整的搭建步骤（包括怎么拿到免费的 Team ID）见 [DEVELOPMENT.md](DEVELOPMENT.md)。
 
-**发布版本**：见 [Releases](https://github.com/lemonevo/vitrine/releases)，产物是 `.dmg`。它**未签名、
-未公证**——签名需要一个 Apple 开发者账号，本项目没有——所以首次打开时 macOS 会拒绝。请**右键
-（或 Control 点击）应用 → 打开 → 确认**，只需做一次。首次启动 macOS 还会请求使用你的登录钥匙串：
-点**允许**。或者从终端执行：
+**预编译下载**在发布之后会出现在 [Releases](https://github.com/lemonevo/vitrine/releases)。产物
+**未签名、未公证**——签名需要一个本项目没有的 Apple 开发者账号——所以首次打开时 macOS 会拒绝。请**右键（或 Control 点击）它 → 打开 → 确认**，只需做一次。首次启动 macOS 还会请求使用
+你的登录钥匙串：点**允许**。或者从终端执行：
 
 ```bash
 xattr -dr com.apple.quarantine /Applications/Vitrine.app
