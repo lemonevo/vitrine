@@ -75,9 +75,11 @@ final class SSHAgentSectionTests: XCTestCase {
     // MARK: - Shell setup
 
     /// The quotes are load-bearing. The default socket lives under
-    /// `~/Library/Application Support/Prizm/…`; unquoted, that space splits the assignment,
+    /// `~/Library/Application Support/Vitrine/…`; unquoted, that space splits the assignment,
     /// `SSH_AUTH_SOCK` ends up empty, and `ssh` silently falls back to `~/.ssh` — which looks
     /// exactly like the agent being broken.
+    /// (This comment said `Prizm/` until the path was corrected; the assertion below always used the
+    /// right one, which is how a stale comment survives a green suite.)
     func testTheExportLineQuotesAPathWithSpaces() {
         let path = "/Users/someone/Library/Application Support/Vitrine/ssh-agent/agent.sock"
         XCTAssertEqual(SSHAgentShellSetup.exportLine(socketPath: path),

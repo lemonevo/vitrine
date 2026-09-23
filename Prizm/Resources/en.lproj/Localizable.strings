@@ -386,6 +386,7 @@
 "Saving…" = "Saving…";
 "Scores %@" = "Scores %@";
 "Search vault" = "Search vault";
+"Clear search" = "Clear search";
 "Secure Note" = "Secure Note";
 "Security" = "Security";
 "Security Code" = "Security Code";
@@ -458,6 +459,7 @@
 "This is an encrypted export. Vitrine can only import unencrypted exports." = "This is an encrypted export. Vitrine can only import unencrypted exports.";
 "This is not a secret — read it aloud to compare. If it differs from the phrase another Bitwarden client shows for this account, you may not be talking to the same server." = "This is not a secret — read it aloud to compare. If it differs from the phrase another Bitwarden client shows for this account, you may not be talking to the same server.";
 "This is not an OpenSSH private key. Vitrine reads the OpenSSH format ssh-keygen writes." = "This is not an OpenSSH private key. Vitrine reads the OpenSSH format ssh-keygen writes.";
+"This item changed on another device since your last sync, so your edit was not saved. Sync, then make the change again." = "This item changed on another device since your last sync, so your edit was not saved. Sync, then make the change again.";
 "This item holds no private key." = "This item holds no private key.";
 "This item is in Trash." = "This item is in Trash.";
 "This key could not be read: %@" = "This key could not be read: %@";
@@ -535,8 +537,10 @@
 "→ %@" = "→ %@";
 "%d items could not be read" = "%d items could not be read";
 "%d items could not be read. They are still on the server; Vitrine could not decrypt them." = "%d items could not be read. They are still on the server; Vitrine could not decrypt them.";
+"%d items could not be read, so they are not in this file. Sync while unlocked, then export again." = "%d items could not be read, so they are not in this file. Sync while unlocked, then export again.";
 "1 item could not be read" = "1 item could not be read";
 "1 item could not be read. It is still on the server; Vitrine could not decrypt it." = "1 item could not be read. It is still on the server; Vitrine could not decrypt it.";
+"1 item could not be read, so it is not in this file. Sync while unlocked, then export again." = "1 item could not be read, so it is not in this file. Sync while unlocked, then export again.";
 "Generic" = "Generic";
 "Bank Account" = "Bank Account";
 "Driver's Licence" = "Driver's Licence";
@@ -570,6 +574,8 @@
 "Verification Codes" = "Verification Codes";
 "Copy code" = "Copy code";
 "%@ code for %@, %d seconds left" = "%@ code for %@, %d seconds left";
+"No matching codes" = "No matching codes";
+"No item with a one-time-code key matches “%@”." = "No item with a one-time-code key matches “%@”.";
 "No verification codes" = "No verification codes";
 "Codes appear here for any login that has a one-time-code key stored on it." = "Codes appear here for any login that has a one-time-code key stored on it.";
 "Codes are derived from each item's stored key. The key itself is never shown or copied." = "Codes are derived from each item's stored key. The key itself is never shown or copied.";

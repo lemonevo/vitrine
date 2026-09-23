@@ -38,7 +38,51 @@ struct VaultBrowserView: View {
     @State private var showPermanentDeleteAlert = false
     @State private var showDeleteFolderAlert = false
     @State private var folderToDelete: Folder?
-    @State private var isSearchFieldFocused = false
+    /// Focus for the list's search field. A `@FocusState` rather than the `isPresented` binding
+    /// `.searchable` took: the field is drawn by hand now, so ⌘F below moves focus to it directly.
+    @FocusState private var isSearchFieldFocused: Bool
+
+    /// Whether the toolbar's search control is showing its field rather than its magnifier.
+    @State private var isSearchExpanded = false
+
+    /// The search and sort the codes destination is under.
+    ///
+    /// Held here rather than in the codes view model because the controls that set them live in the
+    /// window's toolbar, and the pane builds its view model internally. Filtering and ordering rows is
+    /// presentation, so it happens over the rows rather than inside the type that fetches them.
+    @State private var codesQuery = ""
+    @State private var codesSort: ItemSortOrder = .nameAscending
+
+    private var isShowingVerificationCodes: Bool { viewModel.sidebarSelection == .verificationCodes }
+
+    /// What the toolbar's search field filters: the item list, or the codes when that is what the list
+    /// column is showing. One field, two subjects — the field belongs to the column, not to a list.
+    private var listSearchQuery: Binding<String> {
+        isShowingVerificationCodes
+            ? Binding(get: { codesQuery }, set: { codesQuery = $0 })
+            : $viewModel.searchQuery
+    }
+
+    /// The list column's width, read from the layout.
+    ///
+    /// The expanded search field is sized from this rather than given a fixed width: with the discs at
+    /// `Spacing.toolbarDisc` a fixed field overflowed the column and pushed the group off its trailing
+    /// edge, which is what "it crosses the second column" described.
+    @State private var listColumnWidth: CGFloat = 0
+
+    /// What is left of the column for the field once the two discs and their gaps have taken theirs.
+    ///
+    /// Clamped at both ends. Below 80pt the field cannot show a query; above 180pt it stops reading as
+    /// a field and starts reading as the row. The clamp is also why the column's own minimum matters:
+    /// `navigationSplitViewColumnWidth` declares 240pt, and this is what fits inside it.
+    private var expandedSearchFieldWidth: CGFloat {
+        // The two discs, the fixed spacers and the toolbar's own insets measured ~121pt of the column
+        // in a real window. Reserving 137 leaves a ~16pt margin at every width, which is the part that
+        // matters: a field that merely *ends* inside the column still reads as crossing when it stops
+        // against the divider. At the column's 240pt minimum this yields 103pt, still above the floor.
+        let taken = Spacing.toolbarDisc * 2 + 63
+        return min(180, max(80, listColumnWidth - taken))
+    }
 
     /// The master-password gate for the selected item.
     ///
@@ -59,72 +103,189 @@ struct VaultBrowserView: View {
         )
     }
 
-    /// The sort-order menu.
+    /// The item list's own controls, in the window's toolbar above the column that owns the list.
     ///
-    /// Extracted from the toolbar rather than written inline. `NavigationSplitView`'s closures are one
-    /// enormous expression to the type checker, and adding a second toolbar item to it pushed the whole
-    /// body past what it will do in reasonable time. The message it gives ("unable to type-check this
-    /// expression") points at whichever sub-expression it gave up on, not at the cause.
-    private var sortOrderToolbarItem: some ToolbarContent {
-        ToolbarItem(placement: .automatic) {
-            Menu {
-                ForEach(ItemSortOrder.allCases) { order in
-                    Button {
-                        viewModel.sortOrder = order
-                    } label: {
-                        if order == viewModel.sortOrder {
-                            Label(order.displayName, systemImage: "checkmark")
-                        } else {
-                            Text(order.displayName)
-                        }
-                    }
-                }
-            } label: {
-                // An `HStack`, not a `Label`. A toolbar is free to collapse a `Label` to its icon when it
-                // judges there is no room for the title, and that is what it did here: the word on the
-                // control — the whole point of the item — disappeared. Built by hand, it is drawn as
-                // written.
-                HStack(spacing: 4) {
-                    Image(systemName: "arrow.up.arrow.down")
-                    Text(viewModel.sortOrder.toolbarLabel)
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 8, weight: .semibold))
-                        .foregroundStyle(Foreground.muted)
-                }
-                .foregroundStyle(.primary)
-            }
-            // `.borderlessButton`, not `.button`: the latter draws the label in a button's own chrome,
-            // and in a macOS 26 toolbar that chrome is the rounded capsule the reference does not have.
-            // `.buttonStyle(.plain)` was already applied when the capsule was still drawn, so the
-            // chrome comes from the menu style, not from the button style.
-            .menuStyle(.borderlessButton)
-            .menuIndicator(.hidden)
-            .buttonStyle(.plain)
-            .help(L("Sort Order"))
-            .accessibilityLabel(L("Sort Order"))
-            .accessibilityIdentifier(AccessibilityID.Vault.sortMenu)
+    /// All three are toolbar items again. They were briefly drawn in the column's own content area,
+    /// which put them below the titlebar; the toolbar row is where the rest of the window's controls
+    /// live and where they belong.
+    ///
+    /// The search field is not `.searchable`: that hands the field to the window's toolbar, which
+    /// draws it in the trailing slot past the detail column, so it can never sit beside these two. A
+    /// plain toolbar item holding our own field can — and it is collapsed to a glyph until it is
+    /// clicked, which is what a toolbar search looks like when it is not the system one.
+    @ToolbarContentBuilder
+    private var listToolbarItems: some ToolbarContent {
+        // The spacer puts the group at this column's trailing edge, so it sits at the top-right of
+        // the list column rather than against the sidebar toggle. `placement` cannot do it — see the
+        // note on the detail column's toolbar for the measurement.
+        ToolbarSpacer(.flexible)
+
+        if viewModel.sidebarSelection != .trash {
+            ToolbarItem(placement: .automatic) { toolbarDisc { createControl } }
+                .sharedBackgroundVisibility(.hidden)
         }
-        // macOS 26 draws each toolbar item on its own shared capsule — the new chrome — which is the
-        // pill the reference does not have. Hiding it leaves the label itself, flat, which is what the
-        // picture shows: a sort label and, in the action colour, "New Item".
-        .sharedBackgroundVisibility(.hidden)
+        // A fixed spacer between each pair, not decoration: macOS 26 merges adjacent toolbar items
+        // into one shared capsule, which drew sort and search as a single control and made three
+        // separate functions look like two. A fixed spacer ends the group.
+        ToolbarSpacer(.fixed)
+        ToolbarItem(placement: .automatic) { toolbarDisc { sortControl } }
+            .sharedBackgroundVisibility(.hidden)
+        ToolbarSpacer(.fixed)
+        ToolbarItem(placement: .automatic) { searchControl }
+            .sharedBackgroundVisibility(.hidden)
     }
 
-    /// The browser's own controls, minus the ones a trashed item replaces.
+    /// The disc a toolbar control is drawn in.
     ///
-    /// `list-column-header` requires the create menu to be **absent from the view tree** in Trash
-    /// rather than merely disabled, because the ⌘N shortcut rides in a hidden companion button inside
-    /// the menu item — hide the item and the shortcut goes with it. The requirement was written when
-    /// this item lived on the content column, where the `List` swapped for `TrashView` and the item
-    /// was declared beside it; it has been unconditional since. Extracted into a builder because an
-    /// `if` written straight into the toolbar closure is enough to exceed the type checker on this
-    /// view — the same reason `trashToolbarItems` exists.
-    @ToolbarContentBuilder
-    private var browserToolbarItems: some ToolbarContent {
-        sortOrderToolbarItem
-        if viewModel.sidebarSelection != .trash {
-            newItemToolbarItem
+    /// macOS 26 wraps each toolbar item in a shared capsule whose height the toolbar decides — giving
+    /// the item a square content frame does **not** turn that capsule into a circle, which was measured
+    /// rather than assumed. So these items hide the capsule and draw this instead, sized and styled to
+    /// match the split view's own sidebar toggle: `Spacing.toolbarDisc` across, a light fill and a soft
+    /// shadow so it reads as the same kind of control as the toggle sitting a few hundred points away.
+    private func toolbarDisc<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+        content()
+            .frame(width: Spacing.toolbarDisc, height: Spacing.toolbarDisc)
+            .background(
+                Circle()
+                    .fill(Color.primary.opacity(Opacity.toolbarDiscFill))
+                    .shadow(color: .black.opacity(Opacity.toolbarDiscShadow), radius: 1.5, y: 0.5)
+            )
+            .overlay(
+                Circle().strokeBorder(Color.primary.opacity(Opacity.cardBorder(contrast)), lineWidth: 0.5)
+            )
+    }
+
+    /// The magnifier until it is clicked, the field after that.
+    ///
+    /// The field is a fixed width rather than flexible: it shares a 240–340pt column with two other
+    /// items, and a field that asked for the room it wanted would push them out of the toolbar.
+    @ViewBuilder
+    private var searchControl: some View {
+        if isSearchExpanded {
+            searchField(width: expandedSearchFieldWidth)
+                // Escape leaves search, which is what the system field did for free and what the
+                // global-search requirement has a scenario for: clearing the query is what
+                // deactivates global search, through the `onChange` wiring below.
+                .onExitCommand {
+                    viewModel.searchQuery = ""
+                    isSearchExpanded = false
+                    isSearchFieldFocused = false
+                }
+        } else {
+            toolbarDisc {
+                Button {
+                    expandSearch()
+                } label: {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundStyle(Foreground.muted)
+                }
+                .buttonStyle(.plain)
+                .help(L("Search vault"))
+                .accessibilityLabel(L("Search vault"))
+                .accessibilityIdentifier(AccessibilityID.Vault.searchButton)
+            }
         }
+    }
+
+    /// Shows the field and puts the caret in it.
+    ///
+    /// The focus hop is one run-loop turn late on purpose: the field does not exist in the same update
+    /// that reveals it, and `@FocusState` cannot be pointed at a view that has not been inserted yet.
+    /// Setting it in the same turn is silently dropped, which reads as "the click did nothing".
+    private func expandSearch() {
+        isSearchExpanded = true
+        Task { @MainActor in isSearchFieldFocused = true }
+    }
+
+    /// The sort-order menu.
+    private var sortControl: some View {
+        Menu {
+            // A code row has a name and nothing else orderable — no dates, no type — so the codes
+            // destination is offered the two name orders and not the four that would do nothing.
+            ForEach(isShowingVerificationCodes
+                        ? [ItemSortOrder.nameAscending, .nameDescending]
+                        : ItemSortOrder.allCases) { order in
+                Button {
+                    if isShowingVerificationCodes { codesSort = order }
+                    else                           { viewModel.sortOrder = order }
+                } label: {
+                    if order == currentSortOrder {
+                        Label(order.displayName, systemImage: "checkmark")
+                    } else {
+                        Text(order.displayName)
+                    }
+                }
+            }
+        } label: {
+            // Glyph only. The comment here used to explain why an `HStack` was built by hand instead
+            // of a `Label`: a control is free to collapse a `Label` to its icon, and the word was the
+            // point. The word is no longer wanted, so the collapse that comment fought is the result
+            // now — and the tooltip and accessibility label carry the name the glyph does not print.
+            Image(systemName: "arrow.up.arrow.down")
+                .foregroundStyle(.primary)
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .buttonStyle(.plain)
+        .fixedSize()
+        .help(L("Sort Order"))
+        .accessibilityLabel(L("Sort Order"))
+        .accessibilityIdentifier(AccessibilityID.Vault.sortMenu)
+    }
+
+    private var currentSortOrder: ItemSortOrder {
+        isShowingVerificationCodes ? codesSort : viewModel.sortOrder
+    }
+
+    /// The vault search field.
+    ///
+    /// Drawn rather than borrowed. `TextField` is the plain one — no magnifier, no clear affordance,
+    /// no capsule — so the three parts of a search field are assembled here. The `xmark` appears only
+    /// when there is something to clear, which is what makes it a control rather than decoration.
+    ///
+    /// **The frame goes before the background, and that ordering is the point.** `.frame` applied
+    /// *after* a `.background` sizes the layout but not the shape: the capsule stays at the content's
+    /// own 21pt and the field draws visibly shorter than the discs beside it, which is exactly what was
+    /// reported. Both dimensions are passed in because the width has to come from the column.
+    private func searchField(width: CGFloat) -> some View {
+        HStack(spacing: 5) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 11))
+                .foregroundStyle(Foreground.muted)
+                .accessibilityHidden(true)
+
+            TextField(L("Search vault"), text: listSearchQuery)
+                .textFieldStyle(.plain)
+                .font(Typography.listSubtitle)
+                .focused($isSearchFieldFocused)
+                // The field inside the field. A toolbar sizes its item to the content's ideal width,
+                // and a `TextField`'s ideal width grows with its text — so with only the outer frame
+                // set, typing widened the whole item until it crossed the column. `maxWidth: .infinity`
+                // inside a fixed frame makes the text scroll within the field instead of pushing it.
+                .frame(minWidth: 0, maxWidth: .infinity)
+
+            if !viewModel.searchQuery.isEmpty {
+                Button {
+                    viewModel.searchQuery = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 11))
+                        .foregroundStyle(Foreground.muted)
+                }
+                .buttonStyle(.plain)
+                .help(L("Clear search"))
+                .accessibilityLabel(L("Clear search"))
+            }
+        }
+        .padding(.horizontal, 9)
+        .frame(width: width, height: Spacing.toolbarDisc)
+        // The same chrome the discs wear, in the shape a field needs: the four controls in this row
+        // have to look like one family, and a grey capsule beside three white discs did not.
+        .background(Capsule().fill(Color.primary.opacity(Opacity.toolbarDiscFill)))
+        .overlay(
+            Capsule().strokeBorder(Color.primary.opacity(Opacity.cardBorder(contrast)), lineWidth: 0.5)
+        )
+        .accessibilityIdentifier(AccessibilityID.Vault.searchField)
     }
 
     /// A trashed item's two commands.
@@ -156,45 +317,40 @@ struct VaultBrowserView: View {
 
     /// The "new item" menu, with ⌘N on a zero-size companion button because a `Menu` cannot itself
     /// carry a keyboard shortcut.
-    private var newItemToolbarItem: some ToolbarContent {
-        ToolbarItem(placement: .primaryAction) {
-            Menu {
-                ForEach(ItemType.allCases) { type in
-                    Button {
-                        viewModel.createItemType = type
-                    } label: {
-                        Label(type.displayName, systemImage: type.sfSymbol)
-                    }
+    ///
+    /// `list-column-header` requires this control to be **absent from the view tree** in Trash rather
+    /// than merely disabled, because the shortcut rides in the hidden companion above — hide the
+    /// control, and the shortcut goes with it. `listHeaderRow` applies that condition.
+    private var createControl: some View {
+        Menu {
+            ForEach(ItemType.allCases) { type in
+                Button {
+                    viewModel.createItemType = type
+                } label: {
+                    Label(type.displayName, systemImage: type.sfSymbol)
                 }
-            } label: {
-                // Same reason as the sort control: a `Label` here renders as a bare plus.
-                HStack(spacing: 4) {
-                    Image(systemName: "plus")
-                        .font(.system(size: 12, weight: .semibold))
-                    Text(L("New Item"))
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 8, weight: .semibold))
-                }
+            }
+        } label: {
+            // Glyph only, for the same reason and by the same request as the sort control: this was an
+            // `HStack` built to stop a `Label` collapsing to a bare plus, and a bare plus is what is
+            // wanted now. The tooltip and accessibility label are the only things that still name it.
+            Image(systemName: "plus")
+                .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(Foreground.action)
-            }
-            // `.borderlessButton`, not `.button`: the latter draws the label in a button's own chrome,
-            // and in a macOS 26 toolbar that chrome is the rounded capsule the reference does not have.
-            // `.buttonStyle(.plain)` was already applied when the capsule was still drawn, so the
-            // chrome comes from the menu style, not from the button style.
-            .menuStyle(.borderlessButton)
-            .menuIndicator(.hidden)
-            .buttonStyle(.plain)
-            .help("New Item (⌘N)")
-            .accessibilityLabel("New Item")
-            .accessibilityIdentifier(AccessibilityID.Create.newItemButton)
-            .background {
-                Button("") { viewModel.createItemType = .login }
-                    .keyboardShortcut("n", modifiers: .command)
-                    .frame(width: 0, height: 0)
-                    .opacity(0)
-            }
         }
-        .sharedBackgroundVisibility(.hidden)
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .buttonStyle(.plain)
+        .fixedSize()
+        .help("New Item (⌘N)")
+        .accessibilityLabel("New Item")
+        .accessibilityIdentifier(AccessibilityID.Create.newItemButton)
+        .background {
+            Button("") { viewModel.createItemType = .login }
+                .keyboardShortcut("n", modifiers: .command)
+                .frame(width: 0, height: 0)
+                .opacity(0)
+        }
     }
 
     /// The detail column, extracted from the `NavigationSplitView` expression.
@@ -236,30 +392,35 @@ struct VaultBrowserView: View {
             RepromptSheet(viewModel: viewModel)
         }
         .toolbar {
+            // The trash controls stay at the window's trailing edge. The browser's own controls —
+            // sort and create — moved to the content column at the user's request: they act on the
+            // item list, and they now sit above it beside the search field rather than at the far
+            // side of a detail pane that is empty until something is selected.
             trashToolbarItems
             // Everything after a flexible spacer is drawn against the window's trailing edge, and
             // this is the only arrangement that does it. Measured in a window-sized probe of the
-            // three-column split: the same items declared on the content column land inside that
-            // column's span; on the split view itself (or with `placement: .primaryAction`, or as a
-            // `.primaryAction` group) they pack in behind the sidebar toggle. `placement` has no
-            // effect inside a column — the column owns the position — so the trailing edge has to be
-            // reached by pushing with a spacer from the column that is already last.
+            // three-column split: items declared on a column land inside that column's span; on the
+            // split view itself (or with `placement: .primaryAction`, or as a `.primaryAction`
+            // group) they pack in behind the sidebar toggle. `placement` has no effect inside a
+            // column — the column owns the position — so the trailing edge has to be reached by
+            // pushing with a spacer from the column that is already last.
             ToolbarSpacer(.flexible)
-            browserToolbarItems
         }
     }
 
-    /// The verification-codes sheet's content, extracted from the modifier chain.
+    /// The verification-codes destination's content, extracted from the modifier chain.
     ///
     /// A view body of this size is one expression to the type checker, and an inline closure here was
     /// enough to push it past what the checker will do — reporting, unhelpfully, that some unrelated
     /// toolbar button could not be type-checked.
     @ViewBuilder
-    private var verificationCodesSheet: some View {
+    private var verificationCodesPane: some View {
         if let makeVerificationCodesViewModel {
-            VerificationCodesSheet(
+            VerificationCodesPane(
                 makeViewModel: makeVerificationCodesViewModel,
-                onDismiss: { viewModel.isShowingVerificationCodes = false }
+                onSelect: { viewModel.highlightItem(id: $0) },
+                query: codesQuery,
+                sortOrder: codesSort
             )
         }
     }
@@ -278,6 +439,11 @@ struct VaultBrowserView: View {
         return viewModel.revealGate(for: item)
     }
     @Environment(\.colorSchemeContrast) private var contrast
+
+    /// Asks SwiftUI for the app's `Settings` scene. Used by the gear in the sidebar's status row;
+    /// resolving it here rather than constructing a window means there is one Settings window and
+    /// ⌘, and the button cannot end up pointing at two different things.
+    @Environment(\.openSettings) private var openSettings
 
     private let logger = Logger(subsystem: "dev.lemonevo.vitrine", category: "UI.VaultBrowser")
 
@@ -299,34 +465,32 @@ struct VaultBrowserView: View {
                             createCollection: { viewModel.createCollection(name: $0, organizationId: $1) },
                             renameCollection: { viewModel.renameCollection(id: $0, organizationId: $1, name: $2) },
                             deleteCollection: { viewModel.deleteCollection(id: $0, organizationId: $1) },
-                            showVerificationCodes: { viewModel.isShowingVerificationCodes = true }
+                            showVerificationCodes: { viewModel.sidebarSelection = .verificationCodes }
                         )
                     )
-                    // The refresh control rides with the state it refreshes, at the end of the sidebar's
-                    // status row, rather than sitting in the titlebar beside the sort control.
+                    // The refresh control rides with the state it refreshes, at the leading end of the
+                    // sidebar's status row, and the settings gear closes the same row — rather than
+                    // either of them sitting in the titlebar beside the sort control.
                     SyncStatusView(
                         label:           viewModel.syncStatusLabel,
                         isSyncing:       viewModel.isSyncing,
-                        hasSynced:       viewModel.lastSyncedAt != nil,
                         unreadableCount: viewModel.unreadableItemCount,
-                        onSync:          { viewModel.performManualSync() }
+                        onSync:          { viewModel.performManualSync() },
+                        // The same window ⌘, opens, so the two routes cannot drift: there is one
+                        // `Settings` scene and this asks SwiftUI for it rather than rebuilding one.
+                        onOpenSettings:  { openSettings() }
                     )
                 }
-                // The vault search field, in the sidebar column.
+                // The vault search field used to be attached here, on the reasoning that searching and
+                // choosing *where* to search belong in one place. It moved to the content column at
+                // the user's request, so that the three controls which act on the item list — sort,
+                // create, search — sit together above that list. The binding, the focused state, the
+                // ⌘F activation and the global-search rules are untouched by the move.
                 //
-                // Moved here from the detail column: searching and choosing *where* to search belong
-                // in one place, and the sidebar is the column that says where. Only the placement
-                // changed — the binding, the focused state, the ⌘F activation and the global-search
-                // rules are the ones that were already here and tested.
+                // No gear in this strip either: the approved reference holds nothing between the
+                // traffic lights and the sidebar toggle, so Settings is reached from the app menu
+                // (⌘,) and from the gear at the end of the status row below.
                 //
-                // No gear button beside it: the approved reference's strip holds nothing between the
-                // traffic lights and the sidebar toggle. Settings remains in the app menu (⌘,).
-                .searchable(
-                    text: $viewModel.searchQuery,
-                    isPresented: $isSearchFieldFocused,
-                    placement: .sidebar,
-                    prompt: "Search vault"
-                )
                 // Last in the chain on purpose, and the ordering is the point: measured against a
                 // saved-column readout, with `.searchable` and `.toolbar` applied *after* this
                 // preference the sidebar laid out at 144pt — below the 200pt minimum declared right
@@ -338,7 +502,9 @@ struct VaultBrowserView: View {
             content: {
                 VStack(spacing: 0) {
                     syncErrorBanner
-                    if viewModel.sidebarSelection == .trash {
+                    if viewModel.sidebarSelection == .verificationCodes {
+                        verificationCodesPane
+                    } else if viewModel.sidebarSelection == .trash {
                         TrashView(
                             items:             viewModel.displayedItems,
                             selection:         $viewModel.itemSelection,
@@ -360,6 +526,20 @@ struct VaultBrowserView: View {
                         )
                     }
                 }
+                // The list's own controls live in the window's toolbar, above this column — see
+                // `listToolbarItems`. They are not `.searchable`: that gives the field to the window's
+                // toolbar, which draws it in the trailing slot beyond the detail column, so it can
+                // never sit beside the create and sort controls.
+                //
+                // The width is reported out of here because the toolbar draws in a different hierarchy
+                // from this column, and the expanded field has to be sized to the column it belongs to.
+                .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { listColumnWidth = $0 }
+                .toolbar {
+                    listToolbarItems
+                }
+                // Last in the chain, and the ordering is still load-bearing: measured against a
+                // saved-column readout, with `.toolbar` applied *after* this preference the content
+                // column lost its 262pt ideal. The preference is dropped, not ignored by the API.
                 .navigationSplitViewColumnWidth(min: 240, ideal: 262, max: 340)
             },
             detail: { detailColumn }
@@ -408,6 +588,17 @@ struct VaultBrowserView: View {
         .onChange(of: viewModel.isGlobalSearch) { _, isActive in
             if !isActive { isSearchFieldFocused = false }
         }
+        .onChange(of: isSearchFieldFocused) { _, focused in
+            // Collapses back to the magnifier when the field loses focus with nothing typed.
+            //
+            // Without this the toolbar keeps a text field open for the rest of the session, which is
+            // what "once it expands it will not go back" describes. A non-empty query keeps it open on
+            // purpose: hiding an active filter behind a glyph would hide the fact that the list is
+            // showing fewer items than the vault holds.
+            if !focused, viewModel.searchQuery.isEmpty {
+                isSearchExpanded = false
+            }
+        }
         .onChange(of: viewModel.syncErrorMessage) { _, newMessage in
             if let message = newMessage {
                 AccessibilityNotification.Announcement(message).post()
@@ -420,8 +611,11 @@ struct VaultBrowserView: View {
         }
         .background {
             Button("") {
-                viewModel.activateGlobalSearch()
-                isSearchFieldFocused = true
+                // `activateGlobalSearch` is the item list's search: it widens the scope and drops the
+                // sidebar selection, which would take the user off the codes destination mid-keystroke.
+                // On that destination ⌘F only has to reach the field.
+                if !isShowingVerificationCodes { viewModel.activateGlobalSearch() }
+                expandSearch()
             }
             .keyboardShortcut("f", modifiers: .command)
             .frame(width: 0, height: 0)
@@ -454,9 +648,8 @@ struct VaultBrowserView: View {
                 )
             }
         }
-        // Verification codes. A sheet, and built here rather than held, so the rows' timers exist only
-        // while it is up.
-        .sheet(isPresented: $viewModel.isShowingVerificationCodes) { verificationCodesSheet }
+        // The codes are a destination now, not a sheet: nothing is presented here, and leaving the
+        // destination is what releases the rows' timers.
     }
 
     // MARK: - Sync Error Banner

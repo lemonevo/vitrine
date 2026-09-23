@@ -175,39 +175,14 @@ struct SidebarView: View {
             SidebarRowView(title: SidebarSelection.allItems.displayName, systemImage: "square.grid.2x2", selection: .allItems, count: itemCounts[.allItems] ?? 0, isSelected: selection == .allItems, identifier: AccessibilityID.Sidebar.allItems)
             SidebarRowView(title: SidebarSelection.favorites.displayName, systemImage: "star", selection: .favorites, count: itemCounts[.favorites] ?? 0, isSelected: selection == .favorites, tint: Foreground.favorite, identifier: AccessibilityID.Sidebar.favorites)
 
-            // A view rather than a scope, so it is a button and carries no selection tag: opening a
-            // sheet is not "being in" a category, and a highlighted row left behind afterwards would
-            // say otherwise.
+            // A destination now, like Trash: it was a button that opened a sheet, and it is a row
+            // that selects. The chevron is gone with the sheet — a row you *are in* does not lead
+            // somewhere else — and the highlight is the same one every other row uses.
             //
-            // Built to the same anatomy as `SidebarRowView` — icon column, title, trailing slot — plus
-            // the chevron the reference shows, because this row leads somewhere rather than selecting
-            // something. A `Label` here sat at a different indent from every row around it.
-            Button(action: actions.showVerificationCodes) {
-                HStack(spacing: 0) {
-                    Image(systemName: "lock.shield")
-                        .font(.system(size: 12.5))
-                        .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(Foreground.muted)
-                        .padding(.leading, 6)
-                        .frame(width: Spacing.sidebarIconWidth, alignment: .leading)
-
-                    Text(L("Verification Codes"))
-                        .font(Typography.sidebarRow)
-                        .lineLimit(1)
-                        .padding(.leading, 8)
-
-                    Spacer(minLength: 4)
-
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(Foreground.muted)
-                }
-                .sidebarRow(isSelected: false, contrast: contrast)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .listRowSeparator(.hidden)
-            .accessibilityIdentifier(AccessibilityID.Vault.verificationCodesButton)
+            // What the sheet was for, and what this gives up, is in `SidebarSelection.verificationCodes`
+            // and in the change's design doc: a selected destination keeps the seconds factors on
+            // screen until the user leaves it.
+            SidebarRowView(title: SidebarSelection.verificationCodes.displayName, systemImage: "lock.shield", selection: .verificationCodes, count: itemCounts[.verificationCodes] ?? 0, isSelected: selection == .verificationCodes, tint: Foreground.muted, identifier: AccessibilityID.Sidebar.verificationCodes)
         case .folders:
             if isCreatingFolder {
                 TextField("Name or Parent/Name", text: $newFolderName, onCommit: {

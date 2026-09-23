@@ -179,9 +179,9 @@ final class ContrastTokenTests: XCTestCase {
         }
     }
 
-    // MARK: Foreground.success — the sync dot
+    // MARK: Foreground.success — the positive-state colour
 
-    func test_successDotClearsTheNonTextFloor() {
+    func test_successClearsTheNonTextFloor() {
         let palette = Foreground.successComponents
         for (appearance, rgb, surfaces) in [(NSAppearance.Name.aqua, palette.light, lightSurfaces),
                                             (.darkAqua, palette.dark, darkSurfaces)] {
@@ -191,13 +191,14 @@ final class ContrastTokenTests: XCTestCase {
                 XCTAssertGreaterThanOrEqual(
                     measured, 3.0,
                     "Foreground.success is \(String(format: "%.2f", measured)):1 on \(mode) \(surface.name) — "
-                    + "the 6pt sync dot is the at-a-glance signal beside the label"
+                    + "the palette's positive-state colour, measured to the non-text floor"
                 )
             }
         }
     }
 
-    /// `Color.green` is what the dot used to be, and it is the reason the token exists.
+    /// The measurement that started the token: `Color.green` is what the removed sync dot was drawn
+    /// with, and it is the reason a dedicated colour exists at all.
     func test_systemGreenWouldFailTheSameMeasurement() {
         var rgb: (Double, Double, Double) = (0, 0, 0)
         NSAppearance(named: .aqua)!.performAsCurrentDrawingAppearance {

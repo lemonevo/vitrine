@@ -80,8 +80,16 @@ nonisolated enum AccessibilityID {
         static let omittedCount     = "vault.backup.omittedCount"
         /// The toolbar button opening the vault-wide verification-codes list.
         static let verificationCodesButton = "vault.verificationCodes"
-        /// The manual sync button at the end of the sidebar's status row (⌘R).
+        /// The manual sync button at the leading end of the sidebar's status row (⌘R).
         static let syncButton        = "vault.button.sync"
+        /// The vault search field, drawn by the list column rather than installed by `.searchable`.
+        static let searchField       = "vault.searchField"
+        /// The magnifier that reveals the search field in the toolbar.
+        static let searchButton      = "vault.button.search"
+        /// The settings gear at the trailing end of the same row. A second route to the window ⌘,
+        /// opens — the app menu keeps its item, and this is where a Mac user looks for it in the
+        /// window itself.
+        static let settingsButton    = "vault.button.settings"
         /// The sort-order menu at the window's trailing edge.
         static let sortMenu          = "vault.menu.sort"
     }
@@ -93,6 +101,8 @@ nonisolated enum AccessibilityID {
         static let allItems          = "sidebar.allItems"
         static let favorites         = "sidebar.favorites"
         static let trash             = "sidebar.trash"
+        /// The sidebar destination listing every one-time code in the vault.
+        static let verificationCodes = "sidebar.verificationCodes"
         static func type(_ name: String) -> String { "sidebar.type.\(name)" }
     }
 
@@ -203,9 +213,11 @@ nonisolated enum AccessibilityID {
 
     /// The verification-codes list and its rows.
     enum VerificationCodes {
-        static let sheet       = "verificationCodes.sheet"
+        /// The codes destination in the list column.
+        static let pane        = "verificationCodes.pane"
         static let emptyState  = "verificationCodes.empty"
-        static let doneButton  = "verificationCodes.done"
+        /// Shown when the query excludes every code, which is not the same as having none.
+        static let noMatchesState = "verificationCodes.noMatches"
         static func row(_ id: String) -> String { "verificationCodes.row.\(id)" }
         static func copyButton(_ id: String) -> String { "verificationCodes.copy.\(id)" }
         static func revealButton(_ id: String) -> String { "verificationCodes.reveal.\(id)" }

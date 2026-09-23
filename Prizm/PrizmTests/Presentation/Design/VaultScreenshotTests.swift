@@ -143,6 +143,7 @@ final class VaultScreenshotTests: XCTestCase {
         case .some(.folder(let id)):   return live.filter { $0.folderId == id }
         case .some(.organization(let id)): return live.filter { $0.organizationId == id }
         case .some(.collection(let id)):   return live.filter { $0.collectionIds.contains(id) }
+        case .some(.verificationCodes): return []
         case .some(.newFolder), .some(.newCollection): return live
         }
     }
@@ -218,7 +219,7 @@ final class VaultScreenshotTests: XCTestCase {
     }
 
     /// The verification-codes sheet, with the countdown as the detail pane draws it.
-    func testVerificationCodesSheet() async throws {
+    func testVerificationCodesPane() async throws {
         let vault = MockVaultRepository()
         await vault.populate(items: DesignFixtures.items,
                              folders: DesignFixtures.folders,
@@ -227,13 +228,13 @@ final class VaultScreenshotTests: XCTestCase {
                              syncedAt: Date())
 
         try snapshot("codes", size: CGSize(width: 420, height: 300)) {
-            VerificationCodesSheet(
+            VerificationCodesPane(
                 makeViewModel: {
                     VerificationCodesViewModel(vault: vault,
                                                generator: TOTPGeneratorImpl(),
                                                gateFor: { _ in .none })
                 },
-                onDismiss: {}
+                onSelect: { _ in }
             )
         }
     }
@@ -272,14 +273,14 @@ final class VaultScreenshotTests: XCTestCase {
         window.contentView = NSHostingView(
             rootView: AnyView(
                 installEnvironment(
-                    VerificationCodesSheet(
+                    VerificationCodesPane(
                         makeViewModel: {
                             let made = VerificationCodesViewModel(
                                 vault: vault, generator: TOTPGeneratorImpl(), gateFor: { _ in .none })
                             listModel = made
                             return made
                         },
-                        onDismiss: {}
+                        onSelect: { _ in }
                     )
                 )
                 .frame(width: size.width, height: size.height)

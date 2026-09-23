@@ -47,6 +47,13 @@ user believes they deleted.
 
 ## Decision 5 — a sheet, not a pane
 
+> **SUPERSEDED on 2026-09-23** by `openspec/changes/codes-as-a-destination/`. The reviewer asked for the
+> codes to behave like every other list in the window, and they are now a sidebar destination rather
+> than a sheet. The reasoning below is kept because it is still the cost of that decision, and the new
+> change carries it rather than pretending it went away: **while the destination is selected, every
+> second factor is on screen.** Leaving the destination, or locking, takes them off it. What the
+> override does *not* relax is anything the gate or the seed rules in Decisions 1–3 protect.
+
 Codes on screen are codes an onlooker can read. A sheet is present while the user is using it and gone
 afterwards, which matches how the feature is used: reach for it when asked for a code, close it when the
 code is entered. A toolbar toggle that stays on would leave the vault's second factors visible for the

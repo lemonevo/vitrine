@@ -124,7 +124,7 @@
 		CA0E0091000000000000B091 /* PinUnlockSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0E0090000000000000F090 /* PinUnlockSection.swift */; };
 		CA0E00A1000000000000B0A1 /* VaultExportCSV.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0E00A0000000000000F0A0 /* VaultExportCSV.swift */; };
 		CA0E00B1000000000000B0B1 /* VerificationCodesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0E00B0000000000000F0B0 /* VerificationCodesViewModel.swift */; };
-		CA0E00C1000000000000B0C1 /* VerificationCodesSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0E00C0000000000000F0C0 /* VerificationCodesSheet.swift */; };
+		CA0E00C1000000000000B0C1 /* VerificationCodesPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0E00C0000000000000F0C0 /* VerificationCodesPane.swift */; };
 		CA0E0071000000000000B071 /* KeychainPinUnlockService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0E0070000000000000F070 /* KeychainPinUnlockService.swift */; };
 		CA0E0004000000000000B004 /* VaultCacheStoreImpl.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0E0002000000000000F002 /* VaultCacheStoreImpl.swift */; };
 		3E04D7AC0223458CB329663C /* CustomField.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAB323D45FF2440C95C0BA70 /* CustomField.swift */; };
@@ -400,10 +400,10 @@
 		CA0E0090000000000000F090 /* PinUnlockSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinUnlockSection.swift; sourceTree = "<group>"; };
 		CA0E00A0000000000000F0A0 /* VaultExportCSV.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultExportCSV.swift; sourceTree = "<group>"; };
 		CA0E00B0000000000000F0B0 /* VerificationCodesViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerificationCodesViewModel.swift; sourceTree = "<group>"; };
-		CA0E00C0000000000000F0C0 /* VerificationCodesSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerificationCodesSheet.swift; sourceTree = "<group>"; };
+		CA0E00C0000000000000F0C0 /* VerificationCodesPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerificationCodesPane.swift; sourceTree = "<group>"; };
 		CA0E00D0000000000000A0D0 /* VerificationCodes */ = {isa = PBXGroup; children = (
 			CA0E00B0000000000000F0B0 /* VerificationCodesViewModel.swift */,
-			CA0E00C0000000000000F0C0 /* VerificationCodesSheet.swift */,
+			CA0E00C0000000000000F0C0 /* VerificationCodesPane.swift */,
 		); path = VerificationCodes; sourceTree = "<group>"; };
 		CA0E0002000000000000F002 /* VaultCacheStoreImpl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultCacheStoreImpl.swift; sourceTree = "<group>"; };
 		4F246F209ADA45F99C9B17DB /* LoginDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginDetailView.swift; sourceTree = "<group>"; };
@@ -1266,7 +1266,7 @@
 				CA0E0091000000000000B091 /* PinUnlockSection.swift in Sources */,
 				CA0E00A1000000000000B0A1 /* VaultExportCSV.swift in Sources */,
 				CA0E00B1000000000000B0B1 /* VerificationCodesViewModel.swift in Sources */,
-				CA0E00C1000000000000B0C1 /* VerificationCodesSheet.swift in Sources */,
+				CA0E00C1000000000000B0C1 /* VerificationCodesPane.swift in Sources */,
 				CA0E0071000000000000B071 /* KeychainPinUnlockService.swift in Sources */,
 				CA0E0004000000000000B004 /* VaultCacheStoreImpl.swift in Sources */,
 				B1C2D3E4F5A64791B2C3D4E5 /* SyncTimestampRepository.swift in Sources */,

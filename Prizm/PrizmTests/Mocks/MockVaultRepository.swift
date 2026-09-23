@@ -80,6 +80,11 @@ final class MockVaultRepository: VaultRepository {
             return populatedItems.filter { $0.folderId == folderId }
         case .trash:
             return populatedItems.filter(\.isDeleted)
+        case .verificationCodes:
+            // Not an item list: the destination builds its own rows from the logins that carry a
+            // one-time-code key. Empty rather than filtered, so nothing downstream mistakes it for a
+            // list of items that happens to be missing.
+            return []
         case .newFolder:
             return []
         case .organization(let orgId):

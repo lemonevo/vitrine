@@ -212,11 +212,17 @@ enum Foreground {
         return NSColor(srgbRed: rgb.0, green: rgb.1, blue: rgb.2, alpha: 1)
     })
 
-    /// A state that is good and current — the sidebar's "synced" dot.
+    /// A state that is good and current.
+    ///
+    /// **This token has no consumer in the app at present.** It was introduced for the sidebar's
+    /// "synced" dot, which has since been removed, and it is kept rather than deleted because nothing
+    /// about it is wrong — the measurements below still describe it. Whether a palette entry with no
+    /// caller should stay is a separate question, and the honest state of it is recorded here rather
+    /// than left for someone to infer from an unused declaration.
     ///
     /// `Color.green` measured **2.22:1** against the light window, under the 3:1 floor for non-text
-    /// content, so the dot that is supposed to make the sync state readable from across the room was
-    /// the weakest thing on the pane. These two clear 5.59:1 light and 8.23:1 dark.
+    /// content, so the dot drawn with it was the weakest thing on the pane. These two clear 5.59:1
+    /// light and 8.23:1 dark.
     static let success: Color = Color(nsColor: NSColor(name: nil) { appearance in
         let isDark = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
         let rgb = isDark ? successComponents.dark : successComponents.light
@@ -499,6 +505,15 @@ enum Spacing {
     /// icon-only glyph. They sit on one line, so one of them being a different height is visible
     /// immediately.
     static let controlHeight: CGFloat = 26
+
+    /// Diameter of the disc behind a control in the window's toolbar.
+    ///
+    /// **37pt, measured rather than guessed.** The split view's own sidebar toggle was captured and
+    /// measured at 74px in a 2× screenshot, and the list column's three controls are meant to read as
+    /// the same kind of thing as it. `controlHeight` (26pt) is the size for controls *inside* a pane,
+    /// where they sit on a line with text and nothing is competing for height — using it in the toolbar
+    /// made these three visibly smaller than the toggle beside them.
+    static let toolbarDisc: CGFloat = 37
 
     /// Corner radius of a detail header action button.
     static let actionButtonCornerRadius: CGFloat = 6
